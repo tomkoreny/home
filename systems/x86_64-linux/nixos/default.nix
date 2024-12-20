@@ -32,11 +32,11 @@
   }];
 
 # this section is wierd and does not work, fix one day
-  i18n.inputMethod = {
-	  enable = true;
-	  type = "ibus";
-	  ibus.engines = with pkgs.ibus-engines; [ /* any engine you want, for example */ uniemoji ];
-  };
+#  i18n.inputMethod = {
+#	  enable = true;
+#	  type = "ibus";
+#	  ibus.engines = with pkgs.ibus-engines; [ /* any engine you want, for example */ uniemoji ];
+#  };
 
 # end of section
 
@@ -54,7 +54,7 @@
             };
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  nix.gc = { automatic = true; dates = "weekly"; options = "--delete-older-than 7d"; };
+  nix.gc = { automatic = false; dates = "weekly"; options = "--delete-older-than 7d"; };
 
 
   networking.hostName = "nixos"; # Define your hostname.
@@ -155,7 +155,7 @@
   home-manager.useGlobalPkgs = true;
   home-manager.users.tom = { pkgs, ... }: {
 	  home.packages = [
-		  pkgs.nerdfonts
+		  pkgs.nerd-fonts.jetbrains-mono
 			  pkgs.nerdfetch
 			  pkgs.sshpass
 			  pkgs.ansible
@@ -179,13 +179,15 @@
 
 			  pkgs.hypridle
 			  pkgs.git-credential-oauth
+              pkgs.typescript
+              pkgs.typescript-language-server
 			  ];
 
 	  home.shellAliases = {
 		  v = "nvim";
 		  ssh = "kitten ssh";
 		  vi = "nvim";
-		  conf = "nvim ~/nixos/configuration.nix";
+		  conf = "nvim ~/nixos2";
 		  sw = "nh os switch";
 		  dcu = "docker compose up -d";
 		  dcd = "docker compose down";
@@ -197,7 +199,7 @@
 		  enable = true;
 		  clean.enable = true;
 		  clean.extraArgs = "--keep-since 4d --keep 3";
-		  flake = "/home/tom/nixos";
+		  flake = "/home/tom/nixos2";
 	  };
 
 
@@ -240,7 +242,8 @@
 			  ];
 		  };
 	  };
-
+      programs.tmux.enable = true;
+      programs.tmux.sensibleOnTop = true;
   };
 
 # Enable automatic login for the user.
