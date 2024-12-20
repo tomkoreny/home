@@ -31,7 +31,6 @@
 	    systems.modules.nixos = with inputs; [
       hyprland.nixosModules.default
       stylix.nixosModules.stylix
-      nixvim.nixosModules.nixvim
       lanzaboote.nixosModules.lanzaboote
       home-manager.nixosModules.default
 	    ];

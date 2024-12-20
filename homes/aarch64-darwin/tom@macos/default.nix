@@ -27,7 +27,6 @@
 			  pkgs.kubectl
 			  pkgs.nodejs
 			  pkgs.jetbrains.webstorm
-			  pkgs.beeper
 
               (pkgs.discord.override {
                 # withOpenASAR = true; # can do this here too

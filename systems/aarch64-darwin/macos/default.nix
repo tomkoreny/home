@@ -22,13 +22,16 @@
 {
       # List packages installed in system profile. To search by name, run:
       # $ nix-env -qaP | grep wget
-      environment.systemPackages =
-        [ pkgs.vim
-        ];
+      environment.systemPackages = [ ];
 
       # Necessary for using flakes on this system.
       nix.settings.experimental-features = "nix-command flakes";
       nixpkgs.config.allowUnfree = true;
+      networking.hostName = "macos"; # Define your hostname.
+      networking.knownNetworkServices = [
+        "Wi-Fi"
+        "Thunderbolt Bridge"
+      ];
 
       # Enable alternative shell support in nix-darwin.
       # programs.fish.enable = true;
@@ -42,4 +45,13 @@
 
       # The platform the configuration will be used on.
       nixpkgs.hostPlatform = "aarch64-darwin";
+
+users.knownUsers = ["tom"];
+  users.users.tom = {
+    uid = 501;
+    description = "Tom Koreny";
+    shell = pkgs.bashInteractive;
+  };
+  services.tailscale.enable = true;
+  services.tailscale.overrideLocalDns = true;
 }
