@@ -37,4 +37,5 @@
               pkgs.typescript
               pkgs.typescript-language-server
 			  ];
+	  home.stateVersion = "24.05";
 }
