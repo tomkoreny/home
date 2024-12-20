@@ -145,106 +145,62 @@
   # Maaaybe make this home manager somehow someday
   # maybe make some proper config, inspire from lazyvim
   programs.nixvim = {
-	  enable = true;
+		enable = true;
+		globals.mapleader = " ";
+		opts = {
+			tabstop = 2;
+			shiftwidth = 2;
+			expandtab = true;
+			mouse = "a";
+		};
 
 	  plugins.lualine.enable = true;
+	  plugins.typescript-tools.enable = true;
+
+	  plugins.auto-save.enable = true;
+	  plugins.auto-session.enable = true;
+	  plugins.coq-nvim.enable = true;
+	  plugins.coq-nvim.settings.auto_start = true;
+	  plugins.treesitter = {
+		  enable = true;
+		  settings.highlight.enable = true;
+		  settings.indent.enable = true;
+	  };
+	  plugins.telescope.enable = true;
+	  plugins.nvim-tree.enable = true;
+	  plugins.mini.enable = true;
+	  plugins.mini.modules.icons = {
+      style = "glyph";
+    };
+	  plugins.mini.mockDevIcons = true;
+
+
+	  plugins.lsp.enable = true;
+	  plugins.lsp.inlayHints = true;
+
+	  colorschemes.catppuccin.enable = true;
+
+
+		keymaps = [
+      {
+        action = "<cmd>Telescope find_files<CR>";
+        key = "<leader>ff";
+      }
+      {
+        action = "<cmd>Telescope git_files<CR>";
+        key = "<leader>fg";
+      }
+      {
+        action = "<cmd>Telescope buffers<CR>";
+        key = "<leader>fb";
+      }
+		];
+
   };
 
 
   home-manager.useUserPackages = true;
   home-manager.useGlobalPkgs = true;
-  home-manager.users.tom = { pkgs, ... }: {
-	  home.packages = [
-		  pkgs.nerd-fonts.jetbrains-mono
-			  pkgs.nerdfetch
-			  pkgs.sshpass
-			  pkgs.ansible
-			  pkgs.atool
-			  pkgs.openfortivpn
-			  pkgs.kubectl
-			  pkgs.httpie
-			  pkgs.docker
-			  pkgs.wl-clipboard
-			  pkgs.nodejs
-			  pkgs.node-gyp
-			  pkgs.tiramisu
-			  pkgs.teams-for-linux
-			  pkgs.jetbrains.webstorm
-			  pkgs.beeper
-
-              (pkgs.discord.override {
-                # withOpenASAR = true; # can do this here too
-                withVencord = true;
-              })
-
-			  pkgs.hypridle
-			  pkgs.git-credential-oauth
-              pkgs.typescript
-              pkgs.typescript-language-server
-			  ];
-
-	  home.shellAliases = {
-		  v = "nvim";
-		  ssh = "kitten ssh";
-		  vi = "nvim";
-		  conf = "nvim ~/nixos2";
-		  sw = "nh os switch";
-		  dcu = "docker compose up -d";
-		  dcd = "docker compose down";
-		  dc = "docker compose";
-		  dev = "npm run dev";
-		  start = "npm run start";
-	  };
-	  programs.nh = {
-		  enable = true;
-		  clean.enable = true;
-		  clean.extraArgs = "--keep-since 4d --keep 3";
-		  flake = "/home/tom/nixos2";
-	  };
-
-
-	  programs.bash.enable = true;
-	  programs.bun.enable = true;
-	  programs.git = {
-		  enable = true;
-		  userEmail = "tom@tomkoreny.com";
-		  userName = "Tom Koreny";
-		  extraConfig = {
-			  credential.helper = "oauth";
-			  push = { autoSetupRemote = true; };
-		  };
-	  };
-	  programs.starship.enable = true;
-	  programs.k9s.enable = true;
-
-	  programs.waybar = {
-		  enable = true;
-		  settings = lib.importJSON ./config/waybar/config.json;
-	  };
-
-	  home.file.".config/waybar/scripts/polytiramisu.sh" = {
-		  source = ./config/waybar/polytiramisu.sh;
-	  };
-# The state version is required and should stay at the version you
-# originally installed.
-	  home.stateVersion = "24.05";
-	  home.sessionVariables.NIXOS_OZONE_WL = "1";
-	  programs = {
-		  kitty.enable = true; # required for the default Hyprland config
-
-		  wofi.enable = true; # required for the default Hyprland config
-		  chromium = {
-			  enable = true;
-			  package = pkgs.google-chrome;
-			  #nvidia fix :(
-			  commandLineArgs = [
-		 		"--disable-gpu-compositing"
-			  ];
-		  };
-	  };
-      programs.tmux.enable = true;
-      programs.tmux.sensibleOnTop = true;
-  };
 
 # Enable automatic login for the user.
   services.displayManager.autoLogin.enable = true;

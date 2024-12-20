@@ -20,4 +20,71 @@
     ...
 }:
 {
+	  home.packages = [
+		  pkgs.nerd-fonts.jetbrains-mono
+			  pkgs.nerdfetch
+			  pkgs.sshpass
+			  pkgs.ansible
+			  pkgs.atool
+			  pkgs.openfortivpn
+			  pkgs.kubectl
+			  pkgs.httpie
+			  pkgs.docker
+			  pkgs.wl-clipboard
+			  pkgs.nodejs
+			  pkgs.node-gyp
+			  pkgs.tiramisu
+			  pkgs.teams-for-linux
+			  pkgs.jetbrains.webstorm
+			  pkgs.beeper
+
+              (pkgs.discord.override {
+                # withOpenASAR = true; # can do this here too
+                withVencord = true;
+              })
+
+			  pkgs.hypridle
+			  pkgs.git-credential-oauth
+              pkgs.typescript
+              pkgs.typescript-language-server
+			  ];
+
+	  programs.nh = {
+		  enable = true;
+		  clean.enable = true;
+		  clean.extraArgs = "--keep-since 4d --keep 3";
+		  flake = "/home/tom/nixos2";
+	  };
+
+
+	  programs.bun.enable = true;
+	  programs.k9s.enable = true;
+
+	  programs.waybar = {
+		  enable = true;
+		  settings = lib.importJSON ./config/waybar/config.json;
+	  };
+
+	  home.file.".config/waybar/scripts/polytiramisu.sh" = {
+		  source = ./config/waybar/polytiramisu.sh;
+	  };
+# The state version is required and should stay at the version you
+# originally installed.
+	  home.stateVersion = "24.05";
+	  home.sessionVariables.NIXOS_OZONE_WL = "1";
+	  programs = {
+		  kitty.enable = true; # required for the default Hyprland config
+
+		  wofi.enable = true; # required for the default Hyprland config
+		  chromium = {
+			  enable = true;
+			  package = pkgs.google-chrome;
+			  #nvidia fix :(
+			  commandLineArgs = [
+		 		"--disable-gpu-compositing"
+			  ];
+		  };
+	  };
+      programs.tmux.enable = true;
+      programs.tmux.sensibleOnTop = true;
 }
