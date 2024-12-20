@@ -20,6 +20,7 @@
     ...
 }:
 {
+config = lib.mkIf (system == "x86_64-linux") {
 	  wayland.windowManager.hyprland = {
 		  enable = true; # enable Hyprland
 		  systemd.enableXdgAutostart = true; # enable HyprlandAutostart
@@ -49,4 +50,5 @@
 		  #}
 		  ];
 	  };
+};
 }
