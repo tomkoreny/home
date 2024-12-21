@@ -24,10 +24,6 @@
   # Necessary for using flakes on this system.
   nix.settings.experimental-features = "nix-command flakes";
   nix.channel.enable = false;
-  nixpkgs.config = {
-    allowBroken = true;
-    allowUnfree = true;
-  };
 
   networking.hostName = "macos"; # Define your hostname.
   networking.knownNetworkServices = [

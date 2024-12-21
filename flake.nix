@@ -67,6 +67,10 @@
         my-custom-value = "my-value";
       };
 
+         channels-config = {
+                    # Allow unfree packages.
+                    allowUnfree = true;
+                    };
       # Configure Snowfall Lib, all of these settings are optional.
       snowfall = {
         # Tell Snowfall Lib to look in the `./nix/` directory for your
