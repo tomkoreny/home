@@ -17,5 +17,40 @@
   config,
   ...
 }: {
-  programs.hyprland.enable = true;
+  stylix.enable = true;
+  stylix.image = ./wallpaper.png;
+  stylix.polarity = "dark";
+  #stylix.base16Scheme = "${pkgs.base16-schemes}/share/themes/gruvbox-dark-hard.yaml";
+  stylix.base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
+  # OLEDpuccin is real
+  stylix.override.base00 = "#000000";
+  stylix.fonts = {
+    monospace = {
+      package = pkgs.nerd-fonts.jetbrains-mono;
+      name = "JetBrainsMono Nerd Font Mono";
+    };
+    sansSerif = {
+      package = pkgs.dejavu_fonts;
+      name = "DejaVu Sans";
+    };
+    serif = {
+      package = pkgs.dejavu_fonts;
+      name = "DejaVu Serif";
+    };
+  };
+
+  stylix.fonts.sizes = {
+    applications = 13;
+    terminal = 15;
+    desktop = 12;
+    popups = 12;
+  };
+
+  stylix.opacity = {
+    applications = 1.0;
+    terminal = 1.0;
+    desktop = 1.0;
+    popups = 1.0;
+  };
+  #stylix.targets.plymouth.logo = '';
 }

@@ -1,11 +1,11 @@
 {
-    inputs = {
+  inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
 
-        snowfall-lib = {
-            url = "github:snowfallorg/lib";
-            inputs.nixpkgs.follows = "nixpkgs";
-        };
+    snowfall-lib = {
+      url = "github:snowfallorg/lib";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     hyprland.url = "github:hyprwm/Hyprland";
@@ -20,54 +20,71 @@
     };
     darwin.url = "github:LnL7/nix-darwin";
     darwin.inputs.nixpkgs.follows = "nixpkgs";
+
+    nix-homebrew.url = "github:zhaofengli-wip/nix-homebrew";
+
+    # Optional: Declarative tap management
+    homebrew-core = {
+      url = "github:homebrew/homebrew-core";
+      flake = false;
     };
+    homebrew-cask = {
+      url = "github:homebrew/homebrew-cask";
+      flake = false;
+    };
+    homebrew-bundle = {
+      url = "github:homebrew/homebrew-bundle";
+      flake = false;
+    };
+  };
 
-    outputs = inputs:
-        inputs.snowfall-lib.mkFlake {
-            inherit inputs;
-            src = ./.;
-	    
-# Add modules to all NixOS systems.
-	    systems.modules.nixos = with inputs; [
-      hyprland.nixosModules.default
-      stylix.nixosModules.stylix
-      lanzaboote.nixosModules.lanzaboote
-      home-manager.nixosModules.default
-	    ];
+  outputs = inputs:
+    inputs.snowfall-lib.mkFlake {
+      inherit inputs;
+      src = ./.;
 
-# If you wanted to configure a Darwin (macOS) system.
-# systems.modules.darwin = with inputs; [
-#   my-input.darwinModules.my-module
-# ];
+      # Add modules to all NixOS systems.
+      systems.modules.nixos = with inputs; [
+        hyprland.nixosModules.default
+        stylix.nixosModules.stylix
+        lanzaboote.nixosModules.lanzaboote
+        home-manager.nixosModules.default
+      ];
 
-# Add a module to a specific host.
-	    systems.hosts.nixos.modules = with inputs; [
-# my-input.nixosModules.my-module
-	    ];
+      # If you wanted to configure a Darwin (macOS) system.
+      systems.modules.darwin = with inputs; [
+        nix-homebrew.darwinModules.nix-homebrew
+        stylix.darwinModules.stylix
+      ];
 
-# Add a custom value to `specialArgs`.
-	    systems.hosts.nixos.specialArgs = {
-		    my-custom-value = "my-value";
-	    };
+      # Add a module to a specific host.
+      systems.hosts.nixos.modules = with inputs; [
+        # my-input.nixosModules.my-module
+      ];
 
-            # Configure Snowfall Lib, all of these settings are optional.
-            snowfall = {
-                # Tell Snowfall Lib to look in the `./nix/` directory for your
-                # Nix files.
-                root = ./.;
+      # Add a custom value to `specialArgs`.
+      systems.hosts.nixos.specialArgs = {
+        my-custom-value = "my-value";
+      };
 
-                # Choose a namespace to use for your flake's packages, library,
-                # and overlays.
-                namespace = "tomkoreny";
+      # Configure Snowfall Lib, all of these settings are optional.
+      snowfall = {
+        # Tell Snowfall Lib to look in the `./nix/` directory for your
+        # Nix files.
+        root = ./.;
 
-                # Add flake metadata that can be processed by tools like Snowfall Frost.
-                meta = {
-                    # A slug to use in documentation when displaying things like file paths.
-                    name = "tomk-dots";
+        # Choose a namespace to use for your flake's packages, library,
+        # and overlays.
+        namespace = "tomkoreny";
 
-                    # A title to show for your flake, typically the name.
-                    title = "Tom Koreny's NixOS config";
-                };
-            };
+        # Add flake metadata that can be processed by tools like Snowfall Frost.
+        meta = {
+          # A slug to use in documentation when displaying things like file paths.
+          name = "tomk-dots";
+
+          # A title to show for your flake, typically the name.
+          title = "Tom Koreny's NixOS config";
         };
+      };
+    };
 }

@@ -1,44 +1,43 @@
 {
-    # Snowfall Lib provides a customized `lib` instance with access to your flake's library
-    # as well as the libraries available from your flake's inputs.
-    lib,
-    # An instance of `pkgs` with your overlays and packages applied is also available.
-    pkgs,
-    # You also have access to your flake's inputs.
-    inputs,
+  # Snowfall Lib provides a customized `lib` instance with access to your flake's library
+  # as well as the libraries available from your flake's inputs.
+  lib,
+  # An instance of `pkgs` with your overlays and packages applied is also available.
+  pkgs,
+  # You also have access to your flake's inputs.
+  inputs,
+  # Additional metadata is provided by Snowfall Lib.
+  namespace, # The namespace used for your flake, defaulting to "internal" if not set.
+  system, # The system architecture for this host (eg. `x86_64-linux`).
+  target, # The Snowfall Lib target for this system (eg. `x86_64-iso`).
+  format, # A normalized name for the system target (eg. `iso`).
+  virtual, # A boolean to determine whether this system is a virtual target using nixos-generators.
+  systems, # An attribute map of your defined hosts.
+  # All other arguments come from the system system.
+  config,
+  ...
+}: {
+  # Your configuration.
+  imports = [
+    # Include the results of the hardware scan.
+    ./hardware-configuration.nix
+  ];
 
-    # Additional metadata is provided by Snowfall Lib.
-    namespace, # The namespace used for your flake, defaulting to "internal" if not set.
-    system, # The system architecture for this host (eg. `x86_64-linux`).
-    target, # The Snowfall Lib target for this system (eg. `x86_64-iso`).
-    format, # A normalized name for the system target (eg. `iso`).
-    virtual, # A boolean to determine whether this system is a virtual target using nixos-generators.
-    systems, # An attribute map of your defined hosts.
+  swapDevices = [
+    {
+      device = "/swapfile";
+      size = 16 * 1024; # 16GB
+    }
+  ];
 
-    # All other arguments come from the system system.
-    config,
-    ...
-}:
-{
-    # Your configuration.
-  imports =
-    [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
-    ];
+  # this section is wierd and does not work, fix one day
+  #  i18n.inputMethod = {
+  #	  enable = true;
+  #	  type = "ibus";
+  #	  ibus.engines = with pkgs.ibus-engines; [ /* any engine you want, for example */ uniemoji ];
+  #  };
 
-  swapDevices = [{
-    device = "/swapfile";
-    size = 16 * 1024; # 16GB
-  }];
-
-# this section is wierd and does not work, fix one day
-#  i18n.inputMethod = {
-#	  enable = true;
-#	  type = "ibus";
-#	  ibus.engines = with pkgs.ibus-engines; [ /* any engine you want, for example */ uniemoji ];
-#  };
-
-# end of section
+  # end of section
 
   # Bootloader.
   boot.plymouth.enable = true;
@@ -47,18 +46,20 @@
   #boot.loader.systemd-boot.netbootxyz.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
+  boot.lanzaboote = {
+    enable = true;
+    pkiBundle = "/etc/secureboot";
+  };
 
-            boot.lanzaboote = {
-              enable = true;
-              pkiBundle = "/etc/secureboot";
-            };
-
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  nix.gc = { automatic = false; dates = "weekly"; options = "--delete-older-than 7d"; };
-
+  nix.settings.experimental-features = ["nix-command" "flakes"];
+  nix.gc = {
+    automatic = false;
+    dates = "weekly";
+    options = "--delete-older-than 7d";
+  };
 
   networking.hostName = "nixos"; # Define your hostname.
-  networking.extraHosts = (builtins.readFile ./config/hosts/hosts);
+  networking.extraHosts = builtins.readFile ./config/hosts/hosts;
 
   # Enable networking
   networking.networkmanager.enable = true;
@@ -90,19 +91,21 @@
   services.displayManager.sddm.enable = true;
   services.displayManager.sddm.wayland.enable = true;
   xdg = {
-	  portal = {
-		  enable = true;
-	  };
+    portal = {
+      enable = true;
+    };
   };
 
-  security.sudo.extraRules= [
-  {  users = [ "tom" ];
-	  commands = [
-	  { command = "ALL" ;
-		  options= [ "NOPASSWD" ]; # "SETENV" # Adding the following could be a good idea
-	  }
-	  ];
-  }
+  security.sudo.extraRules = [
+    {
+      users = ["tom"];
+      commands = [
+        {
+          command = "ALL";
+          options = ["NOPASSWD"]; # "SETENV" # Adding the following could be a good idea
+        }
+      ];
+    }
   ];
 
   # Configure keymap in X11
@@ -137,7 +140,7 @@
   users.users.tom = {
     isNormalUser = true;
     description = "Tom Koreny";
-    extraGroups = [ "networkmanager" "wheel" "docker" ];
+    extraGroups = ["networkmanager" "wheel" "docker"];
     packages = with pkgs; [
     ];
   };
@@ -145,55 +148,54 @@
   # Maaaybe make this home manager somehow someday
   # maybe make some proper config, inspire from lazyvim
 
-
   home-manager.useUserPackages = true;
   home-manager.useGlobalPkgs = true;
 
-# Enable automatic login for the user.
+  # Enable automatic login for the user.
   services.displayManager.autoLogin.enable = true;
   services.displayManager.autoLogin.user = "tom";
 
-# Allow unfree packages
+  # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
 
-# List packages installed in system profile. To search, run:
-# $ nix search wget
+  # List packages installed in system profile. To search, run:
+  # $ nix search wget
   environment.systemPackages = with pkgs; [
     sbctl
     mangohud
     protonup
   ];
 
-# Some programs need SUID wrappers, can be configured further or are
-# started in user sessions.
-# programs.mtr.enable = true;
-# programs.gnupg.agent = {
-#   enable = true;
-#   enableSSHSupport = true;
-# };
+  # Some programs need SUID wrappers, can be configured further or are
+  # started in user sessions.
+  # programs.mtr.enable = true;
+  # programs.gnupg.agent = {
+  #   enable = true;
+  #   enableSSHSupport = true;
+  # };
 
-# List services that you want to enable:
+  # List services that you want to enable:
 
-# Enable the OpenSSH daemon.
+  # Enable the OpenSSH daemon.
   services.openssh.enable = true;
 
-# Open ports in the firewall.
-# networking.firewall.allowedTCPPorts = [ ... ];
-# networking.firewall.allowedUDPPorts = [ ... ];
-# Or disable the firewall altogether.
-# networking.firewall.enable = false;
+  # Open ports in the firewall.
+  # networking.firewall.allowedTCPPorts = [ ... ];
+  # networking.firewall.allowedUDPPorts = [ ... ];
+  # Or disable the firewall altogether.
+  # networking.firewall.enable = false;
 
   services.hardware.openrgb = {
-	  enable = true;
-	  package = pkgs.openrgb-with-all-plugins;
-	  motherboard = "amd";
-	  server = {
-		  port = 6742;
-	  };
+    enable = true;
+    package = pkgs.openrgb-with-all-plugins;
+    motherboard = "amd";
+    server = {
+      port = 6742;
+    };
   };
 
-# This value determines the NixOS release from which the default
-# settings for stateful data, like file locations and database versions
+  # This value determines the NixOS release from which the default
+  # settings for stateful data, like file locations and database versions
   # on your system were taken. It‘s perfectly fine and recommended to leave
   # this value at the release version of the first install of this system.
   # Before changing this value read the documentation for this option
@@ -207,9 +209,7 @@
   # Load "nvidia" driver for Xorg and Wayland
   services.xserver.videoDrivers = ["nvidia"];
 
-
   hardware.nvidia = {
-
     # Modesetting is required.
     modesetting.enable = true;
 
@@ -245,14 +245,11 @@
     setSocketVariable = true;
   };
 
-
   programs.steam.enable = true;
   programs.steam.gamescopeSession.enable = true;
   programs.gamemode.enable = true;
 
- environment.sessionVariables = {
-    STEAM_EXTRA_COMPAT_TOOLS_PATHS =
-      "\${HOME}/.steam/root/compatibilitytools.d";
+  environment.sessionVariables = {
+    STEAM_EXTRA_COMPAT_TOOLS_PATHS = "\${HOME}/.steam/root/compatibilitytools.d";
   };
-
 }
