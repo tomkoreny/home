@@ -34,6 +34,7 @@
     pkgs.teams-for-linux
     pkgs.jetbrains.webstorm
     pkgs.beeper
+    pkgs.ghostty
 
     (pkgs.discord.override {
       # withOpenASAR = true; # can do this here too

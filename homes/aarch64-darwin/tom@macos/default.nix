@@ -24,6 +24,7 @@
     pkgs.kubectl
     pkgs.nodejs
     pkgs.jetbrains.webstorm
+#    pkgs.ghostty
 
     (pkgs.discord.override {
       # withOpenASAR = true; # can do this here too

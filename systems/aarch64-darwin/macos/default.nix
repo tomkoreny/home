@@ -55,8 +55,8 @@
 
   system.defaults.dock.persistent-apps = [
     "${pkgs.google-chrome}/Applications/Google Chrome.app"
-    "${pkgs.jetbrains.webstorm}/Applications/WebStorm.app"
-    "/Users/tom/Applications/Home Manager Trampolines/WezTerm.app"
+    "/Users/tom/Applications/Home Manager Trampolines/WebStorm.app"
+    "/Users/tom/Applications/Home Manager Trampolines/Ghostty.app"
   ];
   system.defaults.dock.show-recents = false;
   system.defaults.dock.autohide = true;
@@ -88,6 +88,7 @@
       "orbstack"
       "beeper"
       "microsoft-teams"
+      "ghostty"
     ];
   };
 
