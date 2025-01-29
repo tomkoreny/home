@@ -18,11 +18,12 @@
   ...
 }: {
   programs.git = {
+    package = pkgs.gitAndTools.gitFull;
     enable = true;
     userEmail = "tom@tomkoreny.com";
     userName = "Tom Koreny";
     extraConfig = {
-      credential.helper = "oauth";
+      credential.helper = ["libsecret" "oauth"];
       push = {autoSetupRemote = true;};
     };
   };

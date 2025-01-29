@@ -23,6 +23,7 @@
       systemd.enableXdgAutostart = true; # enable HyprlandAutostart
       extraConfig = builtins.readFile ./config/hyprland/main.conf;
       package = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
+      systemd.enable = false;
     };
 
     services.hyprpaper.enable = true;

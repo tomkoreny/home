@@ -41,8 +41,12 @@
       withVencord = true;
     })
 
+    pkgs.thunderbird
     pkgs.hypridle
     pkgs.git-credential-oauth
+    pkgs.gnome-keyring
+    pkgs.seahorse
+    pkgs.toybox
     pkgs.typescript
     pkgs.typescript-language-server
   ];
@@ -63,7 +67,7 @@
   home.stateVersion = "24.05";
   home.sessionVariables.NIXOS_OZONE_WL = "1";
   programs = {
-    kitty.enable = true; # required for the default Hyprland config
+#    kitty.enable = true; # required for the default Hyprland config
     wofi.enable = true; # required for the default Hyprland config
     #nvidia fix :(
     chromium = {

@@ -87,12 +87,23 @@
   # Enable the X11 windowing system.
   services.xserver.enable = true;
 
+  services.gnome.gnome-keyring.enable = true;
+
   # Enable the XFCE Desktop Environment.
   services.displayManager.sddm.enable = true;
   services.displayManager.sddm.wayland.enable = true;
   xdg = {
+    autostart = {
+      enable = true;
+    };
     portal = {
       enable = true;
+#      extraPortals = [ pkgs.xdg-desktop-portal-hyprland ];
+    };
+    terminal-exec = {
+      settings = {
+        default = [ "ghostty.desktop" ];
+      };
     };
   };
 
@@ -118,7 +129,7 @@
   services.printing.enable = true;
 
   # Enable sound with pipewire.
-  hardware.pulseaudio.enable = false;
+  services.pulseaudio.enable = false;
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
@@ -152,8 +163,8 @@
   home-manager.useGlobalPkgs = true;
 
   # Enable automatic login for the user.
-  services.displayManager.autoLogin.enable = true;
-  services.displayManager.autoLogin.user = "tom";
+   services.displayManager.autoLogin.enable = true;
+   services.displayManager.autoLogin.user = "tom";
 
   # List packages installed in system profile. To search, run:
   # $ nix search wget
@@ -240,7 +251,18 @@
   virtualisation.docker.rootless = {
     enable = true;
     setSocketVariable = true;
+#    daemon.settings = {
+#        dns = ["1.1.1.1" "8.8.8.8"];
+#    };
   };
+
+  services.resolved = {
+      enable = true;
+      dnssec = "true";
+      domains = [ "~." ];
+      fallbackDns = [ "1.1.1.1#one.one.one.one" "1.0.0.1#one.one.one.one" ];
+      dnsovertls = "true";
+};
 
   programs.steam.enable = true;
   programs.steam.gamescopeSession.enable = true;
