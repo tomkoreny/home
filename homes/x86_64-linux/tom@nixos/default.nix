@@ -32,7 +32,7 @@
     pkgs.node-gyp
     pkgs.tiramisu
     pkgs.teams-for-linux
-    pkgs.jetbrains.webstorm
+    (pkgs.jetbrains.plugins.addPlugins pkgs.jetbrains.webstorm ["github-copilot"])
     pkgs.beeper
     pkgs.ghostty
 
@@ -49,6 +49,7 @@
     pkgs.toybox
     pkgs.typescript
     pkgs.typescript-language-server
+    pkgs.element-desktop
   ];
 
   programs.bun.enable = true;
