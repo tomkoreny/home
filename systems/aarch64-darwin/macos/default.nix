@@ -89,6 +89,7 @@
       "beeper"
       "microsoft-teams"
       "ghostty"
+      "readdle-spark"
     ];
   };
 

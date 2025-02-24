@@ -18,6 +18,8 @@
   ...
 }: {
   home.packages = [
+    # inputs.zen-browser.packages."${system}".default
+
     pkgs.nerd-fonts.jetbrains-mono
     pkgs.ansible
     pkgs.openfortivpn
