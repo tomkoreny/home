@@ -25,6 +25,7 @@
     extraConfig = {
       credential.helper = ["libsecret" "oauth"];
       push = {autoSetupRemote = true;};
+      pull.rebase = true;
     };
   };
 }
