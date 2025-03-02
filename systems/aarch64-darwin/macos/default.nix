@@ -91,6 +91,10 @@
       "ghostty"
       "readdle-spark"
     ];
+    brews = [
+      "argocd"
+      "cloudflared"
+    ];
   };
 
   system.activationScripts.postUserActivation.text = ''

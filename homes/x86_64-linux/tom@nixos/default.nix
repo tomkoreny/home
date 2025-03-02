@@ -52,9 +52,6 @@
     pkgs.element-desktop
   ];
 
-  programs.bun.enable = true;
-  programs.k9s.enable = true;
-
   programs.waybar = {
     enable = true;
     settings = lib.importJSON ./config/waybar/config.json;
