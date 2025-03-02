@@ -1,18 +1,18 @@
 {
   # Snowfall Lib provides a customized `lib` instance with access to your flake's library
   # as well as the libraries available from your flake's inputs.
-  lib,
+  # lib,
   # An instance of `pkgs` with your overlays and packages applied is also available.
   pkgs,
   # You also have access to your flake's inputs.
   inputs,
   # Additional metadata is provided by Snowfall Lib.
-  namespace, # The namespace used for your flake, defaulting to "internal" if not set.
-  system, # The system architecture for this host (eg. `x86_64-linux`).
-  target, # The Snowfall Lib target for this system (eg. `x86_64-iso`).
-  format, # A normalized name for the system target (eg. `iso`).
-  virtual, # A boolean to determine whether this system is a virtual target using nixos-generators.
-  systems, # An attribute map of your defined hosts.
+  # namespace, # The namespace used for your flake, defaulting to "internal" if not set.
+  # system, # The system architecture for this host (eg. `x86_64-linux`).
+  # target, # The Snowfall Lib target for this system (eg. `x86_64-iso`).
+  # format, # A normalized name for the system target (eg. `iso`).
+  # virtual, # A boolean to determine whether this system is a virtual target using nixos-generators.
+  # systems, # An attribute map of your defined hosts.
   # All other arguments come from the system system.
   config,
   ...
@@ -30,16 +30,37 @@
     "Wi-Fi"
     "Thunderbolt Bridge"
   ];
+  system = {
+    # Enable alternative shell support in nix-darwin.
+    # programs.fish.enable = true;
 
-  # Enable alternative shell support in nix-darwin.
-  # programs.fish.enable = true;
+    # Set Git commit hash for darwin-version.
+    #      system.configurationRevision = self.rev or self.dirtyRev or null;
 
-  # Set Git commit hash for darwin-version.
-  #      system.configurationRevision = self.rev or self.dirtyRev or null;
+    # Used for backwards compatibility, please read the changelog before changing.
+    # $ darwin-rebuild changelog
+    stateVersion = 5;
+    defaults = {
+      dock = {
+        persistent-apps = [
+          "${pkgs.google-chrome}/Applications/Google Chrome.app"
+          "/Users/tom/Applications/Home Manager Trampolines/WebStorm.app"
+          "/Users/tom/Applications/Home Manager Trampolines/Ghostty.app"
+        ];
+        show-recents = false;
+        autohide = true;
+      };
+    };
 
-  # Used for backwards compatibility, please read the changelog before changing.
-  # $ darwin-rebuild changelog
-  system.stateVersion = 5;
+    activationScripts.postUserActivation.text = ''
+      apps_source="${config.system.build.applications}/Applications"
+      moniker="Nix Trampolines"
+      app_target_base="$HOME/Applications"
+      app_target="$app_target_base/$moniker"
+      mkdir -p "$app_target"
+      ${pkgs.rsync}/bin/rsync --archive --checksum --chmod=-w --copy-unsafe-links --delete "$apps_source/" "$app_target"
+    '';
+  };
 
   # The platform the configuration will be used on.
   nixpkgs.hostPlatform = "aarch64-darwin";
@@ -52,14 +73,6 @@
   };
   services.tailscale.enable = true;
   services.tailscale.overrideLocalDns = true;
-
-  system.defaults.dock.persistent-apps = [
-    "${pkgs.google-chrome}/Applications/Google Chrome.app"
-    "/Users/tom/Applications/Home Manager Trampolines/WebStorm.app"
-    "/Users/tom/Applications/Home Manager Trampolines/Ghostty.app"
-  ];
-  system.defaults.dock.show-recents = false;
-  system.defaults.dock.autohide = true;
   nix-homebrew = {
     # Install Homebrew under the default prefix
     enable = true;
@@ -96,13 +109,4 @@
       "cloudflared"
     ];
   };
-
-  system.activationScripts.postUserActivation.text = ''
-    apps_source="${config.system.build.applications}/Applications"
-    moniker="Nix Trampolines"
-    app_target_base="$HOME/Applications"
-    app_target="$app_target_base/$moniker"
-    mkdir -p "$app_target"
-    ${pkgs.rsync}/bin/rsync --archive --checksum --chmod=-w --copy-unsafe-links --delete "$apps_source/" "$app_target"
-  '';
 }

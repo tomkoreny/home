@@ -10,8 +10,7 @@
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     hyprland.url = "github:hyprwm/Hyprland";
     stylix.url = "github:danth/stylix";
-    nixvim.url = "github:nix-community/nixvim";
-    nixvim.inputs.nixpkgs.follows = "nixpkgs";
+    nvf.url = "github:notashelf/nvf";
     lanzaboote = {
       url = "github:nix-community/lanzaboote/v0.4.2";
 
@@ -43,35 +42,36 @@
     inputs.snowfall-lib.mkFlake {
       inherit inputs;
       src = ./.;
+      systems = {
+        # Add modules to all NixOS systems.
+        modules.nixos = with inputs; [
+          hyprland.nixosModules.default
+          stylix.nixosModules.stylix
+          lanzaboote.nixosModules.lanzaboote
+          home-manager.nixosModules.default
+        ];
 
-      # Add modules to all NixOS systems.
-      systems.modules.nixos = with inputs; [
-        hyprland.nixosModules.default
-        stylix.nixosModules.stylix
-        lanzaboote.nixosModules.lanzaboote
-        home-manager.nixosModules.default
-      ];
+        # If you wanted to configure a Darwin (macOS) system.
+        modules.darwin = with inputs; [
+          nix-homebrew.darwinModules.nix-homebrew
+          stylix.darwinModules.stylix
+        ];
 
-      # If you wanted to configure a Darwin (macOS) system.
-      systems.modules.darwin = with inputs; [
-        nix-homebrew.darwinModules.nix-homebrew
-        stylix.darwinModules.stylix
-      ];
-
-      # Add a module to a specific host.
-      systems.hosts.nixos.modules = with inputs; [
-        # my-input.nixosModules.my-module
-      ];
-
-      # Add a custom value to `specialArgs`.
-      systems.hosts.nixos.specialArgs = {
-        my-custom-value = "my-value";
+        # Add a module to a specific host.
+        # hosts.nixos.modules = with inputs; [
+        #   # my-input.nixosModules.my-module
+        # ];
+        #
+        # Add a custom value to `specialArgs`.
+        hosts.nixos.specialArgs = {
+          my-custom-value = "my-value";
+        };
       };
 
-         channels-config = {
-                    # Allow unfree packages.
-                    allowUnfree = true;
-                    };
+      channels-config = {
+        # Allow unfree packages.
+        allowUnfree = true;
+      };
       # Configure Snowfall Lib, all of these settings are optional.
       snowfall = {
         # Tell Snowfall Lib to look in the `./nix/` directory for your
