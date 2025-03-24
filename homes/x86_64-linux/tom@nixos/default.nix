@@ -36,6 +36,8 @@
     pkgs.beeper
     pkgs.ghostty
 
+    pkgs.nodePackages.vercel
+
     (pkgs.discord.override {
       # withOpenASAR = true; # can do this here too
       withVencord = true;
@@ -65,7 +67,7 @@
   home.stateVersion = "24.05";
   home.sessionVariables.NIXOS_OZONE_WL = "1";
   programs = {
-#    kitty.enable = true; # required for the default Hyprland config
+    #    kitty.enable = true; # required for the default Hyprland config
     wofi.enable = true; # required for the default Hyprland config
     #nvidia fix :(
     chromium = {
