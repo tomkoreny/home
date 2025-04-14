@@ -26,7 +26,7 @@
     pkgs.kubectl
     pkgs.nodejs
     pkgs.jetbrains.webstorm
-#    pkgs.ghostty
+    #    pkgs.ghostty
 
     (pkgs.discord.override {
       # withOpenASAR = true; # can do this here too
@@ -37,7 +37,8 @@
     pkgs.typescript-language-server
 
     pkgs.raycast
-#    pkgs.teams
+    #    pkgs.teams
+    pkgs.eas-cli
   ];
   home.stateVersion = "24.05";
   programs.wezterm.enable = true;

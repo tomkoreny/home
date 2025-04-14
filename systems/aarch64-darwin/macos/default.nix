@@ -103,6 +103,8 @@
       "microsoft-teams"
       "ghostty"
       "readdle-spark"
+      "wifiman"
+      "home-assistant"
     ];
     brews = [
       "argocd"
