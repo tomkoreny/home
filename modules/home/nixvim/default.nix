@@ -28,7 +28,6 @@
           trouble.enable = true;
           lspSignature.enable = true;
           otter-nvim.enable = true;
-          lsplines.enable = true;
           nvim-docs-view.enable = true;
         };
 
@@ -114,14 +113,14 @@
         statusline = {
           lualine = {
             enable = true;
-            theme = "catppuccin";
+            # theme = "catppuccin";
           };
         };
 
         theme = {
           enable = true;
-          name = "catppuccin";
-          style = "mocha";
+          # name = "catppuccin";
+          # style = "mocha";
           transparent = false;
         };
 

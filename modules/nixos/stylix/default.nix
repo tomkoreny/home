@@ -26,6 +26,7 @@
   stylix.override.base00 = "#000000";
   stylix.cursor.package = pkgs.rose-pine-cursor;
   stylix.cursor.name = "BreezeX-RosePine-Linux";
+  stylix.cursor.size = 32;
   stylix.fonts = {
     monospace = {
       package = pkgs.nerd-fonts.jetbrains-mono;
