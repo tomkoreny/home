@@ -18,31 +18,12 @@
   ...
 }: {
   home.packages = [
-    pkgs.nerd-fonts.jetbrains-mono
-    pkgs.nerdfetch
     pkgs.sshpass
-    pkgs.ansible
     pkgs.atool
-    pkgs.openfortivpn
-    pkgs.kubectl
-    pkgs.httpie
     pkgs.docker
     pkgs.wl-clipboard
-    pkgs.nodejs
-    pkgs.node-gyp
     pkgs.tiramisu
     pkgs.teams-for-linux
-    # (pkgs.jetbrains.plugins.addPlugins pkgs.jetbrains.webstorm ["github-copilot"])
-    pkgs.jetbrains.webstorm
-    pkgs.beeper
-    pkgs.ghostty
-
-    pkgs.nodePackages.vercel
-
-    (pkgs.discord.override {
-      # withOpenASAR = true; # can do this here too
-      withVencord = true;
-    })
 
     pkgs.thunderbird
     pkgs.hypridle
@@ -50,8 +31,6 @@
     pkgs.gnome-keyring
     pkgs.seahorse
     pkgs.toybox
-    pkgs.typescript
-    pkgs.typescript-language-server
     pkgs.element-desktop
     pkgs.prismlauncher
     pkgs.qmk
@@ -64,6 +43,9 @@
 
   home.file.".config/waybar/scripts/polytiramisu.sh" = {
     source = ./config/waybar/polytiramisu.sh;
+  };
+  home.file.".config/waybar/power_menu.xml" = {
+    source = ./config/waybar/power_menu.xml;
   };
   # The state version is required and should stay at the version you
   # originally installed.

@@ -99,9 +99,8 @@
     enable = true;
     casks = [
       "orbstack"
-      "beeper"
       "microsoft-teams"
-      "ghostty"
+#      "ghostty"
       "readdle-spark"
       "wifiman"
       "home-assistant"

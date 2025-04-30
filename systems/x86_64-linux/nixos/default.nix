@@ -23,12 +23,6 @@
     ./hardware-configuration.nix
   ];
 
-  swapDevices = [
-    {
-      device = "/swapfile";
-      size = 16 * 1024; # 16GB
-    }
-  ];
   boot = {
     # this section is wierd and does not work, fix one day
     #  i18n.inputMethod = {

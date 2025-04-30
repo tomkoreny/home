@@ -18,37 +18,10 @@
   ...
 }: {
   home.packages = [
-    # inputs.zen-browser.packages."${system}".default
-
-    pkgs.nerd-fonts.jetbrains-mono
-    pkgs.ansible
-    pkgs.openfortivpn
-    pkgs.kubectl
-    pkgs.nodejs
-    pkgs.jetbrains.webstorm
-    #    pkgs.ghostty
-
-    (pkgs.discord.override {
-      # withOpenASAR = true; # can do this here too
-      withVencord = true;
-    })
-
-    pkgs.typescript
-    pkgs.typescript-language-server
-
     pkgs.raycast
-    #    pkgs.teams
-    pkgs.eas-cli
   ];
   home.stateVersion = "24.05";
-  programs.wezterm.enable = true;
-  programs.wezterm.extraConfig = ''
-    return {
-      front_end = "WebGpu",
-      enable_wayland = false,
-      default_prog = { '/run/current-system/sw/bin/bash' },
-    }
-  '';
+
 
   home.activation = {
     rsync-home-manager-applications = lib.hm.dag.entryAfter ["writeBoundary"] ''
