@@ -52,6 +52,16 @@
       enable = true;
       pkiBundle = "/etc/secureboot";
     };
+    kernelParams = [
+      # "quiet"
+      # "loglevel=3"
+      # "splash"
+      # "plymouth.ignore-serial-consoles"
+      # "nvidia-drm.modeset=1"
+      # THESE 2 LINES ARE FIX FOR SHITTY NETWORK CARD, thanks intel
+      "pcie_port_pm=off"
+      "pcie_aspm.policy=performance"
+    ];
   };
   nix = {
     settings.experimental-features = ["nix-command" "flakes"];
@@ -276,8 +286,8 @@
     enable = true;
     setSocketVariable = true;
     daemon.settings = {
-        dns = ["1.1.1.1" "8.8.8.8"];
-        insecure-registries = [ "harbor.acho.loc:443" ];
+      dns = ["1.1.1.1" "8.8.8.8"];
+      insecure-registries = ["harbor.acho.loc:443"];
     };
   };
   programs = {

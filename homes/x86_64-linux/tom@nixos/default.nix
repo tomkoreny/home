@@ -32,7 +32,8 @@
     pkgs.node-gyp
     pkgs.tiramisu
     pkgs.teams-for-linux
-    (pkgs.jetbrains.plugins.addPlugins pkgs.jetbrains.webstorm ["github-copilot"])
+    # (pkgs.jetbrains.plugins.addPlugins pkgs.jetbrains.webstorm ["github-copilot"])
+    pkgs.jetbrains.webstorm
     pkgs.beeper
     pkgs.ghostty
 
@@ -52,6 +53,8 @@
     pkgs.typescript
     pkgs.typescript-language-server
     pkgs.element-desktop
+    pkgs.prismlauncher
+    pkgs.qmk
   ];
 
   programs.waybar = {

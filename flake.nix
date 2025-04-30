@@ -36,6 +36,7 @@
       flake = false;
     };
     zen-browser.url = "github:0xc000022070/zen-browser-flake";
+    lan-mouse.url = "github:feschber/lan-mouse";
   };
 
   outputs = inputs:
