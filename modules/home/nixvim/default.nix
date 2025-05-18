@@ -37,11 +37,11 @@
             ui.enable = true;
           };
         };
+        lsp.enable = true;
 
         # This section does not include a comprehensive list of available language modules.
         # To list all available language module options, please visit the nvf manual.
         languages = {
-          enableLSP = true;
           enableFormat = true;
           enableTreesitter = true;
           enableExtraDiagnostics = true;

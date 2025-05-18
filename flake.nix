@@ -37,6 +37,7 @@
     };
     zen-browser.url = "github:0xc000022070/zen-browser-flake";
     lan-mouse.url = "github:feschber/lan-mouse";
+    mac-app-util.url = "github:hraban/mac-app-util";
   };
 
   outputs = inputs:
@@ -56,6 +57,7 @@
         modules.darwin = with inputs; [
           nix-homebrew.darwinModules.nix-homebrew
           stylix.darwinModules.stylix
+          mac-app-util.darwinModules.default
         ];
 
         # Add a module to a specific host.
@@ -68,6 +70,9 @@
           my-custom-value = "my-value";
         };
       };
+      home-manager.sharedModules = [
+        inputs.mac-app-util.homeManagerModules.default
+      ];
 
       channels-config = {
         # Allow unfree packages.

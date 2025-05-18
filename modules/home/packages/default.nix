@@ -2,7 +2,7 @@
   home.packages = [
     pkgs.nerd-fonts.jetbrains-mono
     pkgs.nerdfetch
-    pkgs.ansible
+#    pkgs.ansible
     pkgs.openfortivpn
     pkgs.kubectl
     pkgs.httpie
@@ -10,8 +10,7 @@
     pkgs.node-gyp
     # (pkgs.jetbrains.plugins.addPlugins pkgs.jetbrains.webstorm ["github-copilot"])
     pkgs.jetbrains.webstorm
-    pkgs.beeper
-    pkgs.ghostty
+#    pkgs.ghostty
 
     pkgs.nodePackages.vercel
 
@@ -20,14 +19,6 @@
       withVencord = true;
     })
 
-    pkgs.thunderbird
-    pkgs.hypridle
-    pkgs.git-credential-oauth
-    pkgs.gnome-keyring
-    pkgs.seahorse
-    pkgs.toybox
-    pkgs.typescript
-    pkgs.typescript-language-server
     pkgs.prismlauncher
     pkgs.qmk
 

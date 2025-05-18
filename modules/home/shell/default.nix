@@ -22,7 +22,7 @@
 #    ssh = "kitten ssh";
     vi = "nvim";
     conf = "nvim ~/nixos2";
-    sw = "nh os switch";
+    sw = if lib.strings.hasInfix "darwin" system then "nh darwin switch" else "nh os switch";
     dcu = "docker compose up -d";
     dcd = "docker compose down";
     dc = "docker compose";
