@@ -1,4 +1,8 @@
-{inputs, pkgs, ...}: {
+{
+  inputs,
+  pkgs,
+  ...
+}: {
   home.packages = [
     pkgs.nerd-fonts.jetbrains-mono
     pkgs.nerdfetch
@@ -26,5 +30,6 @@
     pkgs.typescript-language-server
 
     pkgs.eas-cli
+    pkgs.prusa-slicer
   ];
 }
