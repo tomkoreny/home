@@ -6,15 +6,16 @@
   home.packages = [
     pkgs.nerd-fonts.jetbrains-mono
     pkgs.nerdfetch
-#    pkgs.ansible
+    #    pkgs.ansible
     pkgs.openfortivpn
     pkgs.kubectl
     pkgs.httpie
     pkgs.nodejs
     pkgs.node-gyp
-    # (pkgs.jetbrains.plugins.addPlugins pkgs.jetbrains.webstorm ["github-copilot"])
-    pkgs.jetbrains.webstorm
-#    pkgs.ghostty
+    #(pkgs.jetbrains.plugins.addPlugins pkgs.jetbrains.webstorm ["github-copilot"])
+    pkgs.jetbrains-toolbox
+    #pkgs.jetbrains.webstorm
+    pkgs.ghostty
 
     pkgs.nodePackages.vercel
 
