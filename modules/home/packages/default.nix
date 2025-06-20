@@ -15,7 +15,7 @@
     #(pkgs.jetbrains.plugins.addPlugins pkgs.jetbrains.webstorm ["github-copilot"])
     pkgs.jetbrains-toolbox
     #pkgs.jetbrains.webstorm
-    pkgs.ghostty
+    # pkgs.ghostty
 
     pkgs.nodePackages.vercel
 
@@ -31,6 +31,6 @@
     pkgs.typescript-language-server
 
     pkgs.eas-cli
-    pkgs.prusa-slicer
+    # pkgs.prusa-slicer
   ];
 }

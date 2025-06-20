@@ -21,7 +21,11 @@
     pkgs.raycast
   ];
   home.stateVersion = "24.05";
-
+  programs.direnv = {
+    enable = true;
+    enableBashIntegration = true; # see note on other shells below
+    nix-direnv.enable = true;
+  };
 
   home.activation = {
     rsync-home-manager-applications = lib.hm.dag.entryAfter ["writeBoundary"] ''
