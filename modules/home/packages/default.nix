@@ -17,6 +17,9 @@
     #pkgs.jetbrains.webstorm
     # pkgs.ghostty
 
+    pkgs.php
+    pkgs.signal-desktop
+
     pkgs.nodePackages.vercel
 
     (pkgs.discord.override {
