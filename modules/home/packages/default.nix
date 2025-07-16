@@ -15,7 +15,7 @@
     #(pkgs.jetbrains.plugins.addPlugins pkgs.jetbrains.webstorm ["github-copilot"])
     pkgs.jetbrains-toolbox
     #pkgs.jetbrains.webstorm
-    # pkgs.ghostty
+    pkgs.ghostty
 
     pkgs.php
     pkgs.signal-desktop

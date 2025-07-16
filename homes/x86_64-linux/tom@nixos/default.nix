@@ -24,6 +24,7 @@
     pkgs.wl-clipboard
     pkgs.tiramisu
     pkgs.teams-for-linux
+    pkgs.rustdesk
 
     pkgs.thunderbird
     pkgs.hypridle
@@ -35,10 +36,23 @@
     pkgs.prismlauncher
     pkgs.qmk
   ];
+  home.sessionPath = [
+    "/home/tom/.local/share/JetBrains/Toolbox/apps"
+  ];
+
+  programs.direnv = {
+    enable = true;
+    nix-direnv.enable = true;
+    config.whitelist.prefix = ["/home/tom/projects"];
+  };
 
   programs.waybar = {
     enable = true;
-    settings = lib.importJSON ./config/waybar/config.json;
+    # settings = lib.importJSON ./config/waybar/config.json;
+  };
+
+  home.file.".config/waybar/config" = {
+    source = ./config/waybar/config.json;
   };
 
   home.file.".config/waybar/scripts/polytiramisu.sh" = {
