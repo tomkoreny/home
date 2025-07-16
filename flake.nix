@@ -38,6 +38,8 @@
     zen-browser.url = "github:0xc000022070/zen-browser-flake";
     lan-mouse.url = "github:feschber/lan-mouse";
     mac-app-util.url = "github:hraban/mac-app-util";
+    puma-rails.url = "github:puma/homebrew-puma";
+    puma-rails.flake = false;
   };
 
   outputs = inputs:

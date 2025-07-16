@@ -32,5 +32,9 @@
 
     pkgs.eas-cli
     # pkgs.prusa-slicer
+
+    pkgs.slack
+    pkgs.teleport
+    pkgs.claude-code
   ];
 }

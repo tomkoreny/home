@@ -19,7 +19,10 @@
 }: {
   # List packages installed in system profile. To search by name, run:
   # $ nix-env -qaP | grep wget
-  environment.systemPackages = [];
+  environment.systemPackages = [
+    pkgs.rustc
+    pkgs.rustup
+  ];
 
   # Necessary for using flakes on this system.
   nix.settings.experimental-features = "nix-command flakes";
@@ -53,14 +56,14 @@
     };
     primaryUser = "tom";
 
-#    activationScripts.postUserActivation.text = ''
-#      apps_source="${config.system.build.applications}/Applications"
-#      moniker="Nix Trampolines"
-#      app_target_base="$HOME/Applications"
-#      app_target="$app_target_base/$moniker"
-#      mkdir -p "$app_target"
-#      ${pkgs.rsync}/bin/rsync --archive --checksum --chmod=-w --copy-unsafe-links --delete "$apps_source/" "$app_target"
-#    '';
+    #    activationScripts.postUserActivation.text = ''
+    #      apps_source="${config.system.build.applications}/Applications"
+    #      moniker="Nix Trampolines"
+    #      app_target_base="$HOME/Applications"
+    #      app_target="$app_target_base/$moniker"
+    #      mkdir -p "$app_target"
+    #      ${pkgs.rsync}/bin/rsync --archive --checksum --chmod=-w --copy-unsafe-links --delete "$apps_source/" "$app_target"
+    #    '';
   };
 
   # The platform the configuration will be used on.
@@ -88,6 +91,7 @@
       "homebrew/homebrew-core" = inputs.homebrew-core;
       "homebrew/homebrew-cask" = inputs.homebrew-cask;
       "homebrew/homebrew-bundle" = inputs.homebrew-bundle;
+      "puma/homebrew-puma" = inputs.puma-rails;
     };
 
     # Optional: Enable fully-declarative tap management
@@ -105,10 +109,26 @@
       "readdle-spark"
       "wifiman"
       "home-assistant"
+      "bitwarden"
+      "rustdesk"
     ];
     brews = [
       "argocd"
       "cloudflared"
+      "mkcert"
+      "caddy"
+      "rbenv"
+      "ruby-build"
+      "nodenv"
+      "puma/puma/puma-dev"
+      "postgresql"
+      "redis"
+      "libyaml"
+      "libsodium"
+      "vips"
+      "git-crypt"
+      "git-lfs"
+      "python-setuptools"
     ];
   };
 }
