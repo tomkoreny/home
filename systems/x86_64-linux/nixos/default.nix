@@ -21,6 +21,8 @@
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
+    # Import Caddy module
+    ../../../modules/nixos/caddy
   ];
 
   boot = {
@@ -55,6 +57,9 @@
       # THESE 2 LINES ARE FIX FOR SHITTY NETWORK CARD, thanks intel
       "pcie_port_pm=off"
       "pcie_aspm.policy=performance"
+      # Add delay to ensure second NVMe drive is ready
+      "rootdelay=10"
+      "nvme_core.default_ps_max_latency_us=0"
     ];
   };
   nix = {
@@ -276,12 +281,22 @@
     };
   };
 
-  virtualisation.docker.rootless = {
+  virtualisation.docker = {
     enable = true;
-    setSocketVariable = true;
+    rootless = {
+      enable = true;
+      setSocketVariable = true;
+    };
     daemon.settings = {
       dns = ["1.1.1.1" "8.8.8.8"];
+      dns-opts = ["ndots:0"];
       insecure-registries = ["harbor.acho.loc:443"];
+      default-address-pools = [
+        {
+          base = "172.17.0.0/16";
+          size = 24;
+        }
+      ];
     };
   };
   programs = {
