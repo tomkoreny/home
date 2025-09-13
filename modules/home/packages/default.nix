@@ -9,6 +9,8 @@
     #    pkgs.ansible
     pkgs.openfortivpn
     pkgs.kubectl
+    pkgs.kubernetes-helm
+    pkgs.k9s
     pkgs.httpie
     pkgs.nodejs
     pkgs.node-gyp
@@ -39,5 +41,8 @@
     pkgs.slack
     pkgs.teleport
     pkgs.claude-code
+    pkgs.git-crypt
+    pkgs.htop
+    pkgs.nssTools
   ];
 }

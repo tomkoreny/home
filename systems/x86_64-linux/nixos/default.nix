@@ -25,6 +25,14 @@
     ../../../modules/nixos/caddy
   ];
 
+  # Configure swap file
+  swapDevices = [
+    {
+      device = "/var/swapfile";
+      size = 128 * 1024; # 128GB in MB
+    }
+  ];
+
   boot = {
     # this section is wierd and does not work, fix one day
     #  i18n.inputMethod = {
@@ -89,6 +97,11 @@
   # Select internationalisation properties.
   i18n.defaultLocale = "en_US.UTF-8";
 
+  # Trust mkcert CA
+  security.pki.certificateFiles = [
+    ./mkcert-ca.pem
+  ];
+
   i18n.extraLocaleSettings = {
     LC_ADDRESS = "cs_CZ.UTF-8";
     LC_IDENTIFICATION = "cs_CZ.UTF-8";
@@ -102,7 +115,23 @@
   };
 
   services = {
-    tailscale.enable = true;
+    k3s = {
+      enable = true;
+      role = "server";
+      extraFlags = toString [
+        "--disable traefik"
+        "--cluster-dns=10.43.0.10"
+        "--resolv-conf=/etc/rancher/k3s/resolv.conf"
+      ];
+    };
+    
+    tailscale = {
+      enable = true;
+      useRoutingFeatures = "client";
+      extraSetFlags = [
+        "--accept-dns=false"
+      ];
+    };
     xserver = {
       # Enable the X11 windowing system.
       enable = true;
@@ -217,7 +246,7 @@
   users.users.tom = {
     isNormalUser = true;
     description = "Tom Koreny";
-    extraGroups = ["networkmanager" "wheel" "docker"];
+    extraGroups = ["networkmanager" "wheel" "docker" "video" "render"];
     packages = [];
   };
 
@@ -233,7 +262,20 @@
     sbctl
     mangohud
     protonup
+    docker-buildx
+    docker-compose
+    mkcert
+    caddy
+    libva
+    libva-utils
+    nvidia-vaapi-driver
   ];
+
+  # Create a proper resolv.conf for k3s
+  environment.etc."rancher/k3s/resolv.conf".text = ''
+    nameserver 1.1.1.1
+    nameserver 8.8.8.8
+  '';
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
@@ -248,6 +290,11 @@
     # Enable graphics driver in NixOS unstable/NixOS 24.11
     graphics.enable = true;
     graphics.enable32Bit = true;
+    graphics.extraPackages = with pkgs; [
+      nvidia-vaapi-driver
+      vaapiVdpau
+      libvdpau-va-gl
+    ];
 
     nvidia = {
       # Modesetting is required.
@@ -270,22 +317,22 @@
       # https://github.com/NVIDIA/open-gpu-kernel-modules#compatible-gpus
       # Only available from driver 515.43.04+
       # Currently "beta quality", so false is currently the recommended setting.
-      open = true;
+      open = false;
 
       # Enable the Nvidia settings menu,
       # accessible via `nvidia-settings`.
       nvidiaSettings = true;
 
       # Optionally, you may need to select the appropriate driver version for your specific GPU.
-      package = config.boot.kernelPackages.nvidiaPackages.beta;
+      package = config.boot.kernelPackages.nvidiaPackages.stable;
     };
   };
 
   virtualisation.docker = {
     enable = true;
     rootless = {
-      enable = true;
-      setSocketVariable = true;
+      enable = false;
+      setSocketVariable = false;
     };
     daemon.settings = {
       dns = ["1.1.1.1" "8.8.8.8"];
@@ -294,6 +341,42 @@
       default-address-pools = [
         {
           base = "172.17.0.0/16";
+          size = 24;
+        }
+        {
+          base = "172.18.0.0/16";
+          size = 24;
+        }
+        {
+          base = "172.19.0.0/16";
+          size = 24;
+        }
+        {
+          base = "172.20.0.0/16";
+          size = 24;
+        }
+        {
+          base = "172.21.0.0/16";
+          size = 24;
+        }
+        {
+          base = "172.22.0.0/16";
+          size = 24;
+        }
+        {
+          base = "172.23.0.0/16";
+          size = 24;
+        }
+        {
+          base = "172.24.0.0/16";
+          size = 24;
+        }
+        {
+          base = "172.25.0.0/16";
+          size = 24;
+        }
+        {
+          base = "172.26.0.0/16";
           size = 24;
         }
       ];
@@ -307,5 +390,8 @@
 
   environment.sessionVariables = {
     STEAM_EXTRA_COMPAT_TOOLS_PATHS = "\${HOME}/.steam/root/compatibilitytools.d";
+    LIBVA_DRIVER_NAME = "nvidia";
+    VDPAU_DRIVER = "nvidia";
+    NVD_BACKEND = "direct";
   };
 }

@@ -24,6 +24,7 @@
     pkgs.wl-clipboard
     pkgs.tiramisu
     pkgs.teams-for-linux
+    pkgs.slack
     pkgs.rustdesk
 
     pkgs.thunderbird
@@ -68,12 +69,8 @@
   programs = {
     #    kitty.enable = true; # required for the default Hyprland config
     wofi.enable = true; # required for the default Hyprland config
-    #nvidia fix :(
-    chromium = {
-      commandLineArgs = [
-        "--disable-gpu-compositing"
-      ];
-    };
+    # Removed --disable-gpu-compositing as it breaks hardware acceleration
+    # chromium config is now in modules/home/chromium/default.nix
   };
   programs.tmux.enable = true;
   programs.tmux.sensibleOnTop = true;
