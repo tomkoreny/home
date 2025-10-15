@@ -79,8 +79,17 @@
     };
 
     settings = {
-      substituters = ["https://hyprland.cachix.org"];
-      trusted-public-keys = ["hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="];
+      # Include the default cache plus Hyprland's cache
+      substituters = [
+        "https://cache.nixos.org/"
+        "https://hyprland.cachix.org"
+      ];
+      trusted-public-keys = [
+        # Default NixOS binary cache key
+        "cache.nixos.org-1:6NCHdD59X431o0g7Cz6y5T3J5iCkqDPe7t3BhY1zYdg="
+        # Hyprland cachix key
+        "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
+      ];
     };
   };
   networking = {
@@ -88,7 +97,13 @@
     extraHosts = builtins.readFile ./config/hosts/hosts;
 
     # Enable networking
-    networkmanager.enable = true;
+    networkmanager = {
+      enable = true;
+      # Let a system-level dnsmasq handle DNS on 127.0.0.1
+      dns = "default";
+    };
+    # Use local stub; dnsmasq forwards exclusively to 192.168.1.93
+    nameservers = [ "127.0.0.1" ];
   };
 
   # Set your time zone.
@@ -115,6 +130,22 @@
   };
 
   services = {
+    # Local caching resolver forwarding all queries to local DNS
+    dnsmasq = {
+      enable = true;
+      settings = {
+        no-resolv = true;
+        strict-order = true;
+        bind-interfaces = true;
+        listen-address = [ "127.0.0.1" "::1" ];
+        # Do not include resolvconf-provided auxiliary configs
+        conf-file = lib.mkForce [];
+        resolv-file = lib.mkForce [];
+        # Forward exclusively to local resolver
+        server = lib.mkForce [ "192.168.1.93" ];
+        cache-size = 400;
+      };
+    };
     k3s = {
       enable = true;
       role = "server";
@@ -124,7 +155,7 @@
         "--resolv-conf=/etc/rancher/k3s/resolv.conf"
       ];
     };
-    
+
     tailscale = {
       enable = true;
       useRoutingFeatures = "client";
@@ -203,13 +234,9 @@
       };
     };
 
-    resolved = {
-      enable = true;
-      dnssec = "true";
-      domains = ["~."];
-      fallbackDns = ["1.1.1.1#one.one.one.one" "1.0.0.1#one.one.one.one"];
-      dnsovertls = "true";
-    };
+    # Disable systemd-resolved to prevent excessive cache flushes that
+    # trigger application-level network change events.
+    resolved.enable = lib.mkForce false;
   };
   xdg = {
     autostart = {
@@ -273,8 +300,7 @@
 
   # Create a proper resolv.conf for k3s
   environment.etc."rancher/k3s/resolv.conf".text = ''
-    nameserver 1.1.1.1
-    nameserver 8.8.8.8
+    nameserver 192.168.1.93
   '';
 
   # This value determines the NixOS release from which the default
@@ -328,6 +354,14 @@
     };
   };
 
+  # Reduce IPv6 address churn (privacy temp addresses) to avoid frequent
+  # netlink address change events that some applications interpret as
+  # network changes.
+  boot.kernel.sysctl = {
+    "net.ipv6.conf.all.use_tempaddr" = lib.mkForce 0;
+    "net.ipv6.conf.default.use_tempaddr" = lib.mkForce 0;
+  };
+
   virtualisation.docker = {
     enable = true;
     rootless = {
@@ -335,7 +369,8 @@
       setSocketVariable = false;
     };
     daemon.settings = {
-      dns = ["1.1.1.1" "8.8.8.8"];
+      # Ensure containers also use local DNS server
+      dns = lib.mkForce ["192.168.1.93"];
       dns-opts = ["ndots:0"];
       insecure-registries = ["harbor.acho.loc:443"];
       default-address-pools = [
