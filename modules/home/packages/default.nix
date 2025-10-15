@@ -10,8 +10,9 @@
     pkgs.openfortivpn
     pkgs.kubectl
     pkgs.kubernetes-helm
+    pkgs.kubeseal
     pkgs.k9s
-    pkgs.httpie
+    #pkgs.httpie
     pkgs.nodejs
     pkgs.node-gyp
     #(pkgs.jetbrains.plugins.addPlugins pkgs.jetbrains.webstorm ["github-copilot"])
@@ -38,9 +39,10 @@
     pkgs.eas-cli
     # pkgs.prusa-slicer
 
-    pkgs.slack
-    pkgs.teleport
+    #pkgs.slack
+    #pkgs.teleport
     pkgs.claude-code
+    pkgs.codex
     pkgs.git-crypt
     pkgs.htop
     pkgs.nssTools

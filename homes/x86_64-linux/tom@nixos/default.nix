@@ -49,7 +49,6 @@
 
   programs.waybar = {
     enable = true;
-    # settings = lib.importJSON ./config/waybar/config.json;
   };
 
   home.file.".config/waybar/config" = {
@@ -67,10 +66,7 @@
   home.stateVersion = "24.05";
   home.sessionVariables.NIXOS_OZONE_WL = "1";
   programs = {
-    #    kitty.enable = true; # required for the default Hyprland config
     wofi.enable = true; # required for the default Hyprland config
-    # Removed --disable-gpu-compositing as it breaks hardware acceleration
-    # chromium config is now in modules/home/chromium/default.nix
   };
   programs.tmux.enable = true;
   programs.tmux.sensibleOnTop = true;
