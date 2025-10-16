@@ -1,16 +1,4 @@
-{
-  lib,
-  pkgs,
-  inputs,
-  system,
-  ...
-}: {
-  imports =
-    if system == "x86_64-linux" then
-      [ inputs.stylix.homeManagerModules.stylix ]
-    else
-      [ ];
-
+{ lib, pkgs, inputs, system, ... }: {
   config = lib.mkIf (system == "x86_64-linux") {
     stylix.enable = true;
     stylix.image = ../../nixos/stylix/wallpaper.png;
