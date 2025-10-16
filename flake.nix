@@ -40,6 +40,10 @@
     mac-app-util.url = "github:hraban/mac-app-util";
     puma-rails.url = "github:puma/homebrew-puma";
     puma-rails.flake = false;
+
+    # San Francisco Fonts | Apple Fonts
+    apple-fonts.url= "github:Lyndeno/apple-fonts.nix";
+    apple-fonts.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs:
@@ -74,6 +78,7 @@
       };
       home-manager.sharedModules = [
         inputs.mac-app-util.homeManagerModules.default
+        inputs.stylix.homeManagerModules.stylix
       ];
 
       channels-config = {

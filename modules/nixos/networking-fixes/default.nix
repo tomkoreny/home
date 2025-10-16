@@ -1,4 +1,4 @@
-{...}: {
+{ pkgs, ... }: {
   # Additional networking fixes for connection stability
   networking = {
     # Increase network buffer sizes to prevent connection resets
@@ -13,6 +13,7 @@
       allowPing = true;
       # Allow common ports to prevent connection issues
       allowedTCPPorts = [ 80 443 ];
+      extraPackages = [ pkgs.procps ];
       # TCP/IP stack tuning
       extraCommands = ''
         # Increase TCP buffer sizes

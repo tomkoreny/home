@@ -25,7 +25,7 @@
     pkgs.tiramisu
     pkgs.teams-for-linux
     pkgs.slack
-    pkgs.rustdesk
+#    pkgs.rustdesk
 
     pkgs.thunderbird
     pkgs.hypridle
