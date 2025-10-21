@@ -23,6 +23,7 @@
     ./hardware-configuration.nix
     # Import Caddy module
     ../../../modules/nixos/caddy
+    ../../../modules/nixos/openfortivpn
   ];
 
   # Configure swap file
