@@ -25,6 +25,7 @@
         "DP-4"
       ];
     })
+    ../../../modules/home/kubeconfig
   ];
 
   home.packages = [

@@ -17,6 +17,10 @@
       # Optional but recommended to limit the size of your system closure.
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     darwin.url = "github:LnL7/nix-darwin";
     darwin.inputs.nixpkgs.follows = "nixpkgs";
 
@@ -57,6 +61,7 @@
           stylix.nixosModules.stylix
           lanzaboote.nixosModules.lanzaboote
           home-manager.nixosModules.default
+          sops-nix.nixosModules.sops
         ];
 
         # If you wanted to configure a Darwin (macOS) system.
@@ -64,6 +69,7 @@
           nix-homebrew.darwinModules.nix-homebrew
           stylix.darwinModules.stylix
           mac-app-util.darwinModules.default
+          sops-nix.darwinModules.sops
         ];
 
         # Add a module to a specific host.
@@ -79,6 +85,7 @@
       home-manager.sharedModules = [
         inputs.mac-app-util.homeManagerModules.default
         inputs.stylix.homeManagerModules.stylix
+        inputs.sops-nix.homeManagerModules.sops
       ];
 
       channels-config = {

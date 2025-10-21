@@ -92,6 +92,7 @@
       ];
     };
   };
+
   networking = {
     hostName = "nixos"; # Define your hostname.
     extraHosts = builtins.readFile ./config/hosts/hosts;
@@ -147,7 +148,7 @@
       };
     };
     k3s = {
-      enable = true;
+      enable = false;
       role = "server";
       extraFlags = toString [
         "--disable traefik"

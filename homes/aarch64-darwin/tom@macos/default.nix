@@ -17,6 +17,10 @@
   config,
   ...
 }: {
+  imports = [
+    ../../../modules/home/kubeconfig
+  ];
+
   home.packages = [
     pkgs.raycast
   ];
