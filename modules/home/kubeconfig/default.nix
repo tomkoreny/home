@@ -9,7 +9,9 @@ let
       throw "home kubeconfig module: unable to locate DAG helpers (expected config.lib.dag or lib.hm.dag).";
   kubeConfigPath = "${config.home.homeDirectory}/.kube/config";
   kubeConfigDir = builtins.dirOf kubeConfigPath;
-  secretFile = ../../../secrets/kubeconfig/default.json;
+  it2goSecretFile = ../../../secrets/kubeconfig/it2go-main.json;
+  tmobileProdSecretFile = ../../../secrets/kubeconfig/tmobile-prod.json;
+  tmobileTestSecretFile = ../../../secrets/kubeconfig/tmobile-test.json;
   ageKeyFile = "${config.home.homeDirectory}/.config/sops/age/keys.txt";
   sopsBin = lib.getExe pkgs.sops;
   jqBin = lib.getExe pkgs.jq;
@@ -24,16 +26,36 @@ in
 lib.mkIf (pkgs.stdenv.isLinux || pkgs.stdenv.isDarwin) {
   home.activation.kubeconfig = dagLib.entryAfter ["writeBoundary"] ''
     set -eu
-    tmpSecret=$(${escape mktempBin})
-    tmpConfig=$(${escape mktempBin})
-    trap 'rm -f "$tmpSecret" "$tmpConfig"' EXIT
+    set -o pipefail
 
-    if ! SOPS_AGE_KEY_FILE=${escape ageKeyFile} ${escape sopsBin} --decrypt ${escape secretFile} >"$tmpSecret"; then
-      echo "failed to decrypt kubeconfig secret" >&2
+    it2go_main_key=$(
+      SOPS_AGE_KEY_FILE=${escape ageKeyFile} ${escape sopsBin} --decrypt ${escape it2goSecretFile} \
+        | ${escape jqBin} -r '.clientKeyData'
+    )
+    tmobile_prod_token=$(
+      SOPS_AGE_KEY_FILE=${escape ageKeyFile} ${escape sopsBin} --decrypt ${escape tmobileProdSecretFile} \
+        | ${escape jqBin} -r '.token'
+    )
+    tmobile_test_token=$(
+      SOPS_AGE_KEY_FILE=${escape ageKeyFile} ${escape sopsBin} --decrypt ${escape tmobileTestSecretFile} \
+        | ${escape jqBin} -r '.token'
+    )
+
+    if [ -z "$it2go_main_key" ]; then
+      echo "failed to read it2go-main client key from secret" >&2
+      exit 1
+    fi
+    if [ -z "$tmobile_prod_token" ]; then
+      echo "failed to read tmobile-prod token from secret" >&2
+      exit 1
+    fi
+    if [ -z "$tmobile_test_token" ]; then
+      echo "failed to read tmobile-test token from secret" >&2
       exit 1
     fi
 
-    clientKey=$(${escape jqBin} -r '.clientKeyData' "$tmpSecret")
+    tmpConfig=$(${escape mktempBin})
+    trap 'rm -f "$tmpConfig"' EXIT
 
     mkdir -p ${escape kubeConfigDir}
     cat >"$tmpConfig" <<EOF
@@ -43,11 +65,27 @@ clusters:
     certificate-authority-data: ${caData}
     server: https://157.180.115.27:6443
   name: it2go-main
+- cluster:
+    insecure-skip-tls-verify: true
+    server: https://rancher.acho.loc/k8s/clusters/local
+  name: tmobile-prod
+- cluster:
+    insecure-skip-tls-verify: true
+    server: https://test-rancher.acho.loc/k8s/clusters/local
+  name: tmobile-test
 contexts:
 - context:
     cluster: it2go-main
     user: it2go-main
   name: it2go-main
+- context:
+    cluster: tmobile-prod
+    user: tmobile-prod
+  name: tmobile-prod
+- context:
+    cluster: tmobile-test
+    user: tmobile-test
+  name: tmobile-test
 current-context: it2go-main
 kind: Config
 preferences: {}
@@ -55,7 +93,13 @@ users:
 - name: it2go-main
   user:
     client-certificate-data: ${clientCertData}
-    client-key-data: $clientKey
+    client-key-data: $it2go_main_key
+- name: tmobile-prod
+  user:
+    token: $tmobile_prod_token
+- name: tmobile-test
+  user:
+    token: $tmobile_test_token
 EOF
     ${escape installBin} -m600 "$tmpConfig" ${escape kubeConfigPath}
   '';

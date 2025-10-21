@@ -30,5 +30,24 @@
     start = "npm run start";
   };
   programs.bash.enable = true;
+  programs.bash.initExtra = lib.mkAfter ''
+    ksecret() {
+      if [ -z "$1" ]; then
+        echo "usage: ksecret <cluster>" >&2
+        return 1
+      fi
+
+      local secrets_dir="$HOME/nixos2/secrets/kubeconfig"
+      local secret_file="$secrets_dir/$1.json"
+
+      if [ ! -f "$secret_file" ]; then
+        echo "secret file not found: $secret_file" >&2
+        return 1
+      fi
+
+      SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" \
+        ${pkgs.sops}/bin/sops "$secret_file"
+    }
+  '';
   programs.starship.enable = true;
 }
