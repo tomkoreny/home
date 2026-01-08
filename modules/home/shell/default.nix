@@ -29,6 +29,22 @@
     dev = "npm run dev";
     start = "npm run start";
   };
+  home.packages = [
+    (pkgs.writeShellScriptBin "sw" ''
+      set -euo pipefail
+
+      case "$(uname -s)" in
+        Darwin)
+          target="darwin"
+          ;;
+        *)
+          target="os"
+          ;;
+      esac
+
+      exec ${lib.getExe pkgs.nh} "$target" switch "$@"
+    '')
+  ];
   programs.bash.enable = true;
   programs.bash.initExtra = lib.mkAfter ''
     ksecret() {

@@ -24,8 +24,8 @@ in {
   };
 
   launchd.daemons.openfortivpn = {
-    program = "${vpnScript}/bin/openfortivpn-connect";
-    environmentVariables = {
+    command = "${vpnScript}/bin/openfortivpn-connect";
+    environment = {
       OPENFORTIVPN_BIN = lib.getExe pkgs.openfortivpn;
       OPENFORTIVPN_CONFIG = config.sops.secrets.${secretName}.path;
     };

@@ -1,9 +1,12 @@
 {
   lib,
+  pkgs ? null,
   outputs ? [],
   ...
 }:
 let
+  isLinux =
+    if pkgs == null then false else pkgs.stdenv.hostPlatform.isLinux;
   base = {
     height = 30;
     spacing = 4;
@@ -191,15 +194,17 @@ let
     };
   };
 in {
-  programs.waybar = {
-    enable = true;
-    settings = map (output: base // { inherit output; }) outputs;
-  };
+  config = lib.mkIf isLinux {
+    programs.waybar = {
+      enable = true;
+      settings = map (output: base // { inherit output; }) outputs;
+    };
 
-  home.file.".config/waybar/scripts/polytiramisu.sh" = {
-    source = ./config/polytiramisu.sh;
-  };
-  home.file.".config/waybar/power_menu.xml" = {
-    source = ./config/power_menu.xml;
+    home.file.".config/waybar/scripts/polytiramisu.sh" = {
+      source = ./config/polytiramisu.sh;
+    };
+    home.file.".config/waybar/power_menu.xml" = {
+      source = ./config/power_menu.xml;
+    };
   };
 }

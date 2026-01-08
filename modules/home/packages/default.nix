@@ -18,10 +18,11 @@
     #(pkgs.jetbrains.plugins.addPlugins pkgs.jetbrains.webstorm ["github-copilot"])
     pkgs.jetbrains-toolbox
     #pkgs.jetbrains.webstorm
-    pkgs.ghostty
+    # pkgs.ghostty
+    pkgs.glab
 
     pkgs.php
-    pkgs.signal-desktop
+    # pkgs.signal-desktop
 
     pkgs.nodePackages.vercel
 
@@ -30,7 +31,7 @@
       withVencord = true;
     })
 
-    pkgs.prismlauncher
+    # pkgs.prismlauncher
     pkgs.qmk
 
     pkgs.typescript

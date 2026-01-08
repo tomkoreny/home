@@ -19,7 +19,7 @@
 }: {
   imports = [
     (import ../../../modules/home/waybar {
-      inherit lib;
+      inherit lib pkgs;
       outputs = [
         "DP-2"
         "DP-4"

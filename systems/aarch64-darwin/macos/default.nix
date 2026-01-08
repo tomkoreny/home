@@ -73,6 +73,31 @@
   # The platform the configuration will be used on.
   nixpkgs.hostPlatform = "aarch64-darwin";
 
+
+  launchd.user.envVariables = {
+    DEVELOPER_DIR = "/Applications/Xcode.app/Contents/Developer";
+    SDKROOT = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk";
+    ANDROID_SDK_ROOT = "/Users/tom/Library/Android/sdk";
+    ANDROID_HOME = "/Users/tom/Library/Android/sdk";
+  };
+
+  environment.variables = {
+    DEVELOPER_DIR = "/Applications/Xcode.app/Contents/Developer";
+    # Optional but keeps clang/cctools from the same SDK:
+    SDKROOT = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk";
+    ANDROID_SDK_ROOT = "/Users/tom/Library/Android/sdk";
+    ANDROID_HOME = "/Users/tom/Library/Android/sdk";
+  };
+
+
+  sops = {
+    age = {
+      keyFile = "/Users/tom/.config/sops/age/keys.txt";
+      sshKeyPaths = [];
+    };
+    gnupg.sshKeyPaths = [];
+  };
+
   users.knownUsers = ["tom"];
   users.users.tom = {
     uid = 501;
@@ -107,6 +132,11 @@
   homebrew = {
     enable = true;
     casks = [
+      "android-studio"
+      "android-platform-tools"
+      "android-commandlinetools"
+      "flutter"
+      "temurin"
       "orbstack"
       "microsoft-teams"
       "ghostty"
@@ -118,6 +148,7 @@
     ];
     brews = [
       "argocd"
+      "cocoapods"
       "cloudflared"
       "mkcert"
       "caddy"
