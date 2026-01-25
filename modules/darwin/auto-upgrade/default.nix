@@ -71,7 +71,7 @@ in
         StandardOutPath = "$HOME/Library/Logs/auto-rebuild-stdout.log";
         StandardErrorPath = "$HOME/Library/Logs/auto-rebuild-stderr.log";
       };
-      path = [ pkgs.darwin-rebuild pkgs.git pkgs.nix config.nix.package ];
+      path = [ pkgs.git pkgs.nix config.nix.package "/run/current-system/sw" ];
     };
   };
 }
