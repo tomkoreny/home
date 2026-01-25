@@ -13,7 +13,7 @@ in {
     image = ./wallpaper.png;
     
     fonts = sharedFonts // {
-      sizes = common.stylix.fontSizes.darwin;
+      sizes = common.stylix.fontSizes;
     };
   };
 }

@@ -19,7 +19,7 @@ in {
     };
     
     fonts = sharedFonts // {
-      sizes = common.stylix.fontSizes.nixos;
+      sizes = common.stylix.fontSizes;
     };
   };
 }

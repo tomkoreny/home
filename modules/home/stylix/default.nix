@@ -10,7 +10,7 @@ in {
       image = ../../nixos/stylix/wallpaper.png;
       
       fonts = sharedFonts // {
-        sizes = common.stylix.fontSizes.nixos;
+        sizes = common.stylix.fontSizes;
       };
       
       targets.waybar.font = "sansSerif";

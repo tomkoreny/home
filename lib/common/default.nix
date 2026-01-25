@@ -76,11 +76,8 @@ rec {
       };
     };
     
-    # Platform-specific font sizes
-    fontSizes = {
-      nixos = { applications = 12; terminal = 13; desktop = 10; popups = 10; };
-      darwin = { applications = 13; terminal = 15; desktop = 12; popups = 12; };
-    };
+    # Unified font sizes (all platforms)
+    fontSizes = { applications = 12; terminal = 13; desktop = 10; popups = 10; };
   };
 
   # Nix binary caches (shared between NixOS and Darwin)
