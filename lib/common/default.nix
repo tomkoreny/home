@@ -81,6 +81,13 @@ rec {
     
     # Unified font sizes (all platforms)
     fontSizes = { applications = 12; terminal = 13; desktop = 10; popups = 10; };
+    
+    # Cursor theme (NixOS only, Darwin uses system cursor)
+    cursor = pkgs: {
+      package = pkgs.rose-pine-cursor;
+      name = "BreezeX-RosePine-Linux";
+      size = 32;
+    };
   };
 
   # Nix binary caches (shared between NixOS and Darwin)

@@ -11,13 +11,7 @@ let
 in {
   stylix = stylixBase // {
     image = common.stylix.wallpaper;
-    
-    cursor = {
-      package = pkgs.rose-pine-cursor;
-      name = "BreezeX-RosePine-Linux";
-      size = 32;
-    };
-    
+    cursor = common.stylix.cursor pkgs;
     fonts = sharedFonts // {
       sizes = common.stylix.fontSizes;
     };
