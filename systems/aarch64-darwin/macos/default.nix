@@ -16,7 +16,15 @@
   # All other arguments come from the system system.
   config,
   ...
-}: {
+}: 
+let
+  # Import shared configuration from lib/common
+  common = import ../../../lib/common {};
+  
+  # Shortcuts for frequently used values
+  inherit (common.user) name fullName;
+  homeDir = common.user.homeDir { isDarwin = true; };
+in {
   imports = [
     ../../../modules/darwin/vpn
   ];
@@ -51,14 +59,14 @@
       dock = {
         persistent-apps = [
           "${pkgs.google-chrome}/Applications/Google Chrome.app"
-          "/Users/tom/Applications/Home Manager Trampolines/WebStorm.app"
-          "/Users/tom/Applications/Home Manager Trampolines/Ghostty.app"
+          "${homeDir}/Applications/Home Manager Trampolines/WebStorm.app"
+          "${homeDir}/Applications/Home Manager Trampolines/Ghostty.app"
         ];
         show-recents = false;
         autohide = true;
       };
     };
-    primaryUser = "tom";
+    primaryUser = name;
 
     #    activationScripts.postUserActivation.text = ''
     #      apps_source="${config.system.build.applications}/Applications"
@@ -77,31 +85,31 @@
   launchd.user.envVariables = {
     DEVELOPER_DIR = "/Applications/Xcode.app/Contents/Developer";
     SDKROOT = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk";
-    ANDROID_SDK_ROOT = "/Users/tom/Library/Android/sdk";
-    ANDROID_HOME = "/Users/tom/Library/Android/sdk";
+    ANDROID_SDK_ROOT = "${homeDir}/Library/Android/sdk";
+    ANDROID_HOME = "${homeDir}/Library/Android/sdk";
   };
 
   environment.variables = {
     DEVELOPER_DIR = "/Applications/Xcode.app/Contents/Developer";
     # Optional but keeps clang/cctools from the same SDK:
     SDKROOT = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk";
-    ANDROID_SDK_ROOT = "/Users/tom/Library/Android/sdk";
-    ANDROID_HOME = "/Users/tom/Library/Android/sdk";
+    ANDROID_SDK_ROOT = "${homeDir}/Library/Android/sdk";
+    ANDROID_HOME = "${homeDir}/Library/Android/sdk";
   };
 
 
   sops = {
     age = {
-      keyFile = "/Users/tom/.config/sops/age/keys.txt";
+      keyFile = "${homeDir}/.config/sops/age/keys.txt";
       sshKeyPaths = [];
     };
     gnupg.sshKeyPaths = [];
   };
 
-  users.knownUsers = ["tom"];
-  users.users.tom = {
+  users.knownUsers = [ name ];
+  users.users.${name} = {
     uid = 501;
-    description = "Tom Koreny";
+    description = fullName;
     shell = pkgs.bashInteractive;
   };
   services.tailscale.enable = true;
@@ -114,7 +122,7 @@
     enableRosetta = true;
 
     # User owning the Homebrew prefix
-    user = "tom";
+    user = name;
     # Optional: Declarative tap management
     taps = {
       "homebrew/homebrew-core" = inputs.homebrew-core;

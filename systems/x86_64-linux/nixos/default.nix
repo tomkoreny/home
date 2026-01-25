@@ -16,18 +16,14 @@
   # All other arguments come from the system system.
   config,
   ...
-}: 
+}:
 let
-  # Shared configuration values
-  # See lib/common/default.nix for the full shared library
-  localDns = "192.168.1.93";
-  repoUrl = "https://github.com/tomkoreny/home.git";
-  
-  # Generate Docker address pools programmatically (10 pools)
-  dockerAddressPools = lib.genList (i: {
-    base = "172.${toString (17 + i)}.0.0/16";
-    size = 24;
-  }) 10;
+  # Import shared configuration from lib/common
+  common = import ../../../lib/common {};
+
+  # Shortcuts for frequently used values
+  inherit (common.network) localDns;
+  inherit (common.user) name fullName;
 in {
   # Your configuration.
   imports = [
@@ -92,17 +88,9 @@ in {
     };
 
     settings = {
-      # Include the default cache plus Hyprland's cache
-      substituters = [
-        "https://cache.nixos.org/"
-        "https://hyprland.cachix.org"
-      ];
-      trusted-public-keys = [
-        # Default NixOS binary cache key
-        "cache.nixos.org-1:6NCHdD59X431o0g7Cz6y5T3J5iCkqDPe7t3BhY1zYdg="
-        # Hyprland cachix key
-        "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
-      ];
+      # Binary caches from shared config
+      substituters = common.nix.substituters;
+      trusted-public-keys = common.nix.trustedPublicKeys;
     };
   };
 
@@ -199,7 +187,7 @@ in {
 
       # Enable automatic login for the user.
       autoLogin.enable = true;
-      autoLogin.user = "tom";
+      autoLogin.user = name;
     };
 
     # Enable CUPS to print documents.
@@ -269,7 +257,7 @@ in {
 
   security.sudo.extraRules = [
     {
-      users = ["tom"];
+      users = [ name ];
       commands = [
         {
           command = "ALL";
@@ -283,10 +271,10 @@ in {
   # Enable touchpad support (enabled default in most desktopManager).
   # services.xserver.libinput.enable = true;
 
-  # Define a user account. Don't forget to set a password with ‘passwd’.
-  users.users.tom = {
+  # Define a user account. Don't forget to set a password with 'passwd'.
+  users.users.${name} = {
     isNormalUser = true;
-    description = "Tom Koreny";
+    description = fullName;
     extraGroups = ["networkmanager" "wheel" "docker" "video" "render"];
     packages = [];
   };
@@ -319,7 +307,7 @@ in {
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
-  # on your system were taken. It‘s perfectly fine and recommended to leave
+  # on your system were taken. It's perfectly fine and recommended to leave
   # this value at the release version of the first install of this system.
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
@@ -385,9 +373,9 @@ in {
     daemon.settings = {
       # Ensure containers also use local DNS server
       dns = lib.mkForce [ localDns ];
-      dns-opts = ["ndots:0"];
-      insecure-registries = ["harbor.acho.loc:443"];
-      default-address-pools = dockerAddressPools;
+      dns-opts = common.docker.dnsOpts;
+      insecure-registries = common.docker.insecureRegistries;
+      default-address-pools = common.docker.addressPools lib;
     };
   };
   programs = {
