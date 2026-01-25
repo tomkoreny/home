@@ -16,7 +16,15 @@
   # All other arguments come from the system system.
   config,
   ...
-}: {
+}:
+let
+  # Import shared configuration from lib/common
+  common = import ../../../lib/common {};
+
+  # Shortcuts for frequently used values
+  inherit (common.network) localDns;
+  inherit (common.user) name fullName;
+in {
   # Enable auto-upgrade from git
   tomkoreny.nixos.auto-upgrade.enable = true;
 
@@ -83,17 +91,9 @@
     };
 
     settings = {
-      # Include the default cache plus Hyprland's cache
-      substituters = [
-        "https://cache.nixos.org/"
-        "https://hyprland.cachix.org"
-      ];
-      trusted-public-keys = [
-        # Default NixOS binary cache key
-        "cache.nixos.org-1:6NCHdD59X431o0g7Cz6y5T3J5iCkqDPe7t3BhY1zYdg="
-        # Hyprland cachix key
-        "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
-      ];
+      # Binary caches from shared config
+      substituters = common.nix.substituters;
+      trusted-public-keys = common.nix.trustedPublicKeys;
     };
   };
 
@@ -147,7 +147,7 @@
         conf-file = lib.mkForce [];
         resolv-file = lib.mkForce [];
         # Forward exclusively to local resolver
-        server = lib.mkForce [ "192.168.1.93" ];
+        server = lib.mkForce [ localDns ];
         cache-size = 400;
       };
     };
@@ -190,7 +190,7 @@
 
       # Enable automatic login for the user.
       autoLogin.enable = true;
-      autoLogin.user = "tom";
+      autoLogin.user = name;
     };
 
     # Enable CUPS to print documents.
@@ -260,7 +260,7 @@
 
   security.sudo.extraRules = [
     {
-      users = ["tom"];
+      users = [ name ];
       commands = [
         {
           command = "ALL";
@@ -274,10 +274,10 @@
   # Enable touchpad support (enabled default in most desktopManager).
   # services.xserver.libinput.enable = true;
 
-  # Define a user account. Don't forget to set a password with ‘passwd’.
-  users.users.tom = {
+  # Define a user account. Don't forget to set a password with 'passwd'.
+  users.users.${name} = {
     isNormalUser = true;
-    description = "Tom Koreny";
+    description = fullName;
     extraGroups = ["networkmanager" "wheel" "docker" "video" "render"];
     packages = [];
   };
@@ -305,12 +305,12 @@
 
   # Create a proper resolv.conf for k3s
   environment.etc."rancher/k3s/resolv.conf".text = ''
-    nameserver 192.168.1.93
+    nameserver ${localDns}
   '';
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
-  # on your system were taken. It‘s perfectly fine and recommended to leave
+  # on your system were taken. It's perfectly fine and recommended to leave
   # this value at the release version of the first install of this system.
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
@@ -375,51 +375,10 @@
     };
     daemon.settings = {
       # Ensure containers also use local DNS server
-      dns = lib.mkForce ["192.168.1.93"];
-      dns-opts = ["ndots:0"];
-      insecure-registries = ["harbor.acho.loc:443"];
-      default-address-pools = [
-        {
-          base = "172.17.0.0/16";
-          size = 24;
-        }
-        {
-          base = "172.18.0.0/16";
-          size = 24;
-        }
-        {
-          base = "172.19.0.0/16";
-          size = 24;
-        }
-        {
-          base = "172.20.0.0/16";
-          size = 24;
-        }
-        {
-          base = "172.21.0.0/16";
-          size = 24;
-        }
-        {
-          base = "172.22.0.0/16";
-          size = 24;
-        }
-        {
-          base = "172.23.0.0/16";
-          size = 24;
-        }
-        {
-          base = "172.24.0.0/16";
-          size = 24;
-        }
-        {
-          base = "172.25.0.0/16";
-          size = 24;
-        }
-        {
-          base = "172.26.0.0/16";
-          size = 24;
-        }
-      ];
+      dns = lib.mkForce [ localDns ];
+      dns-opts = common.docker.dnsOpts;
+      insecure-registries = common.docker.insecureRegistries;
+      default-address-pools = common.docker.addressPools lib;
     };
   };
   programs = {
