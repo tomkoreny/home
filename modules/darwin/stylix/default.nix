@@ -1,26 +1,18 @@
 {
   lib,
   pkgs,
+  inputs,
   ...
 }: 
 let
   common = import ../../../lib/common {};
   stylixBase = common.stylix.base pkgs;
+  sharedFonts = common.stylix.fonts pkgs inputs;
 in {
   stylix = stylixBase // {
     image = ./wallpaper.png;
     
-    fonts = {
-      monospace = common.stylix.fonts.monospace pkgs;
-      # Darwin uses system fonts for better integration
-      sansSerif = {
-        package = pkgs.dejavu_fonts;
-        name = "DejaVu Sans";
-      };
-      serif = {
-        package = pkgs.dejavu_fonts;
-        name = "DejaVu Serif";
-      };
+    fonts = sharedFonts // {
       sizes = common.stylix.fontSizes.darwin;
     };
   };

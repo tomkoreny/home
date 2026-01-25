@@ -60,11 +60,19 @@ rec {
       };
     };
     
-    # Shared monospace font (used everywhere)
-    fonts = {
-      monospace = pkgs: {
+    # Shared fonts (used everywhere)
+    fonts = pkgs: inputs: {
+      monospace = {
         package = pkgs.nerd-fonts.jetbrains-mono;
         name = "JetBrainsMono Nerd Font Mono";
+      };
+      sansSerif = {
+        package = inputs.apple-fonts.packages.${pkgs.system}.sf-pro-nerd;
+        name = "SFProDisplay Nerd Font";
+      };
+      serif = {
+        package = inputs.apple-fonts.packages.${pkgs.system}.ny-nerd;
+        name = "NYDisplay Nerd Font";
       };
     };
     
