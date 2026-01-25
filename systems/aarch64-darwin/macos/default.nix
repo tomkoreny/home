@@ -57,7 +57,6 @@ in {
     ];
 
     # Performance optimizations
-    auto-optimise-store = true;
     max-jobs = "auto";
     cores = 0; # Use all cores
 
@@ -67,6 +66,7 @@ in {
   };
 
   # Make `nix shell nixpkgs#foo` use locked nixpkgs
+  nix.optimise.automatic = true;
   nix.registry.nixpkgs.flake = inputs.nixpkgs;
 
   networking.hostName = "macos"; # Define your hostname.
