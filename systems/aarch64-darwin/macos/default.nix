@@ -29,8 +29,34 @@
   ];
 
   # Necessary for using flakes on this system.
-  nix.settings.experimental-features = "nix-command flakes";
   nix.channel.enable = false;
+
+  # Nix settings for faster builds
+  nix.settings = {
+    experimental-features = "nix-command flakes";
+
+    # Binary caches - CRITICAL for build speed
+    substituters = [
+      "https://cache.nixos.org/"
+      "https://nix-community.cachix.org"
+    ];
+    trusted-public-keys = [
+      "cache.nixos.org-1:6NCHdD59X431o0gWz7Cz6y5T3J5iCkqDPe7t3BhY1zYdg="
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+    ];
+
+    # Performance optimizations
+    auto-optimise-store = true;
+    max-jobs = "auto";
+    cores = 0; # Use all cores
+
+    # Keep build dependencies for faster rebuilds
+    keep-outputs = true;
+    keep-derivations = true;
+  };
+
+  # Make `nix shell nixpkgs#foo` use locked nixpkgs
+  nix.registry.nixpkgs.flake = inputs.nixpkgs;
 
   networking.hostName = "macos"; # Define your hostname.
   networking.knownNetworkServices = [
