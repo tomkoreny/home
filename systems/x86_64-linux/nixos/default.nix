@@ -16,7 +16,19 @@
   # All other arguments come from the system system.
   config,
   ...
-}: {
+}: 
+let
+  # Shared configuration values
+  # See lib/common/default.nix for the full shared library
+  localDns = "192.168.1.93";
+  repoUrl = "https://github.com/tomkoreny/home.git";
+  
+  # Generate Docker address pools programmatically (10 pools)
+  dockerAddressPools = lib.genList (i: {
+    base = "172.${toString (17 + i)}.0.0/16";
+    size = 24;
+  }) 10;
+in {
   # Your configuration.
   imports = [
     # Include the results of the hardware scan.
@@ -144,7 +156,7 @@
         conf-file = lib.mkForce [];
         resolv-file = lib.mkForce [];
         # Forward exclusively to local resolver
-        server = lib.mkForce [ "192.168.1.93" ];
+        server = lib.mkForce [ localDns ];
         cache-size = 400;
       };
     };
@@ -302,7 +314,7 @@
 
   # Create a proper resolv.conf for k3s
   environment.etc."rancher/k3s/resolv.conf".text = ''
-    nameserver 192.168.1.93
+    nameserver ${localDns}
   '';
 
   # This value determines the NixOS release from which the default
@@ -372,51 +384,10 @@
     };
     daemon.settings = {
       # Ensure containers also use local DNS server
-      dns = lib.mkForce ["192.168.1.93"];
+      dns = lib.mkForce [ localDns ];
       dns-opts = ["ndots:0"];
       insecure-registries = ["harbor.acho.loc:443"];
-      default-address-pools = [
-        {
-          base = "172.17.0.0/16";
-          size = 24;
-        }
-        {
-          base = "172.18.0.0/16";
-          size = 24;
-        }
-        {
-          base = "172.19.0.0/16";
-          size = 24;
-        }
-        {
-          base = "172.20.0.0/16";
-          size = 24;
-        }
-        {
-          base = "172.21.0.0/16";
-          size = 24;
-        }
-        {
-          base = "172.22.0.0/16";
-          size = 24;
-        }
-        {
-          base = "172.23.0.0/16";
-          size = 24;
-        }
-        {
-          base = "172.24.0.0/16";
-          size = 24;
-        }
-        {
-          base = "172.25.0.0/16";
-          size = 24;
-        }
-        {
-          base = "172.26.0.0/16";
-          size = 24;
-        }
-      ];
+      default-address-pools = dockerAddressPools;
     };
   };
   programs = {
