@@ -68,8 +68,6 @@ in
       serviceConfig = {
         StartInterval = cfg.interval;
         RunAtLoad = true;
-        StandardOutPath = "$HOME/Library/Logs/auto-rebuild-stdout.log";
-        StandardErrorPath = "$HOME/Library/Logs/auto-rebuild-stderr.log";
       };
       path = [ pkgs.git pkgs.nix config.nix.package "/run/current-system/sw" ];
     };
