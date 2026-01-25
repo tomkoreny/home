@@ -17,6 +17,9 @@
   config,
   ...
 }: {
+  # Enable auto-upgrade from git
+  tomkoreny.nixos.auto-upgrade.enable = true;
+
   # Your configuration.
   imports = [
     # Include the results of the hardware scan.

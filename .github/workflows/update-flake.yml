@@ -1,0 +1,29 @@
+name: Update flake inputs
+
+on:
+  schedule:
+    - cron: '0 4 * * 0'  # Sunday 4am UTC
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: DeterminateSystems/nix-installer-action@main
+      
+      - name: Update flake.lock
+        run: nix flake update
+        
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet flake.lock; then
+            echo "No changes to flake.lock"
+          else
+            git add flake.lock
+            git commit -m "flake.lock: weekly update"
+            git push
+          fi

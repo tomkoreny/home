@@ -17,6 +17,9 @@
   config,
   ...
 }: {
+  # Enable auto-upgrade from git
+  tomkoreny.darwin.auto-upgrade.enable = true;
+
   imports = [
     ../../../modules/darwin/vpn
   ];
