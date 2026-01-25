@@ -221,8 +221,16 @@ in {
 
     # List services that you want to enable:
 
-    # Enable the OpenSSH daemon.
-    openssh.enable = true;
+    # Enable the OpenSSH daemon with hardened settings
+    openssh = {
+      enable = true;
+      settings = {
+        PermitRootLogin = "no";
+        PasswordAuthentication = false;
+        KbdInteractiveAuthentication = false;
+        X11Forwarding = false;
+      };
+    };
 
     # Open ports in the firewall.
     # networking.firewall.allowedTCPPorts = [ ... ];
@@ -258,13 +266,18 @@ in {
     };
   };
 
+  # NOTE: Passwordless sudo for ALL commands is convenient but carries security risk.
+  # Any process running as 'tom' can escalate to root without authentication.
+  # For a more secure setup, consider restricting to specific commands:
+  #   command = "${pkgs.nixos-rebuild}/bin/nixos-rebuild";
+  #   command = "${pkgs.systemd}/bin/systemctl";
   security.sudo.extraRules = [
     {
       users = [ name ];
       commands = [
         {
           command = "ALL";
-          options = ["NOPASSWD"]; # "SETENV" # Adding the following could be a good idea
+          options = ["NOPASSWD" "SETENV"];
         }
       ];
     }
