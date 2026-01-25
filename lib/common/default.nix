@@ -44,17 +44,34 @@ rec {
   };
 
   # Stylix theme base configuration
-  # Usage: common.stylix pkgs
-  stylix = pkgs: {
-    enable = true;
-    polarity = "dark";
-    base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
-    override.base00 = "#000000"; # True black background
-    opacity = {
-      applications = 1.0;
-      terminal = 1.0;
-      desktop = 1.0;
-      popups = 1.0;
+  # Usage: common.stylix.base pkgs // { image = ./wallpaper.png; fonts.sizes = ...; }
+  stylix = {
+    # Core theme settings (shared across all platforms)
+    base = pkgs: {
+      enable = true;
+      polarity = "dark";
+      base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
+      override.base00 = "#000000"; # OLEDpuccin - true black
+      opacity = {
+        applications = 1.0;
+        terminal = 1.0;
+        desktop = 1.0;
+        popups = 1.0;
+      };
+    };
+    
+    # Shared monospace font (used everywhere)
+    fonts = {
+      monospace = pkgs: {
+        package = pkgs.nerd-fonts.jetbrains-mono;
+        name = "JetBrainsMono Nerd Font Mono";
+      };
+    };
+    
+    # Platform-specific font sizes
+    fontSizes = {
+      nixos = { applications = 12; terminal = 13; desktop = 10; popups = 10; };
+      darwin = { applications = 13; terminal = 15; desktop = 12; popups = 12; };
     };
   };
 
