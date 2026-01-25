@@ -2,7 +2,7 @@ name: Update flake inputs
 
 on:
   schedule:
-    - cron: '0 4 * * 0'  # Sunday 4am UTC
+    - cron: '0 4 * * *'  # Daily 4am UTC
   workflow_dispatch:
 
 jobs:
@@ -24,6 +24,6 @@ jobs:
             echo "No changes to flake.lock"
           else
             git add flake.lock
-            git commit -m "flake.lock: weekly update"
+            git commit -m "flake.lock: daily update"
             git push
           fi
