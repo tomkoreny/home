@@ -44,8 +44,11 @@ rec {
   };
 
   # Stylix theme base configuration
-  # Usage: common.stylix.base pkgs // { image = ./wallpaper.png; fonts.sizes = ...; }
+  # Usage: common.stylix.base pkgs // { fonts.sizes = ...; }
   stylix = {
+    # Shared wallpaper (relative to this file)
+    wallpaper = ./wallpaper.png;
+
     # Core theme settings (shared across all platforms)
     base = pkgs: {
       enable = true;

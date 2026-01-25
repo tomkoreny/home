@@ -10,7 +10,7 @@ let
   sharedFonts = common.stylix.fonts pkgs inputs;
 in {
   stylix = stylixBase // {
-    image = ./wallpaper.png;
+    image = common.stylix.wallpaper;
     
     cursor = {
       package = pkgs.rose-pine-cursor;

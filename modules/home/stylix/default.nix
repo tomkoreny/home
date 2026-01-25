@@ -7,7 +7,7 @@ in {
   # Only enable on NixOS (Darwin handles stylix at system level)
   config = lib.mkIf (system == "x86_64-linux") {
     stylix = stylixBase // {
-      image = ../../nixos/stylix/wallpaper.png;
+      image = common.stylix.wallpaper;
       
       fonts = sharedFonts // {
         sizes = common.stylix.fontSizes;
