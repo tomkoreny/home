@@ -28,6 +28,14 @@ in {
   # Enable auto-upgrade from git
   tomkoreny.nixos.auto-upgrade.enable = true;
 
+  # Enable Clawdbot node - connects to gateway at 192.168.1.93:18789
+  tomkoreny.nixos.clawdbot-node = {
+    enable = true;
+    displayName = "NixOS Desktop";
+    gatewayHost = "192.168.1.93";
+    gatewayPort = 18789;
+  };
+
   # Your configuration.
   imports = [
     # Include the results of the hardware scan.
@@ -35,6 +43,8 @@ in {
     # Import Caddy module
     ../../../modules/nixos/caddy
     ../../../modules/nixos/openfortivpn
+    # Clawdbot node service
+    ../../../modules/nixos/clawdbot-node
   ];
 
   # Configure swap file
