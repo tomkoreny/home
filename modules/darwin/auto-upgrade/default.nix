@@ -11,11 +11,11 @@ let
     LOG_FILE="$HOME/Library/Logs/auto-rebuild.log"
     
     exec >> "$LOG_FILE" 2>&1
-    echo "=== Auto-rebuild check at $(date) ==="
+    echo "=== Auto-rebuild check at $(${pkgs.coreutils}/bin/date) ==="
     
     # Prevent concurrent runs
     exec 200>"$LOCK_FILE"
-    flock -n 200 || { echo "Another rebuild is running"; exit 0; }
+    ${pkgs.flock}/bin/flock -n 200 || { echo "Another rebuild is running"; exit 0; }
     
     # Clone if missing
     if [ ! -d "$REPO_PATH" ]; then
@@ -42,7 +42,7 @@ let
     # Rebuild Darwin
     darwin-rebuild switch --flake .#macos
     
-    echo "Rebuild complete at $(date)"
+    echo "Rebuild complete at $(${pkgs.coreutils}/bin/date)"
   '';
 in
 {
