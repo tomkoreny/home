@@ -313,7 +313,7 @@ in {
   environment.systemPackages = with pkgs; [
     sbctl
     mangohud
-    protonup
+    protonup-ng
     docker-buildx
     docker-compose
     mkcert
