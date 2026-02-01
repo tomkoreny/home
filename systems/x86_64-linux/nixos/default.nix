@@ -40,11 +40,8 @@ in {
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
-    # Import Caddy module
-    ../../../modules/nixos/caddy
-    ../../../modules/nixos/openfortivpn
-    # Clawdbot node service
-    ../../../modules/nixos/clawdbot-node
+    # Note: modules in modules/nixos/ are auto-loaded by Snowfall Lib
+    # (caddy, openfortivpn, clawdbot-node)
   ];
 
   # Configure swap file
