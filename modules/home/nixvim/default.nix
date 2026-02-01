@@ -49,6 +49,7 @@
           # Languages that will be supported in default and maximal configurations.
           nix.enable = true;
           markdown.enable = true;
+          markdown.lsp.enable = false; # marksman requires swift which is broken on arm64-darwin
 
           # Languages that are enabled in the maximal configuration.
           bash.enable = true;
