@@ -346,7 +346,7 @@ in {
     graphics.enable32Bit = true;
     graphics.extraPackages = with pkgs; [
       nvidia-vaapi-driver
-      vaapiVdpau
+      libva-vdpau-driver
       libvdpau-va-gl
     ];
 
