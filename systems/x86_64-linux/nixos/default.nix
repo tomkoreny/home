@@ -71,12 +71,10 @@ in {
       efi.canTouchEfiVariables = true;
     };
 
-    # Temporarily disabled due to rust-overlay build issues
-    # lanzaboote = {
-    #   enable = true;
-    #   pkiBundle = "/etc/secureboot";
-    # };
-    systemd-boot.enable = true;
+    lanzaboote = {
+      enable = true;
+      pkiBundle = "/etc/secureboot";
+    };
     kernelParams = [
       # "quiet"
       # "loglevel=3"
