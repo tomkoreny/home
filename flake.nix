@@ -12,7 +12,7 @@
     stylix.url = "github:danth/stylix";
     nvf.url = "github:notashelf/nvf";
     lanzaboote = {
-      url = "github:nix-community/lanzaboote/v0.4.2";
+      url = "github:nix-community/lanzaboote/v1.0.0";
 
       # Optional but recommended to limit the size of your system closure.
       inputs.nixpkgs.follows = "nixpkgs";
@@ -46,7 +46,7 @@
     puma-rails.flake = false;
 
     # San Francisco Fonts | Apple Fonts
-    apple-fonts.url= "github:Lyndeno/apple-fonts.nix";
+    apple-fonts.url = "github:Lyndeno/apple-fonts.nix";
     apple-fonts.inputs.nixpkgs.follows = "nixpkgs";
   };
 

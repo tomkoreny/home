@@ -176,7 +176,6 @@ in {
       "temurin"
       "orbstack"
       "microsoft-teams"
-      "ghostty"
       "readdle-spark"
       "wifiman"
       "home-assistant"
