@@ -76,7 +76,7 @@ in {
     #   enable = true;
     #   pkiBundle = "/etc/secureboot";
     # };
-    loader.systemd-boot.enable = true;
+    systemd-boot.enable = true;
     kernelParams = [
       # "quiet"
       # "loglevel=3"
