@@ -65,7 +65,7 @@ in {
     # Bootloader.
     plymouth.enable = true;
     loader = {
-      systemd-boot.enable = lib.mkForce true;  # Changed from false (lanzaboote disabled)
+      systemd-boot.enable = lib.mkForce false;
       systemd-boot.configurationLimit = 5;
       #boot.loader.systemd-boot.netbootxyz.enable = true;
       efi.canTouchEfiVariables = true;
@@ -76,6 +76,7 @@ in {
     #   enable = true;
     #   pkiBundle = "/etc/secureboot";
     # };
+    loader.systemd-boot.enable = true;
     kernelParams = [
       # "quiet"
       # "loglevel=3"
