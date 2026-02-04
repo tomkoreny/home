@@ -311,6 +311,8 @@ in {
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
+    v4l-utils
+    ffmpeg-headless
     sbctl
     mangohud
     protonup-ng
@@ -335,6 +337,11 @@ in {
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
   system.stateVersion = "24.05";
+  # Disable USB autosuspend for Logitech C920 webcam (prevents white/blank frames)
+  services.udev.extraRules = ''
+    ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="046d", ATTR{idProduct}=="08e5", ATTR{power/autosuspend}="-1", ATTR{power/control}="on"
+  '';
+
   hardware = {
     # Did you read the comment?
 
