@@ -46,6 +46,7 @@
     pkgs.codex
     pkgs.git-crypt
     pkgs.htop
+    pkgs.tmux
     pkgs.nssTools
   ];
 }
