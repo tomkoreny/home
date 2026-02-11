@@ -48,6 +48,7 @@
     pkgs.element-desktop
     pkgs.prismlauncher
     pkgs.qmk
+    pkgs.remmina
   ];
   home.sessionPath = [
     "/home/tom/.local/share/JetBrains/Toolbox/apps"
