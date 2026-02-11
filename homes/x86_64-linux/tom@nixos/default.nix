@@ -26,6 +26,7 @@
       ];
     })
     ../../../modules/home/kubeconfig
+    ../../../modules/home/helium
   ];
 
   home.packages = [
