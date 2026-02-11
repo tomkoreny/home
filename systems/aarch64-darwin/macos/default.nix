@@ -181,6 +181,7 @@ in {
       "home-assistant"
       "bitwarden"
       "rustdesk"
+      "helium-browser"
     ];
     brews = [
       "argocd"
