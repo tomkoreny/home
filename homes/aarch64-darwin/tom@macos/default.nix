@@ -18,6 +18,7 @@
   ...
 }: {
   imports = [
+    ../../../modules/home/ssh
     ../../../modules/home/kubeconfig
   ];
 
