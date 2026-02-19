@@ -236,15 +236,6 @@
           codecompanion-nvim = {
             enable = true;
             setupOpts = {
-              adapters = {
-                acp = {
-                  codex = {
-                    defaults = {
-                      auth_method = "chatgpt";
-                    };
-                  };
-                };
-              };
               strategies = {
                 # ACP adapters (provided by claude-code-acp + codex-acp packages)
                 # - Codex as default for chat/inline
