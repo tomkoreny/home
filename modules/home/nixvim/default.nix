@@ -237,8 +237,11 @@
             enable = true;
             setupOpts = {
               strategies = {
-                chat = { adapter = "claude_code"; };
-                inline = { adapter = "claude_code"; };
+                # ACP adapters (provided by claude-code-acp + codex-acp packages)
+                # - Codex as default for chat/inline (ChatGPT auth supported by codex-acp)
+                # - Claude Code kept for agent workflow
+                chat = { adapter = "codex"; };
+                inline = { adapter = "codex"; };
                 agent = { adapter = "claude_code"; };
               };
             };
