@@ -86,6 +86,14 @@ in {
     # $ darwin-rebuild changelog
     stateVersion = 5;
     defaults = {
+      CustomUserPreferences = {
+        "com.apple.Siri" = {
+          StatusMenuVisible = false;
+        };
+        "com.apple.Spotlight" = {
+          MenuItemHidden = true;
+        };
+      };
       dock = {
         persistent-apps = [
           "${pkgs.google-chrome}/Applications/Google Chrome.app"
