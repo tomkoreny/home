@@ -91,6 +91,7 @@
       channels-config = {
         # Allow unfree packages.
         allowUnfree = true;
+        permittedInsecurePackages = [ "google-chrome-144.0.7559.97" ];
       };
       # Configure Snowfall Lib, all of these settings are optional.
       snowfall = {

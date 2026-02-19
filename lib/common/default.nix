@@ -97,7 +97,7 @@ rec {
       "https://hyprland.cachix.org"
     ];
     trustedPublicKeys = [
-      "cache.nixos.org-1:6NCHdD59X431o0g7Cz6y5T3J5iCkqDPe7t3BhY1zYdg="
+      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
       "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
     ];
   };

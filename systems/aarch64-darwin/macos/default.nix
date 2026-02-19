@@ -27,6 +27,7 @@ let
 in {
   # Enable auto-upgrade from git
   tomkoreny.darwin.auto-upgrade.enable = true;
+  home-manager.backupFileExtension = "bak";
 
   imports = [
     ../../../modules/darwin/vpn
@@ -52,7 +53,7 @@ in {
       "https://nix-community.cachix.org"
     ];
     trusted-public-keys = [
-      "cache.nixos.org-1:6NCHdD59X431o0gWz7Cz6y5T3J5iCkqDPe7t3BhY1zYdg="
+      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
     ];
 
