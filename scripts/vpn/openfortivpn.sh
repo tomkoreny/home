@@ -11,7 +11,7 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
-readonly config_path="${1:-${OPENFORTIVPN_CONFIG:-/run/openfortivpn.conf}}"
+readonly config_path="${OPENFORTIVPN_CONFIG:-/run/openfortivpn.conf}"
 readonly openfortivpn_bin="${OPENFORTIVPN_BIN:-openfortivpn}"
 
 if [ ! -r "$config_path" ]; then

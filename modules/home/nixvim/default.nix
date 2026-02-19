@@ -55,7 +55,7 @@
           bash.enable = true;
           clang.enable = false;
           css.enable = true;
-          html.enable = true;
+          html.enable = false; # superhtml broken on macOS (zig sandbox issue)
           sql.enable = true;
           java.enable = false;
           kotlin.enable = false;
@@ -233,6 +233,16 @@
         };
 
         assistant = {
+          codecompanion-nvim = {
+            enable = true;
+            setupOpts = {
+              strategies = {
+                chat = { adapter = "claude_code"; };
+                inline = { adapter = "claude_code"; };
+                agent = { adapter = "claude_code"; };
+              };
+            };
+          };
           chatgpt.enable = false;
           copilot = {
             enable = false;
