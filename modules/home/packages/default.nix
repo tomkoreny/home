@@ -23,7 +23,6 @@
     pkgs.php
     # pkgs.signal-desktop
 
-    pkgs.nodePackages.vercel
 
     (pkgs.discord.override {
       # withOpenASAR = true; # can do this here too
