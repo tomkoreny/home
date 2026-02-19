@@ -18,7 +18,9 @@
   ...
 }: {
   imports = [
+    ../../../modules/home/ssh
     ../../../modules/home/kubeconfig
+    ../../../modules/home/jetbrains
   ];
 
   home.packages = [

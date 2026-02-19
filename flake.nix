@@ -84,7 +84,7 @@
       };
       home-manager.sharedModules = [
         inputs.mac-app-util.homeManagerModules.default
-        inputs.stylix.homeManagerModules.stylix
+        inputs.stylix.homeModules.stylix
         inputs.sops-nix.homeManagerModules.sops
       ];
 
