@@ -27,6 +27,7 @@
     })
     ../../../modules/home/kubeconfig
     ../../../modules/home/helium
+    ../../../modules/home/jetbrains
   ];
 
   home.packages = [
@@ -50,10 +51,6 @@
     pkgs.qmk
     pkgs.remmina
   ];
-  home.sessionPath = [
-    "/home/tom/.local/share/JetBrains/Toolbox/apps"
-  ];
-
   programs.direnv = {
     enable = true;
     nix-direnv.enable = true;

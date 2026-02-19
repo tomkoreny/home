@@ -16,7 +16,6 @@
     pkgs.nodejs
     pkgs.node-gyp
     #(pkgs.jetbrains.plugins.addPlugins pkgs.jetbrains.webstorm ["github-copilot"])
-    pkgs.jetbrains-toolbox
     #pkgs.jetbrains.webstorm
     (if pkgs.stdenv.isDarwin then pkgs.ghostty-bin else pkgs.ghostty)
     pkgs.glab
@@ -48,5 +47,10 @@
     pkgs.htop
     pkgs.tmux
     pkgs.nssTools
+    pkgs.lazyssh
+    pkgs.claude-code-acp
+    pkgs.codex-acp
+    pkgs.zed-editor
+    pkgs.usql
   ];
 }
