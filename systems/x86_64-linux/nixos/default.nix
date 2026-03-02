@@ -92,10 +92,12 @@ in {
   nix = {
     settings.experimental-features = ["nix-command" "flakes"];
     gc = {
-      automatic = false;
+      automatic = true;
       dates = "weekly";
       options = "--delete-older-than 7d";
     };
+
+    optimise.automatic = true;
 
     settings = {
       # Binary caches from shared config
