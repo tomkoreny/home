@@ -14,8 +14,7 @@
     inherit version;
     src = pkgs.fetchurl {
       url = "https://github.com/imputnet/helium-linux/releases/download/${version}/helium-${version}-x86_64.AppImage";
-      # Run `nix build` once to get the real hash, then replace this:
-      hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+      hash = "sha256-jFSLLDsHB/NiJqFmn8S+JpdM8iCy3Zgyq+8l4RkBecM=";
     };
     extraPkgs = pkgs: with pkgs; [
       nss nspr atk at-spi2-atk cups dbus libdrm gtk3 pango cairo
@@ -27,4 +26,20 @@ in {
   home.packages = lib.optionals pkgs.stdenv.isLinux [
     helium-browser
   ];
+
+  home.sessionVariables = lib.mkIf pkgs.stdenv.isLinux {
+    BROWSER = "helium-browser";
+  };
+
+  xdg.mimeApps = lib.mkIf pkgs.stdenv.isLinux {
+    enable = true;
+    defaultApplications = {
+      "text/html" = ["helium-browser.desktop"];
+      "application/xhtml+xml" = ["helium-browser.desktop"];
+      "x-scheme-handler/http" = ["helium-browser.desktop"];
+      "x-scheme-handler/https" = ["helium-browser.desktop"];
+      "x-scheme-handler/about" = ["helium-browser.desktop"];
+      "x-scheme-handler/unknown" = ["helium-browser.desktop"];
+    };
+  };
 }
