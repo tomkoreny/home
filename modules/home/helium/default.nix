@@ -16,11 +16,29 @@
       url = "https://github.com/imputnet/helium-linux/releases/download/${version}/helium-${version}-x86_64.AppImage";
       hash = "sha256-jFSLLDsHB/NiJqFmn8S+JpdM8iCy3Zgyq+8l4RkBecM=";
     };
-    extraPkgs = pkgs: with pkgs; [
-      nss nspr atk at-spi2-atk cups dbus libdrm gtk3 pango cairo
-      xorg.libX11 xorg.libXcomposite xorg.libXdamage xorg.libXext
-      xorg.libXfixes xorg.libXrandr xorg.libxcb mesa expat alsa-lib
-    ];
+    extraPkgs = pkgs:
+      with pkgs; [
+        nss
+        nspr
+        atk
+        at-spi2-atk
+        cups
+        dbus
+        libdrm
+        gtk3
+        pango
+        cairo
+        xorg.libX11
+        xorg.libXcomposite
+        xorg.libXdamage
+        xorg.libXext
+        xorg.libXfixes
+        xorg.libXrandr
+        xorg.libxcb
+        mesa
+        expat
+        alsa-lib
+      ];
   };
 in {
   home.packages = lib.optionals pkgs.stdenv.isLinux [

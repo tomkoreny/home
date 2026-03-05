@@ -5,24 +5,25 @@
 #   let common = import ../../../lib/common {}; in { ... }
 #
 # Then access: common.user.name, common.network.localDns, etc.
-{ lib ? null, ... }:
-rec {
+{lib ? null, ...}: rec {
   # User identity - used in git config, user definitions, etc.
   user = {
     name = "tom";
     fullName = "Tom Koreny";
     email = "tom@tomkoreny.com";
-    
+
     # Platform-specific home directory
-    homeDir = { isDarwin ? false }: 
-      if isDarwin then "/Users/${user.name}" else "/home/${user.name}";
+    homeDir = {isDarwin ? false}:
+      if isDarwin
+      then "/Users/${user.name}"
+      else "/home/${user.name}";
   };
 
   # Network configuration
   network = {
     # Local DNS server (AdGuard Home)
-    localDns = "192.168.1.93";
-    
+    localDns = "10.10.50.93";
+
     # Home repository URL for auto-upgrade
     repoUrl = "https://github.com/tomkoreny/home.git";
   };
@@ -30,17 +31,19 @@ rec {
   # Docker daemon configuration
   docker = {
     # Insecure registries (internal harbor, etc.)
-    insecureRegistries = [ "harbor.acho.loc:443" ];
-    
+    insecureRegistries = ["harbor.acho.loc:443"];
+
     # DNS options for containers
-    dnsOpts = [ "ndots:0" ];
-    
+    dnsOpts = ["ndots:0"];
+
     # Generate address pools programmatically (requires lib)
     # Usage: common.docker.addressPools lib
-    addressPools = l: l.genList (i: {
-      base = "172.${toString (17 + i)}.0.0/16";
-      size = 24;
-    }) 10;
+    addressPools = l:
+      l.genList (i: {
+        base = "172.${toString (17 + i)}.0.0/16";
+        size = 24;
+      })
+      10;
   };
 
   # Stylix theme base configuration
@@ -62,7 +65,7 @@ rec {
         popups = 1.0;
       };
     };
-    
+
     # Shared fonts (used everywhere)
     fonts = pkgs: inputs: {
       monospace = {
@@ -78,10 +81,15 @@ rec {
         name = "NYDisplay Nerd Font";
       };
     };
-    
+
     # Unified font sizes (all platforms)
-    fontSizes = { applications = 12; terminal = 13; desktop = 10; popups = 10; };
-    
+    fontSizes = {
+      applications = 12;
+      terminal = 13;
+      desktop = 10;
+      popups = 10;
+    };
+
     # Cursor theme (NixOS only, Darwin uses system cursor)
     cursor = pkgs: {
       package = pkgs.rose-pine-cursor;
