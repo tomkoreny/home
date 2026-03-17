@@ -1,6 +1,6 @@
 {
   lib,
-  system,
+  pkgs,
   ...
 }: {
   programs.nh = {
@@ -8,7 +8,7 @@
     clean.enable = false;
     clean.extraArgs = "--keep-since 4d --keep 3";
     flake =
-      if lib.strings.hasInfix "darwin" system
+      if pkgs.stdenv.isDarwin
       then "/Users/tom/home"
       else "/home/tom/nixos2";
   };

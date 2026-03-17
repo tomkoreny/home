@@ -4,7 +4,17 @@
   programs.ssh = {
     enable = true;
     
+    # Suppress deprecation warning about default values
+    enableDefaultConfig = false;
+    
     matchBlocks = {
+      # Restore useful defaults for all hosts
+      "*" = {
+        extraOptions = {
+          AddKeysToAgent = "yes";
+        };
+      };
+      
       "proxmox" = {
         hostname = "192.168.1.2";
         user = "root";

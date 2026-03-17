@@ -1,11 +1,11 @@
-{ lib, pkgs, inputs, system, ... }: 
+{ lib, pkgs, inputs, ... }: 
 let
   common = import ../../../lib/common {};
   stylixBase = common.stylix.base pkgs;
   sharedFonts = common.stylix.fonts pkgs inputs;
 in {
   # Only enable on NixOS (Darwin handles stylix at system level)
-  config = lib.mkIf (system == "x86_64-linux") {
+  config = lib.mkIf pkgs.stdenv.isLinux {
     stylix = stylixBase // {
       image = common.stylix.wallpaper;
       
