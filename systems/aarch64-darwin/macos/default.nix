@@ -178,38 +178,100 @@ in {
   homebrew = {
     enable = true;
     casks = [
-      "android-studio"
-      "android-platform-tools"
+      # Development
       "android-commandlinetools"
+      "android-platform-tools"
+      "android-studio"
+      "arduino-ide"
       "flutter"
+      "kicad"
       "temurin"
-      "orbstack"
-      "microsoft-teams"
-      "readdle-spark"
-      "wifiman"
-      "home-assistant"
-      "bitwarden"
-      "rustdesk"
+      "vscodium"
+
+      # Browsers
+      "google-chrome"
       "helium-browser"
+      "tor-browser"
+      "zen-browser"
+
+      # Communication
+      "beeper"
+      "discord"
+      "element@nightly"
+      "loom"
+      "microsoft-teams"
+      "notion"
+      "signal"
+
+      # Productivity
+      "affinity-designer"
+      "readdle-spark"
+      "shottr"
+      "xnapper"
+
+      # Infrastructure / Remote
+      "anydesk"
+      "bitwarden"
+      "home-assistant"
+      "openclaw"
+      "orbstack"
+      "rustdesk"
+      "teamviewer"
+      "wifiman"
+
+      # Media & Entertainment
+      "curseforge"
+      "multiviewer"
+      "spotify"
+      "vlc"
+
+      # AI
+      "claude"
+      "codex"
+
+      # Hardware
+      "raspberry-pi-imager"
     ];
     brews = [
+      # Kubernetes & DevOps
       "argocd"
-      "cocoapods"
       "cloudflared"
-      "mkcert"
-      "caddy"
+
+      # Ruby / Rails
+      "cocoapods"
       "rbenv"
       "ruby-build"
-      "nodenv"
       "puma/puma/puma-dev"
+
+      # Node
+      "nodenv"
+
+      # Web / Servers
+      "caddy"
+      "mkcert"
+
+      # Databases
       "postgresql"
       "redis"
+
+      # Libraries
       "libyaml"
       "libsodium"
       "vips"
-      "git-crypt"
+
+      # Tools
       "git-lfs"
+      "hugo"
+      "imagemagick"
+      "pandoc"
       "python-setuptools"
+      "socat"
+      "sshpass"
+      "uv"
+      "wakeonlan"
+
+      # Hardware
+      "picotool"
     ];
   };
 }
