@@ -27,7 +27,8 @@ let
 in {
   # Enable auto-upgrade from git
   tomkoreny.darwin.auto-upgrade.enable = true;
-  home-manager.backupFileExtension = "bak";
+  # Avoid collisions with pre-existing manual backups like ~/.ssh/config.bak.
+  home-manager.backupFileExtension = "hm-bak";
 
   imports = [
     ../../../modules/darwin/vpn
@@ -151,7 +152,6 @@ in {
     shell = pkgs.bashInteractive;
   };
   services.tailscale.enable = true;
-  services.tailscale.overrideLocalDns = true;
   nix-homebrew = {
     # Install Homebrew under the default prefix
     enable = true;
@@ -177,6 +177,10 @@ in {
 
   homebrew = {
     enable = true;
+    onActivation.extraFlags = [
+      # Overwrite pre-existing app bundles and binaries when a declarative cask collides.
+      "--force"
+    ];
     casks = [
       # Development
       "android-commandlinetools"
@@ -192,7 +196,7 @@ in {
       "google-chrome"
       "helium-browser"
       "tor-browser"
-      "zen-browser"
+      "zen"
 
       # Communication
       "beeper"
@@ -227,7 +231,6 @@ in {
 
       # AI
       "claude"
-      "codex"
 
       # Hardware
       "raspberry-pi-imager"
