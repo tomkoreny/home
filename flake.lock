@@ -502,11 +502,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1773962693,
-        "narHash": "sha256-nf9pgktDE4E2TCavUT1vh3Nd/tfKixL1BK6P32Zp3hI=",
+        "lastModified": 1774007980,
+        "narHash": "sha256-FOnZjElEI8pqqCvB6K/1JRHTE8o4rer8driivTpq2uo=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "9d3c1d636e7b8ab10f357cd9bee653cd400437de",
+        "rev": "9670de2921812bc4e0452f6e3efd8c859696c183",
         "type": "github"
       },
       "original": {
@@ -555,11 +555,11 @@
     "homebrew-cask": {
       "flake": false,
       "locked": {
-        "lastModified": 1773972478,
-        "narHash": "sha256-s1yFFg2fo0fuwAUJ2r5kMALcZoUgINrHqIeWfvz34e8=",
+        "lastModified": 1774065116,
+        "narHash": "sha256-McnKgI1obrFLuvSJce1R2Mf3wbBCsyA2ZpIUo2b5zbg=",
         "owner": "homebrew",
         "repo": "homebrew-cask",
-        "rev": "00e45419b2fd5391527f1a3aebc41fee4067d6d3",
+        "rev": "cdc577ea0a8b7176b11ae169e8e519bffc24acd1",
         "type": "github"
       },
       "original": {
@@ -571,11 +571,11 @@
     "homebrew-core": {
       "flake": false,
       "locked": {
-        "lastModified": 1773979597,
-        "narHash": "sha256-mei5NysRAuSuxJvA8uj6AXqws4ShyafhyIlCh9a/pQQ=",
+        "lastModified": 1774067302,
+        "narHash": "sha256-ca2RIOggzAUrh0ROsU/fYz9D/wRVSV+NbGfZzVc9Qrw=",
         "owner": "homebrew",
         "repo": "homebrew-core",
-        "rev": "dd6d59094ae0b5c59c4fe8cf00a51d07de052844",
+        "rev": "9b5f1f8065c9a0cc6ced2784c041f4fb7cea87cc",
         "type": "github"
       },
       "original": {
@@ -659,11 +659,11 @@
         "xdph": "xdph"
       },
       "locked": {
-        "lastModified": 1773954292,
-        "narHash": "sha256-zU8GQuqxDkBKmb0tPv8YgcSeUgD+qJOirQtIXZ6cryE=",
+        "lastModified": 1774029157,
+        "narHash": "sha256-OGtXRftdimLDExxD7MGmg1IGY0b3Pmqdm61fbZkt6dk=",
         "owner": "hyprwm",
         "repo": "Hyprland",
-        "rev": "b940b0d2c197841b0f648598ee782dbaf9e0a89b",
+        "rev": "8726a7363eb9213235e6e23657668e0daac39a5b",
         "type": "github"
       },
       "original": {
@@ -836,11 +836,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1773436263,
-        "narHash": "sha256-n+2xFJngUkBqUJD5FsbVnYEHBTyDFSqtBIwQIGPXWWo=",
+        "lastModified": 1773948364,
+        "narHash": "sha256-S76omfIVQ1TpGiXFbqih6o6XcH3sA5+5QI+SXB4HvlY=",
         "owner": "hyprwm",
         "repo": "hyprutils",
-        "rev": "5e228db6821380a5875d5643176c5c46a47b8134",
+        "rev": "b85b779e3e3a1adcd9b098e3447cf48f9e780b35",
         "type": "github"
       },
       "original": {
