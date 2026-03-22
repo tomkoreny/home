@@ -35,7 +35,7 @@
 
   home.activation = {
     rsync-home-manager-applications = lib.hm.dag.entryAfter ["writeBoundary"] ''
-      rsyncArgs="--archive --checksum --chmod=-w --copy-unsafe-links --delete"
+      rsyncArgs="--archive --checksum --copy-unsafe-links --delete"
       apps_source="$genProfilePath/home-path/Applications"
       moniker="Home Manager Trampolines"
       app_target_base="${config.home.homeDirectory}/Applications"
