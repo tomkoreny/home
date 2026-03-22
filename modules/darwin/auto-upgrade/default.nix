@@ -29,6 +29,12 @@ let
     cd "$REPO_PATH"
     
     NEEDS_REBUILD=false
+
+    # Skip cleanly if the repo has local edits or untracked files.
+    if [ -n "$(${pkgs.git}/bin/git status --porcelain)" ]; then
+      echo "Working tree has local changes, skipping auto-update"
+      exit 0
+    fi
     
     # Fetch latest config changes
     ${pkgs.git}/bin/git fetch origin main
@@ -38,7 +44,7 @@ let
     
     if [ "$LOCAL" != "$REMOTE" ]; then
       echo "Config changes detected, updating..."
-      ${pkgs.git}/bin/git pull --ff-only origin main
+      ${pkgs.git}/bin/git merge --ff-only origin/main
       NEEDS_REBUILD=true
     fi
     
@@ -48,7 +54,7 @@ let
     NOW=$(${pkgs.coreutils}/bin/date +%s)
     STAMP_AGE=0
     if [ -f "$FLAKE_STAMP" ]; then
-      STAMP_TIME=$(${pkgs.coreutils}/bin/stat -f %m "$FLAKE_STAMP" 2>/dev/null || echo 0)
+      STAMP_TIME=$(${pkgs.coreutils}/bin/stat -c %Y "$FLAKE_STAMP" 2>/dev/null || echo 0)
       STAMP_AGE=$(( NOW - STAMP_TIME ))
     else
       STAMP_AGE=$((WEEK_SECONDS + 1))
@@ -74,7 +80,7 @@ let
     
     if [ "$NEEDS_REBUILD" = "true" ]; then
       echo "Rebuilding Darwin..."
-      darwin-rebuild switch --flake .#macos
+      /usr/bin/sudo -n /run/current-system/sw/bin/darwin-rebuild switch --flake .#macos
       echo "Rebuild complete at $(${pkgs.coreutils}/bin/date)"
     else
       echo "Already up to date"
