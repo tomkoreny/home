@@ -32,7 +32,9 @@ in {
   tomkoreny.nixos.clawdbot-node = {
     enable = true;
     displayName = "NixOS Desktop";
-    # Uses defaults: clawdbot.home.tomkoreny.com:443 with TLS
+    gatewayHost = "10.10.10.201";
+    gatewayPort = 18789;
+    tls = false;
   };
 
   # Your configuration.
