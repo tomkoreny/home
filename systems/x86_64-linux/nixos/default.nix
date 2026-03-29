@@ -28,12 +28,11 @@ in {
   # Enable auto-upgrade from git
   tomkoreny.nixos.auto-upgrade.enable = true;
 
-  # Enable Clawdbot node - connects to gateway at 192.168.1.93:18789
+  # Enable OpenClaw node - connects to gateway via Traefik
   tomkoreny.nixos.clawdbot-node = {
     enable = true;
     displayName = "NixOS Desktop";
-    gatewayHost = "192.168.1.93";
-    gatewayPort = 18789;
+    # Uses defaults: clawdbot.home.tomkoreny.com:443 with TLS
   };
 
   # Your configuration.
