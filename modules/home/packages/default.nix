@@ -47,8 +47,8 @@
     pkgs.tmux
     pkgs.nssTools
     pkgs.lazyssh
-    pkgs.claude-code-acp
-    pkgs.codex-acp
+    # pkgs.claude-code-acp  # TODO: needs overlay
+    # pkgs.codex-acp  # TODO: needs overlay
     pkgs.zed-editor
     pkgs.usql
   ];
