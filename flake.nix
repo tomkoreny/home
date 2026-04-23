@@ -50,7 +50,8 @@
     apple-fonts.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = inputs:
+  outputs =
+    inputs:
     inputs.snowfall-lib.mkFlake {
       inherit inputs;
       src = ./.;
@@ -82,16 +83,19 @@
           my-custom-value = "my-value";
         };
       };
-      home-manager.sharedModules = [
+      homes.modules = [
         inputs.mac-app-util.homeManagerModules.default
         inputs.stylix.homeModules.stylix
         inputs.sops-nix.homeManagerModules.sops
       ];
 
+      outputs-builder = channels: {
+        formatter = channels.nixpkgs.nixfmt;
+      };
+
       channels-config = {
         # Allow unfree packages.
         allowUnfree = true;
-        permittedInsecurePackages = [ "google-chrome-144.0.7559.97" ];
       };
       # Configure Snowfall Lib, all of these settings are optional.
       snowfall = {

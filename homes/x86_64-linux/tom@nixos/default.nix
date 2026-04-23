@@ -16,7 +16,8 @@
   # All other arguments come from the home home.
   config,
   ...
-}: {
+}:
+{
   imports = [
     (import ../../../modules/home/waybar {
       inherit lib pkgs;
@@ -38,9 +39,8 @@
     pkgs.tiramisu
     pkgs.teams-for-linux
     pkgs.slack
-#    pkgs.rustdesk
+    #    pkgs.rustdesk
 
-    pkgs.thunderbird
     pkgs.hypridle
     pkgs.git-credential-oauth
     pkgs.gnome-keyring
@@ -54,7 +54,7 @@
   programs.direnv = {
     enable = true;
     nix-direnv.enable = true;
-    config.whitelist.prefix = ["/home/tom/projects"];
+    config.whitelist.prefix = [ "/home/tom/projects" ];
   };
 
   # The state version is required and should stay at the version you

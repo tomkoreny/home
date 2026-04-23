@@ -3,15 +3,18 @@
   pkgs,
   inputs,
   ...
-}: 
+}:
 let
-  common = import ../../../lib/common {};
+  common = import ../../../lib/common { };
   stylixBase = common.stylix.base pkgs;
   sharedFonts = common.stylix.fonts pkgs inputs;
-in {
+in
+{
   stylix = stylixBase // {
     image = common.stylix.wallpaper;
+    homeManagerIntegration.autoImport = false;
     cursor = common.stylix.cursor pkgs;
+
     fonts = sharedFonts // {
       sizes = common.stylix.fontSizes;
     };

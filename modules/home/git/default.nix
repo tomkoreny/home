@@ -16,7 +16,8 @@
   # All other arguments come from the system system.
   config,
   ...
-}: {
+}:
+{
   programs.git = {
     package = pkgs.git;
     enable = true;
@@ -25,9 +26,16 @@
         email = "tom@tomkoreny.com";
         name = "Tom Koreny";
       };
-      credential.helper = ["libsecret" "oauth"];
+      credential.helper =
+        if pkgs.stdenv.isDarwin then
+          "osxkeychain"
+        else
+          [
+            "libsecret"
+            "oauth"
+          ];
       push = {
-          autoSetupRemote = true;
+        autoSetupRemote = true;
       };
       pull.rebase = true;
     };

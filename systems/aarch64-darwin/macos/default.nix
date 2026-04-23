@@ -1,7 +1,7 @@
 {
   # Snowfall Lib provides a customized `lib` instance with access to your flake's library
   # as well as the libraries available from your flake's inputs.
-  # lib,
+  lib,
   # An instance of `pkgs` with your overlays and packages applied is also available.
   pkgs,
   # You also have access to your flake's inputs.
@@ -16,15 +16,17 @@
   # All other arguments come from the system system.
   config,
   ...
-}: 
+}:
 let
   # Import shared configuration from lib/common
-  common = import ../../../lib/common {};
-  
+  common = import ../../../lib/common { };
+
   # Shortcuts for frequently used values
   inherit (common.user) name fullName;
   homeDir = common.user.homeDir { isDarwin = true; };
-in {
+  homeManagerApps = "${homeDir}/Applications/Home Manager Apps";
+in
+{
   # Enable auto-upgrade from git
   tomkoreny.darwin.auto-upgrade.enable = true;
   # Avoid collisions with pre-existing manual backups like ~/.ssh/config.bak.
@@ -88,6 +90,22 @@ in {
     stateVersion = 5;
     defaults = {
       CustomUserPreferences = {
+        "com.apple.controlcenter" = {
+          "NSStatusItem Preferred Position Battery" = 213;
+          "NSStatusItem Preferred Position BentoBox" = 147;
+          "NSStatusItem Preferred Position BentoBox-0" = 133;
+          "NSStatusItem Preferred Position FocusModes" = 304;
+          "NSStatusItem Preferred Position NowPlaying" = 304;
+          "NSStatusItem Preferred Position WiFi" = 175;
+          "NSStatusItem Visible BentoBox" = true;
+          "NSStatusItem Visible FaceTime" = false;
+          "NSStatusItem VisibleCC Battery" = true;
+          "NSStatusItem VisibleCC BentoBox-0" = true;
+          "NSStatusItem VisibleCC Clock" = true;
+          "NSStatusItem VisibleCC FocusModes" = true;
+          "NSStatusItem VisibleCC NowPlaying" = true;
+          "NSStatusItem VisibleCC WiFi" = true;
+        };
         "com.apple.Siri" = {
           StatusMenuVisible = false;
         };
@@ -95,14 +113,46 @@ in {
           MenuItemHidden = true;
         };
       };
+      controlcenter = {
+        AirDrop = false;
+        BatteryShowPercentage = false;
+        Bluetooth = false;
+        Display = false;
+        FocusModes = true;
+        NowPlaying = true;
+        Sound = false;
+      };
       dock = {
         persistent-apps = [
-          "${pkgs.google-chrome}/Applications/Google Chrome.app"
-          "${homeDir}/Applications/Home Manager Trampolines/WebStorm.app"
-          "${homeDir}/Applications/Home Manager Trampolines/Ghostty.app"
+          "/Applications/Helium.app"
+          "${homeManagerApps}/Betterbird.app"
+          "/Applications/Element Nightly.app"
+          "/System/Applications/Calendar.app"
+          "/System/Applications/Notes.app"
+          "/Applications/Ghostty.app"
+          "/Applications/Codex.app"
+          "/Applications/Claude.app"
+          "${homeDir}/Applications/WebStorm.app"
+          "${homeManagerApps}/DataGrip.app"
+          "${homeDir}/Applications/PyCharm.app"
+          "${homeManagerApps}/Zed.app"
+          "${homeDir}/Applications/Android Studio.app"
+          "/Applications/Original Prusa Drivers/PrusaSlicer.app"
+          "/Applications/Bitwarden.app"
+          "/Applications/OrbStack.app"
         ];
-        show-recents = false;
         autohide = true;
+        magnification = false;
+        minimize-to-application = true;
+        show-process-indicators = true;
+        show-recents = false;
+        tilesize = 44;
+      };
+      menuExtraClock = {
+        Show24Hour = true;
+        ShowAMPM = false;
+        ShowDate = 0;
+        ShowDayOfWeek = true;
       };
     };
     primaryUser = name;
@@ -120,7 +170,6 @@ in {
   # The platform the configuration will be used on.
   nixpkgs.hostPlatform = "aarch64-darwin";
 
-
   launchd.user.envVariables = {
     DEVELOPER_DIR = "/Applications/Xcode.app/Contents/Developer";
     SDKROOT = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk";
@@ -136,13 +185,12 @@ in {
     ANDROID_HOME = "${homeDir}/Library/Android/sdk";
   };
 
-
   sops = {
     age = {
       keyFile = "${homeDir}/.config/sops/age/keys.txt";
-      sshKeyPaths = [];
+      sshKeyPaths = [ ];
     };
-    gnupg.sshKeyPaths = [];
+    gnupg.sshKeyPaths = [ ];
   };
 
   users.knownUsers = [ name ];
@@ -152,6 +200,7 @@ in {
     shell = pkgs.bashInteractive;
   };
   services.tailscale.enable = true;
+  environment.etc."resolver/ts.net".enable = lib.mkForce false;
   nix-homebrew = {
     # Install Homebrew under the default prefix
     enable = true;
@@ -193,7 +242,6 @@ in {
       "vscodium"
 
       # Browsers
-      "google-chrome"
       "helium-browser"
       "tor-browser"
       "zen"
@@ -234,6 +282,7 @@ in {
 
       # Hardware
       "raspberry-pi-imager"
+      "prusaslicer"
     ];
     brews = [
       # Kubernetes & DevOps

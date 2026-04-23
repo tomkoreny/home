@@ -1,12 +1,11 @@
 {
   lib,
   pkgs ? null,
-  outputs ? [],
+  outputs ? [ ],
   ...
 }:
 let
-  isLinux =
-    if pkgs == null then false else pkgs.stdenv.hostPlatform.isLinux;
+  isLinux = if pkgs == null then false else pkgs.stdenv.hostPlatform.isLinux;
   base = {
     height = 30;
     spacing = 4;
@@ -43,8 +42,10 @@ let
         "title<.*youtube.*>" = "";
         "class<firefox>" = "";
         "class<firefox> title<.*github.*>" = "";
-        "class<google-chrome>" = "";
-        "class<google-chrome> title<.*github.*>" = "";
+        "class<Helium>" = "";
+        "class<Helium> title<.*github.*>" = "";
+        "class<helium-browser>" = "";
+        "class<helium-browser> title<.*github.*>" = "";
         "class<jetbrains-webstorm>" = "";
         "class<kitty>" = "";
         "class<teams-for-linux>" = "󰊻";
@@ -57,7 +58,7 @@ let
       format = "👉 {}";
       rewrite = {
         "(.*) — Mozilla Firefox" = "🌎 $1";
-        "(.*) — Google Chrome" = "🌎 $1";
+        "(.*) — Helium" = "🌎 $1";
         "Welcome to WebStorm" = "";
         "Beeper (\\[\\d+\\])? \\| (.*)" = "󰭹 ($1) - ($2)";
         "(.*) - fish" = "> [$1]";
@@ -105,8 +106,9 @@ let
       spacing = 10;
     };
     clock = {
-      "tooltip-format" = ''<big>{:%Y %B}</big>
-<tt><small>{calendar}</small></tt>'';
+      "tooltip-format" = ''
+        <big>{:%Y %B}</big>
+        <tt><small>{calendar}</small></tt>'';
       "format-alt" = "{:%Y-%m-%d}";
     };
     cpu = {
@@ -193,7 +195,8 @@ let
       };
     };
   };
-in {
+in
+{
   config = lib.mkIf isLinux {
     programs.waybar = {
       enable = true;
