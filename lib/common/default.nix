@@ -22,7 +22,7 @@
   # Network configuration
   network = {
     # Local DNS server (AdGuard Home)
-    localDns = "10.10.50.93";
+    localDns = "10.11.0.21";
 
     # Home repository URL for auto-upgrade
     repoUrl = "https://github.com/tomkoreny/home.git";

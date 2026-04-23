@@ -1,6 +1,9 @@
-{ config, lib, pkgs, ... }:
-
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.tomkoreny.nixos.clawdbot-node;
 
   common = import ../../../lib/common {};
@@ -8,7 +11,7 @@ let
   # Script to ensure openclaw is installed
   ensureOpenclaw = pkgs.writeShellScript "ensure-openclaw" ''
     set -euo pipefail
-    export PATH="${pkgs.nodejs_22}/bin:${pkgs.nodePackages.pnpm}/bin:$PATH"
+    export PATH="${pkgs.nodejs_22}/bin:${pkgs.pnpm}/bin:$PATH"
     export HOME="/home/${cfg.user}"
     export PNPM_HOME="$HOME/.local/share/pnpm"
 
@@ -26,7 +29,7 @@ let
   # Node run script
   nodeRunScript = pkgs.writeShellScript "openclaw-node-run" ''
     set -euo pipefail
-    export PATH="${pkgs.nodejs_22}/bin:${pkgs.nodePackages.pnpm}/bin:$PATH"
+    export PATH="${pkgs.nodejs_22}/bin:${pkgs.pnpm}/bin:$PATH"
     export HOME="/home/${cfg.user}"
     export PNPM_HOME="$HOME/.local/share/pnpm"
     export PATH="$PNPM_HOME:$PATH"
@@ -40,8 +43,7 @@ let
       ${lib.optionalString (cfg.tlsFingerprint != "") "--tls-fingerprint \"${cfg.tlsFingerprint}\""} \
       ${lib.concatStringsSep " " cfg.extraFlags}
   '';
-in
-{
+in {
   options.tomkoreny.nixos.clawdbot-node = {
     enable = lib.mkEnableOption "OpenClaw node service";
 
@@ -98,16 +100,16 @@ in
     # Ensure Node.js and pnpm are available system-wide
     environment.systemPackages = with pkgs; [
       nodejs_22
-      nodePackages.pnpm
+      pnpm
       git
     ];
 
     # Systemd user service for openclaw node
     systemd.user.services.openclaw-node = {
       description = "OpenClaw Node - connects to gateway at ${cfg.gatewayHost}:${toString cfg.gatewayPort}";
-      wantedBy = [ "default.target" ];
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
+      wantedBy = ["default.target"];
+      after = ["network-online.target"];
+      wants = ["network-online.target"];
 
       # Install/update openclaw before starting
       preStart = lib.optionalString cfg.autoUpdate ''
