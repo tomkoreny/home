@@ -21,6 +21,7 @@
   programs.git = {
     package = pkgs.git;
     enable = true;
+    signing.format = "openpgp";
     settings = {
       user = {
         email = "tom@tomkoreny.com";

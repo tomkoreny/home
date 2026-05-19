@@ -29,6 +29,7 @@
           lspSignature.enable = true;
           otter-nvim.enable = true;
           nvim-docs-view.enable = true;
+          presets.tailwindcss-language-server.enable = true;
         };
 
         debugger = {
@@ -59,7 +60,7 @@
           sql.enable = true;
           java.enable = false;
           kotlin.enable = false;
-          ts.enable = true;
+          typescript.enable = true;
           go.enable = false;
           lua.enable = true;
           zig.enable = false;
@@ -86,7 +87,6 @@
           haskell.enable = false;
           ruby.enable = false;
 
-          tailwind.enable = true;
           svelte.enable = true;
 
           # Nim LSP is broken on Darwin and therefore
@@ -198,7 +198,6 @@
           obsidian.enable = false; # FIXME: neovim fails to build if obsidian is enabled
           neorg.enable = false;
           orgmode.enable = false;
-          mind-nvim.enable = false;
           todo-comments.enable = true;
         };
 

@@ -13,7 +13,7 @@
     pkgs.kubeseal
     pkgs.k9s
     #pkgs.httpie
-    pkgs.nodejs
+    pkgs.nodejs_22
     pkgs.node-gyp
     #(pkgs.jetbrains.plugins.addPlugins pkgs.jetbrains.webstorm ["github-copilot"])
     #pkgs.jetbrains.webstorm

@@ -1,18 +1,18 @@
-{ lib, pkgs, inputs, ... }: 
+{ lib, pkgs, inputs, options, ... }:
 let
   common = import ../../../lib/common {};
   stylixBase = common.stylix.base pkgs;
   sharedFonts = common.stylix.fonts pkgs inputs;
 in {
-  # Only enable on NixOS (Darwin handles stylix at system level)
-  config = lib.mkIf pkgs.stdenv.isLinux {
+  # NixOS imports Stylix's Home Manager options through the system module.
+  config = lib.mkIf (pkgs.stdenv.isLinux && options ? stylix) {
     stylix = stylixBase // {
       image = common.stylix.wallpaper;
-      
+
       fonts = sharedFonts // {
         sizes = common.stylix.fontSizes;
       };
-      
+
       targets.waybar.font = "sansSerif";
     };
   };

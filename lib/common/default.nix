@@ -22,7 +22,7 @@
   # Network configuration
   network = {
     # Local DNS server (AdGuard Home)
-    localDns = "10.11.0.21";
+    localDns = "1.1.1.1";
 
     # Home repository URL for auto-upgrade
     repoUrl = "https://github.com/tomkoreny/home.git";
@@ -73,11 +73,11 @@
         name = "JetBrainsMono Nerd Font Mono";
       };
       sansSerif = {
-        package = inputs.apple-fonts.packages.${pkgs.system}.sf-pro-nerd;
+        package = inputs.apple-fonts.packages.${pkgs.stdenv.hostPlatform.system}.sf-pro-nerd;
         name = "SFProDisplay Nerd Font";
       };
       serif = {
-        package = inputs.apple-fonts.packages.${pkgs.system}.ny-nerd;
+        package = inputs.apple-fonts.packages.${pkgs.stdenv.hostPlatform.system}.ny-nerd;
         name = "NYDisplay Nerd Font";
       };
     };
