@@ -9,15 +9,17 @@ let
       throw "home kubeconfig module: unable to locate DAG helpers (expected config.lib.dag or lib.hm.dag).";
   kubeConfigPath = "${config.home.homeDirectory}/.kube/config";
   kubeConfigDir = builtins.dirOf kubeConfigPath;
-  it2goSecretFile = ../../../secrets/kubeconfig/it2go-main.json;
-  tmobileProdSecretFile = ../../../secrets/kubeconfig/tmobile-prod.json;
-  tmobileTestSecretFile = ../../../secrets/kubeconfig/tmobile-test.json;
   ageKeyFile = "${config.home.homeDirectory}/.config/sops/age/keys.txt";
   sopsBin = lib.getExe pkgs.sops;
   jqBin = lib.getExe pkgs.jq;
   mktempBin = "${pkgs.coreutils}/bin/mktemp";
   installBin = "${pkgs.coreutils}/bin/install";
   escape = lib.escapeShellArg;
+  secretsDirCandidates = [
+    "${config.home.homeDirectory}/nixos2/secrets/kubeconfig"
+    "${config.home.homeDirectory}/home/secrets/kubeconfig"
+  ];
+  secretsDirCandidatesShell = lib.concatMapStringsSep " " escape secretsDirCandidates;
   caData = ''
 LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJkekNDQVIyZ0F3SUJBZ0lCQURBS0JnZ3Foa2pPUFFRREFqQWpNU0V3SHdZRFZRUUREQmhyTTNNdGMyVnkKZG1WeUxXTmhRREUzTkRnMU9UWTRPRGN3SGhjTk1qVXdOVE13TURreU1USTNXaGNOTXpVd05USTRNRGt5TVRJMwpXakFqTVNFd0h3WURWUVFEREJock0zTXRjMlZ5ZG1WeUxXTmhRREUzTkRnMU9UWTRPRGN3V1RBVEJnY3Foa2pPClBRSUJCZ2dxaGtqT1BRTUJCd05DQUFSenJCSUs5Q1ZFSkRVd0VtYUJqOUFYczM5YUtVQi9ONm1KWUJzUUp5WDMKZmx6N3lVaXkvclFGaFFaRlVqbko4bkhYSWRFRXBuZTQydUdIcVZVcExGSG9vMEl3UURBT0JnTlZIUThCQWY4RQpCQU1DQXFRd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBZEJnTlZIUTRFRmdRVTdycjVCZHpyOUl1Q2dLb3dXWmRqCk5UUHFiUFl3Q2dZSUtvWkl6ajBFQXdJRFNBQXdSUUlnYTJVM3VreDhvU3ZqbUM4b05STThWdkZhbFl3RmZVaWsKRlc5c2ttUStVMGdDSVFDcm5MYVRhSGZzM0psQ2M4Q2c4bjU5QnQraktvMVgzTGx2Tk9PeHZKdm9VQT09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K'';
   clientCertData = ''
@@ -28,16 +30,40 @@ lib.mkIf (pkgs.stdenv.isLinux || pkgs.stdenv.isDarwin) {
     set -eu
     set -o pipefail
 
+    secrets_dir=""
+    for candidate in ${secretsDirCandidatesShell}; do
+      if [ -d "$candidate" ]; then
+        secrets_dir="$candidate"
+        break
+      fi
+    done
+
+    if [ -z "$secrets_dir" ]; then
+      echo "kubeconfig secrets directory not found; looked in: ${secretsDirCandidatesShell}" >&2
+      exit 1
+    fi
+
+    it2go_secret_file="$secrets_dir/it2go-main.json"
+    tmobile_prod_secret_file="$secrets_dir/tmobile-prod.json"
+    tmobile_test_secret_file="$secrets_dir/tmobile-test.json"
+
+    for secret_file in "$it2go_secret_file" "$tmobile_prod_secret_file" "$tmobile_test_secret_file"; do
+      if [ ! -f "$secret_file" ]; then
+        echo "kubeconfig secret file not found: $secret_file" >&2
+        exit 1
+      fi
+    done
+
     it2go_main_key=$(
-      SOPS_AGE_KEY_FILE=${escape ageKeyFile} ${escape sopsBin} --decrypt ${escape it2goSecretFile} \
+      SOPS_AGE_KEY_FILE=${escape ageKeyFile} ${escape sopsBin} --decrypt "$it2go_secret_file" \
         | ${escape jqBin} -r '.clientKeyData'
     )
     tmobile_prod_token=$(
-      SOPS_AGE_KEY_FILE=${escape ageKeyFile} ${escape sopsBin} --decrypt ${escape tmobileProdSecretFile} \
+      SOPS_AGE_KEY_FILE=${escape ageKeyFile} ${escape sopsBin} --decrypt "$tmobile_prod_secret_file" \
         | ${escape jqBin} -r '.token'
     )
     tmobile_test_token=$(
-      SOPS_AGE_KEY_FILE=${escape ageKeyFile} ${escape sopsBin} --decrypt ${escape tmobileTestSecretFile} \
+      SOPS_AGE_KEY_FILE=${escape ageKeyFile} ${escape sopsBin} --decrypt "$tmobile_test_secret_file" \
         | ${escape jqBin} -r '.token'
     )
 

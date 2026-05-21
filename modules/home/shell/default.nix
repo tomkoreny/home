@@ -11,10 +11,26 @@
   # All other arguments come from the system system.
   config,
   ...
-}: {
+}:
+let
+  dagLib =
+    if config ? lib && config.lib ? dag then
+      config.lib.dag
+    else if lib ? hm then
+      lib.hm.dag
+    else
+      throw "home shell module: unable to locate DAG helpers (expected config.lib.dag or lib.hm.dag).";
+in
+{
+  home.sessionVariables.PNPM_HOME = "${config.home.homeDirectory}/.local/share/pnpm";
+  home.sessionPath = [
+    "${config.home.homeDirectory}/.local/share/pnpm"
+    "${config.home.homeDirectory}/.local/share/pnpm/bin"
+  ];
+
   home.shellAliases = {
     v = "nvim";
-#    ssh = "kitten ssh";
+    #    ssh = "kitten ssh";
     vi = "nvim";
     conf = "nvim ~/nixos2";
     sw = if pkgs.stdenv.isDarwin then "nh darwin switch" else "nh os switch";
@@ -40,8 +56,38 @@
       exec ${lib.getExe pkgs.nh} "$target" switch "$@"
     '')
   ];
+  home.activation.ensurePiCodingAgent = lib.mkIf pkgs.stdenv.isLinux (
+    dagLib.entryAfter [ "writeBoundary" ] ''
+      set -eu
+
+      export HOME=${lib.escapeShellArg config.home.homeDirectory}
+      export PNPM_HOME="$HOME/.local/share/pnpm"
+      export PATH="$PNPM_HOME:$PNPM_HOME/bin:${
+        lib.makeBinPath [
+          pkgs.nodejs_22
+          pkgs.pnpm
+        ]
+      }:$PATH"
+
+      mkdir -p "$PNPM_HOME" "$PNPM_HOME/bin"
+
+      if [ ! -x "$PNPM_HOME/pi" ] && [ ! -x "$PNPM_HOME/bin/pi" ]; then
+        ${lib.getExe pkgs.pnpm} add -g @mariozechner/pi-coding-agent@latest
+      fi
+    ''
+  );
   programs.bash.enable = true;
   programs.bash.initExtra = lib.mkAfter ''
+    export PNPM_HOME="$HOME/.local/share/pnpm"
+    case ":$PATH:" in
+      *":$PNPM_HOME/bin:"*) ;;
+      *) export PATH="$PNPM_HOME/bin:$PATH" ;;
+    esac
+    case ":$PATH:" in
+      *":$PNPM_HOME:"*) ;;
+      *) export PATH="$PNPM_HOME:$PATH" ;;
+    esac
+
     ksecret() {
       if [ -z "$1" ]; then
         echo "usage: ksecret <cluster>" >&2

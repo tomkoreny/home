@@ -19,12 +19,13 @@
 }:
 let
   # Import shared configuration from lib/common
-  common = import ../../../lib/common {};
+  common = import ../../../lib/common { };
 
   # Shortcuts for frequently used values
   inherit (common.network) localDns;
   inherit (common.user) name fullName;
-in {
+in
+{
   # Enable auto-upgrade from git
   tomkoreny.nixos.auto-upgrade.enable = true;
 
@@ -89,7 +90,10 @@ in {
     ];
   };
   nix = {
-    settings.experimental-features = ["nix-command" "flakes"];
+    settings.experimental-features = [
+      "nix-command"
+      "flakes"
+    ];
     gc = {
       automatic = true;
       dates = "weekly";
@@ -115,7 +119,7 @@ in {
       # Let a system-level dnsmasq handle DNS on 127.0.0.1
       dns = "default";
     };
-    # Use local stub; dnsmasq forwards exclusively to 192.168.1.93
+    # Use local stub; dnsmasq forwards to local DNS with router/public fallbacks.
     nameservers = [ "127.0.0.1" ];
   };
 
@@ -148,14 +152,22 @@ in {
       enable = true;
       settings = {
         no-resolv = true;
-        strict-order = true;
         bind-interfaces = true;
-        listen-address = [ "127.0.0.1" "::1" ];
+        listen-address = [
+          "127.0.0.1"
+          "::1"
+        ];
         # Do not include resolvconf-provided auxiliary configs
-        conf-file = lib.mkForce [];
-        resolv-file = lib.mkForce [];
-        # Forward exclusively to local resolver
-        server = lib.mkForce [ localDns ];
+        conf-file = lib.mkForce [ ];
+        resolv-file = lib.mkForce [ ];
+        # Prefer local AdGuard, but keep fallbacks so rebuilds still work
+        # when the local resolver or VPN route is unavailable.
+        server = lib.mkForce [
+          localDns
+          "10.10.10.1"
+          "1.1.1.1"
+          "8.8.8.8"
+        ];
         cache-size = 400;
       };
     };
@@ -187,7 +199,7 @@ in {
       };
 
       # Load "nvidia" driver for Xorg and Wayland
-      videoDrivers = ["nvidia"];
+      videoDrivers = [ "nvidia" ];
     };
 
     gnome.gnome-keyring.enable = true;
@@ -269,7 +281,7 @@ in {
     };
     terminal-exec = {
       settings = {
-        default = ["ghostty.desktop"];
+        default = [ "ghostty.desktop" ];
       };
     };
   };
@@ -285,7 +297,10 @@ in {
       commands = [
         {
           command = "ALL";
-          options = ["NOPASSWD" "SETENV"];
+          options = [
+            "NOPASSWD"
+            "SETENV"
+          ];
         }
       ];
     }
@@ -299,8 +314,14 @@ in {
   users.users.${name} = {
     isNormalUser = true;
     description = fullName;
-    extraGroups = ["networkmanager" "wheel" "docker" "video" "render"];
-    packages = [];
+    extraGroups = [
+      "networkmanager"
+      "wheel"
+      "docker"
+      "video"
+      "render"
+    ];
+    packages = [ ];
   };
 
   # Maaaybe make this home manager somehow someday
@@ -317,6 +338,8 @@ in {
     sbctl
     mangohud
     protonup-ng
+    protontricks
+    goverlay
     docker-buildx
     docker-compose
     mkcert
@@ -344,6 +367,8 @@ in {
   '';
 
   hardware = {
+    steam-hardware.enable = true;
+
     # Did you read the comment?
 
     # Enable graphics driver in NixOS unstable/NixOS 24.11
@@ -393,6 +418,8 @@ in {
   boot.kernel.sysctl = {
     "net.ipv6.conf.all.use_tempaddr" = lib.mkForce 0;
     "net.ipv6.conf.default.use_tempaddr" = lib.mkForce 0;
+    # Helps newer games/launchers that allocate many memory maps.
+    "vm.max_map_count" = 2147483642;
   };
 
   virtualisation.docker = {
@@ -410,8 +437,15 @@ in {
     };
   };
   programs = {
-    steam.enable = true;
-    steam.gamescopeSession.enable = true;
+    steam = {
+      enable = true;
+      gamescopeSession.enable = true;
+      extraCompatPackages = [ pkgs.proton-ge-bin ];
+    };
+    gamescope = {
+      enable = true;
+      capSysNice = true;
+    };
     gamemode.enable = true;
   };
 

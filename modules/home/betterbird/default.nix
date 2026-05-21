@@ -20,6 +20,10 @@ let
     "mail.server.server_${id}.authMethod" = 10;
     "mail.smtpserver.smtp_${id}.authMethod" = 10;
   };
+
+  replyAboveQuoteSettings = id: {
+    "mail.identity.id_${id}.reply_on_top" = 1;
+  };
 in
 {
   # Betterbird uses Thunderbird's profile/account directory layout. Home
@@ -39,6 +43,9 @@ in
     };
   };
 
+  # The Thunderbird module owns this file; replace any imperative copy.
+  home.file.".thunderbird/profiles.ini".force = true;
+
   accounts.email.accounts = {
     tom = {
       primary = true;
@@ -47,7 +54,10 @@ in
       realName = common.user.fullName;
 
       # Google Workspace uses OAuth2 here, so no password is stored in this repo.
-      thunderbird.enable = true;
+      thunderbird = {
+        enable = true;
+        perIdentitySettings = replyAboveQuoteSettings;
+      };
     };
 
     it2go = {
@@ -58,6 +68,7 @@ in
       thunderbird = {
         enable = true;
         settings = microsoft365Oauth2Settings;
+        perIdentitySettings = replyAboveQuoteSettings;
       };
     };
 
@@ -69,6 +80,7 @@ in
       thunderbird = {
         enable = true;
         settings = microsoft365Oauth2Settings;
+        perIdentitySettings = replyAboveQuoteSettings;
       };
     };
 
@@ -77,7 +89,10 @@ in
       address = "pumaslab@gmail.com";
       realName = common.user.fullName;
 
-      thunderbird.enable = true;
+      thunderbird = {
+        enable = true;
+        perIdentitySettings = replyAboveQuoteSettings;
+      };
     };
   };
 }
