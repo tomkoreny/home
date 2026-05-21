@@ -16,6 +16,7 @@
     wayland.windowManager.hyprland = {
       enable = true; # enable Hyprland
       systemd.enableXdgAutostart = true; # enable HyprlandAutostart
+      configType = "hyprlang";
       extraConfig = builtins.readFile ./config/hyprland/main.conf;
       package = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
       systemd.enable = false;

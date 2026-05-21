@@ -8,6 +8,7 @@ in {
   config = lib.mkIf (pkgs.stdenv.isLinux && options ? stylix) {
     stylix = stylixBase // {
       image = common.stylix.wallpaper;
+      cursor = common.stylix.cursor pkgs;
 
       fonts = sharedFonts // {
         sizes = common.stylix.fontSizes;
