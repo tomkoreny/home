@@ -5,7 +5,11 @@
 #   let common = import ../../../lib/common {}; in { ... }
 #
 # Then access: common.user.name, common.network.localDns, etc.
-{lib ? null, ...}: rec {
+{
+  lib ? null,
+  ...
+}:
+rec {
   # User identity - used in git config, user definitions, etc.
   user = {
     name = "tom";
@@ -13,10 +17,11 @@
     email = "tom@tomkoreny.com";
 
     # Platform-specific home directory
-    homeDir = {isDarwin ? false}:
-      if isDarwin
-      then "/Users/${user.name}"
-      else "/home/${user.name}";
+    homeDir =
+      {
+        isDarwin ? false,
+      }:
+      if isDarwin then "/Users/${user.name}" else "/home/${user.name}";
   };
 
   # Network configuration
@@ -31,19 +36,19 @@
   # Docker daemon configuration
   docker = {
     # Insecure registries (internal harbor, etc.)
-    insecureRegistries = ["harbor.acho.loc:443"];
+    insecureRegistries = [ "harbor.acho.loc:443" ];
 
     # DNS options for containers
-    dnsOpts = ["ndots:0"];
+    dnsOpts = [ "ndots:0" ];
 
     # Generate address pools programmatically (requires lib)
     # Usage: common.docker.addressPools lib
-    addressPools = l:
+    addressPools =
+      l:
       l.genList (i: {
         base = "172.${toString (17 + i)}.0.0/16";
         size = 24;
-      })
-      10;
+      }) 10;
   };
 
   # Stylix theme base configuration
@@ -103,10 +108,12 @@
     substituters = [
       "https://cache.nixos.org/"
       "https://hyprland.cachix.org"
+      "https://lan-mouse.cachix.org"
     ];
     trustedPublicKeys = [
       "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
       "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
+      "lan-mouse.cachix.org-1:KlE2AEZUgkzNKM7BIzMQo8w9yJYqUpor1CAUNRY6OyM="
     ];
   };
 }
