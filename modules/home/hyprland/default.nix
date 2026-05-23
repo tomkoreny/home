@@ -22,6 +22,11 @@
       systemd.enable = false;
     };
 
+    # `services.hyprpaper.enable` writes hyprpaper's config/systemd unit, but the
+    # Hyprland config starts it with `exec-once = uwsm app -- hyprpaper`. Make the
+    # binary available in PATH so that autostart command can actually launch it.
+    home.packages = [ pkgs.hyprpaper ];
+
     services.hyprpaper.enable = true;
     services.hypridle.enable = true;
     services.hypridle.settings = {
