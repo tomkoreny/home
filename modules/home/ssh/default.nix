@@ -35,10 +35,42 @@
         user = "puma";
       };
       
-      "teplice-ec2" = {
+      "tom-server teplice-ec2" = {
         hostname = "ec2-35-159-178-203.eu-central-1.compute.amazonaws.com";
         user = "ec2-user";
         identityFile = "~/Downloads/tom-mac.pem";
+        identitiesOnly = true;
+      };
+      
+      "server-178" = {
+        hostname = "178.22.117.90";
+        user = "tom151";
+        port = 32479;
+        proxyJump = "tom-server";
+      };
+      
+      "hexpol-camera internal-10-104-128-2" = {
+        hostname = "10.104.128.2";
+        user = "tom151";
+        proxyJump = "server-178";
+      };
+      
+      "hexpol-camera-8080 internal-10-104-128-2-8080" = {
+        hostname = "178.22.117.90";
+        user = "tom151";
+        port = 32479;
+        proxyJump = "tom-server";
+        localForwards = [
+          {
+            bind.address = "127.0.0.1";
+            bind.port = 8080;
+            host.address = "10.104.128.2";
+            host.port = 8080;
+          }
+        ];
+        extraOptions = {
+          ExitOnForwardFailure = "yes";
+        };
       };
       
       "hbc-server" = {
@@ -50,7 +82,7 @@
     
     extraConfig = ''
       ControlMaster auto
-      ControlPath ~/.ssh/sockets/ssh_mux_%h_%p_%r
+      ControlPath ~/.ssh/sockets/%C
       ControlPersist 600
       
       Compression yes
