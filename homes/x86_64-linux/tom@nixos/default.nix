@@ -60,7 +60,6 @@
   # The state version is required and should stay at the version you
   # originally installed.
   home.stateVersion = "24.05";
-  gtk.gtk4.theme = config.gtk.theme;
   home.sessionVariables.NIXOS_OZONE_WL = "1";
   programs = {
     wofi.enable = true; # required for the default Hyprland config
