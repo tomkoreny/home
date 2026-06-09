@@ -1,8 +1,35 @@
 {
   inputs,
+  lib,
   pkgs,
   ...
-}: {
+}:
+let
+  pi-coding-agent = pkgs.buildNpmPackage rec {
+    pname = "pi-coding-agent";
+    version = "0.74.0";
+
+    src = pkgs.fetchurl {
+      url = "https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-${version}.tgz";
+      hash = "sha512-Q5GikbB5vRBrsrrf/uvet53rPSQ1sn5I5mO+l7sIobdXYpS04/X2oOc2UHFm90fNdkl3yU+ANTZL0zOtHbnqRw==";
+    };
+
+    postPatch = ''
+      cp ${./pi-coding-agent-lock.json} package-lock.json
+    '';
+
+    npmDepsHash = "sha256-GiTmVzlHZoZ3x3FOhByDPfesepmfkOc7l9DzwURKBps=";
+    dontNpmBuild = true;
+
+    meta = {
+      description = "Minimal terminal coding harness";
+      homepage = "https://pi.dev/";
+      license = lib.licenses.mit;
+      mainProgram = "pi";
+    };
+  };
+in
+{
   home.packages = [
     pkgs.nerd-fonts.jetbrains-mono
     pkgs.nerdfetch
@@ -23,7 +50,6 @@
     pkgs.php
     # pkgs.signal-desktop
 
-
     (pkgs.discord.override {
       # withOpenASAR = true; # can do this here too
       withVencord = true;
@@ -42,6 +68,7 @@
     #pkgs.teleport
     pkgs.claude-code
     pkgs.codex
+    pi-coding-agent
     pkgs.git-crypt
     pkgs.htop
     pkgs.tmux
@@ -49,7 +76,9 @@
     pkgs.lazyssh
     # pkgs.claude-code-acp  # TODO: needs overlay
     # pkgs.codex-acp  # TODO: needs overlay
-    pkgs.zed-editor
     pkgs.usql
+  ]
+  ++ lib.optionals (!pkgs.stdenv.isDarwin) [
+    pkgs.zed-editor
   ];
 }
