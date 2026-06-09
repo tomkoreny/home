@@ -119,7 +119,7 @@ in
       # Let a system-level dnsmasq handle DNS on 127.0.0.1
       dns = "default";
     };
-    # Use local stub; dnsmasq forwards to local DNS with router/public fallbacks.
+    # Use local stub; dnsmasq forwards exclusively to local DNS.
     nameservers = [ "127.0.0.1" ];
   };
 
@@ -152,6 +152,7 @@ in
       enable = true;
       settings = {
         no-resolv = true;
+        strict-order = true;
         bind-interfaces = true;
         listen-address = [
           "127.0.0.1"
@@ -160,14 +161,8 @@ in
         # Do not include resolvconf-provided auxiliary configs
         conf-file = lib.mkForce [ ];
         resolv-file = lib.mkForce [ ];
-        # Prefer local AdGuard, but keep fallbacks so rebuilds still work
-        # when the local resolver or VPN route is unavailable.
-        server = lib.mkForce [
-          localDns
-          "10.10.10.1"
-          "1.1.1.1"
-          "8.8.8.8"
-        ];
+        # Forward exclusively to local resolver
+        server = lib.mkForce [ localDns ];
         cache-size = 400;
       };
     };
