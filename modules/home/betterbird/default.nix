@@ -24,6 +24,9 @@ let
   replyAboveQuoteSettings = id: {
     "mail.identity.id_${id}.reply_on_top" = 1;
   };
+
+  thunderbirdConfigPath =
+    if pkgs.stdenv.hostPlatform.isDarwin then "Library/Thunderbird" else ".thunderbird";
 in
 {
   # Betterbird uses Thunderbird's profile/account directory layout. Home
@@ -44,7 +47,7 @@ in
   };
 
   # The Thunderbird module owns this file; replace any imperative copy.
-  home.file.".thunderbird/profiles.ini".force = true;
+  home.file."${thunderbirdConfigPath}/profiles.ini".force = true;
 
   accounts.email.accounts = {
     tom = {

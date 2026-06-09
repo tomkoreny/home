@@ -11,7 +11,18 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
-readonly config_path="${OPENFORTIVPN_CONFIG:-/run/openfortivpn.conf}"
+default_config_path() {
+  for candidate in /run/openfortivpn.conf /etc/openfortivpn.conf; do
+    if [ -r "$candidate" ]; then
+      printf '%s\n' "$candidate"
+      return
+    fi
+  done
+
+  printf '%s\n' /run/openfortivpn.conf
+}
+
+readonly config_path="${OPENFORTIVPN_CONFIG:-$(default_config_path)}"
 readonly openfortivpn_bin="${OPENFORTIVPN_BIN:-openfortivpn}"
 
 if [ ! -r "$config_path" ]; then

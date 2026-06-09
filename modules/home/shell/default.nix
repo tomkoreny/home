@@ -33,7 +33,7 @@ in
     #    ssh = "kitten ssh";
     vi = "nvim";
     conf = "nvim ~/nixos2";
-    sw = if pkgs.stdenv.isDarwin then "nh darwin switch" else "nh os switch";
+    sw = if pkgs.stdenv.isDarwin then "nh darwin switch --diff never" else "nh os switch";
     dcu = "docker compose up -d";
     dcd = "docker compose down";
     dc = "docker compose";
@@ -46,7 +46,7 @@ in
 
       case "$(uname -s)" in
         Darwin)
-          target="darwin"
+          exec ${lib.getExe pkgs.nh} darwin switch --diff never "$@"
           ;;
         *)
           target="os"
