@@ -7,18 +7,19 @@
 let
   pi-coding-agent = pkgs.buildNpmPackage rec {
     pname = "pi-coding-agent";
-    version = "0.74.0";
+    version = "0.79.0";
 
     src = pkgs.fetchurl {
       url = "https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-${version}.tgz";
-      hash = "sha512-Q5GikbB5vRBrsrrf/uvet53rPSQ1sn5I5mO+l7sIobdXYpS04/X2oOc2UHFm90fNdkl3yU+ANTZL0zOtHbnqRw==";
+      hash = "sha512-pZoXk65vFR3dAzzmPNWEX61aHnT6+BaVhTyFDQAs1DyumaMeWpvzRV9ZrGxqlbVLwhrq+0LnXbaqDAFkhe2+MQ==";
     };
 
     postPatch = ''
       cp ${./pi-coding-agent-lock.json} package-lock.json
+      rm -f npm-shrinkwrap.json
     '';
 
-    npmDepsHash = "sha256-GiTmVzlHZoZ3x3FOhByDPfesepmfkOc7l9DzwURKBps=";
+    npmDepsHash = "sha256-4qFbQr2y6m7IKZ7gyMSphVqwr25eq5NWOtujaX/KxBQ=";
     dontNpmBuild = true;
 
     meta = {

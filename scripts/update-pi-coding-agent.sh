@@ -54,6 +54,17 @@ if [[ -z "${BUILD_ATTR:-}" ]]; then
   fi
 fi
 
+WORKDIR="$(mktemp -d)"
+cleanup() {
+  rm -rf "$WORKDIR"
+}
+trap cleanup EXIT
+
+# Use an isolated npm cache so root-owned or corrupt user cache entries do not
+# break package-lock generation.
+export npm_config_cache="${npm_config_cache:-$WORKDIR/npm-cache}"
+mkdir -p "$npm_config_cache"
+
 VERSION="${1:-}"
 if [[ -z "$VERSION" ]]; then
   VERSION="$(npm view "$PACKAGE" version)"
@@ -69,22 +80,70 @@ if [[ -z "$INTEGRITY" ]]; then
   exit 1
 fi
 
-TMPDIR="$(mktemp -d)"
-cleanup() {
-  rm -rf "$TMPDIR"
-}
-trap cleanup EXIT
-
-# Build a package-lock.json from the published tarball. The package does not
-# ship a lockfile, but buildNpmPackage needs one for reproducible npm deps.
-npm pack --silent "$PACKAGE@$VERSION" --pack-destination "$TMPDIR" >/dev/null
-mkdir "$TMPDIR/pkg"
-tar -xzf "$TMPDIR"/*.tgz -C "$TMPDIR/pkg" --strip-components=1
+# Build or reuse a lockfile from the published tarball. Some pi releases ship
+# npm-shrinkwrap.json instead of package-lock.json; buildNpmPackage is happy as
+# long as we provide equivalent lock content as package-lock.json in postPatch.
+npm pack --silent "$PACKAGE@$VERSION" --pack-destination "$WORKDIR" >/dev/null
+mkdir "$WORKDIR/pkg"
+tar -xzf "$WORKDIR"/*.tgz -C "$WORKDIR/pkg" --strip-components=1
 (
-  cd "$TMPDIR/pkg"
+  cd "$WORKDIR/pkg"
   npm install --package-lock-only --ignore-scripts --include=dev >/dev/null
 )
-cp "$TMPDIR/pkg/package-lock.json" "$LOCK_FILE"
+if [[ -f "$WORKDIR/pkg/package-lock.json" ]]; then
+  cp "$WORKDIR/pkg/package-lock.json" "$LOCK_FILE"
+elif [[ -f "$WORKDIR/pkg/npm-shrinkwrap.json" ]]; then
+  cp "$WORKDIR/pkg/npm-shrinkwrap.json" "$LOCK_FILE"
+else
+  echo "error: npm did not produce package-lock.json or npm-shrinkwrap.json" >&2
+  exit 1
+fi
+
+# Newer pi shrinkwraps can omit integrity for sibling workspace packages even
+# though they resolve to npm registry tarballs. Fill those from npm metadata so
+# Nix's npm-deps parser can consume the lockfile reproducibly.
+node - "$LOCK_FILE" <<'EOF'
+const fs = require("fs");
+const { execFileSync } = require("child_process");
+const [file] = process.argv.slice(2);
+const lock = JSON.parse(fs.readFileSync(file, "utf8"));
+let changed = false;
+
+function packageNameFromLockPath(lockPath) {
+  const marker = "node_modules/";
+  const idx = lockPath.lastIndexOf(marker);
+  if (idx === -1) return null;
+  const parts = lockPath.slice(idx + marker.length).split("/");
+  if (parts[0]?.startsWith("@")) return `${parts[0]}/${parts[1]}`;
+  return parts[0] || null;
+}
+
+for (const [lockPath, entry] of Object.entries(lock.packages || {})) {
+  if (!lockPath || entry.integrity || !entry.version || !entry.resolved) continue;
+  if (!entry.resolved.startsWith("https://registry.npmjs.org/")) continue;
+
+  const name = packageNameFromLockPath(lockPath);
+  if (!name) continue;
+
+  const integrity = execFileSync(
+    "npm",
+    ["view", `${name}@${entry.version}`, "dist.integrity"],
+    { encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] },
+  ).trim();
+
+  if (!integrity) {
+    console.error(`error: missing npm dist.integrity for ${name}@${entry.version}`);
+    process.exit(1);
+  }
+
+  entry.integrity = integrity;
+  changed = true;
+}
+
+if (changed) {
+  fs.writeFileSync(file, JSON.stringify(lock, null, 2) + "\n");
+}
+EOF
 
 # Update the Nix expression and intentionally set a fake npmDepsHash. The first
 # nix build prints the real hash, which we paste back below.
