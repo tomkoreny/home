@@ -88,7 +88,6 @@
         inputs.stylix.homeModules.stylix
         inputs.sops-nix.homeManagerModules.sops
       ];
-
       outputs-builder = channels: {
         formatter = channels.nixpkgs.nixfmt;
       };

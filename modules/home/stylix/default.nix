@@ -1,9 +1,16 @@
-{ lib, pkgs, inputs, options, ... }:
+{
+  lib,
+  pkgs,
+  inputs,
+  options,
+  ...
+}:
 let
-  common = import ../../../lib/common {};
+  common = import ../../../lib/common { };
   stylixBase = common.stylix.base pkgs;
   sharedFonts = common.stylix.fonts pkgs inputs;
-in {
+in
+{
   # NixOS imports Stylix's Home Manager options through the system module.
   config = lib.mkIf (pkgs.stdenv.isLinux && options ? stylix) {
     stylix = stylixBase // {

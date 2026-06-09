@@ -1,4 +1,4 @@
-{inputs, ...}: {
+{ inputs, ... }: {
   imports = [
     inputs.nvf.homeManagerModules.default
   ];
@@ -225,7 +225,10 @@
               nix = "110";
               ruby = "120";
               java = "130";
-              go = ["90" "130"];
+              go = [
+                "90"
+                "130"
+              ];
             };
           };
           fastaction.enable = true;
@@ -239,9 +242,15 @@
                 # ACP adapters (provided by claude-code-acp + codex-acp packages)
                 # - Codex as default for chat/inline
                 # - Claude Code kept for agent workflow
-                chat = { adapter = "codex"; };
-                inline = { adapter = "codex"; };
-                agent = { adapter = "claude_code"; };
+                chat = {
+                  adapter = "codex";
+                };
+                inline = {
+                  adapter = "codex";
+                };
+                agent = {
+                  adapter = "claude_code";
+                };
               };
             };
           };
