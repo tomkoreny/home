@@ -43,35 +43,9 @@ in
     pkgs.rustup
   ];
 
-  # Necessary for using flakes on this system.
-  nix.channel.enable = false;
-
-  # Nix settings for faster builds
-  nix.settings = {
-    experimental-features = "nix-command flakes";
-
-    # Binary caches - CRITICAL for build speed
-    substituters = [
-      "https://cache.nixos.org/"
-      "https://nix-community.cachix.org"
-    ];
-    trusted-public-keys = [
-      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-    ];
-
-    # Performance optimizations
-    max-jobs = "auto";
-    cores = 0; # Use all cores
-
-    # Keep build dependencies for faster rebuilds
-    keep-outputs = true;
-    keep-derivations = true;
-  };
-
-  # Make `nix shell nixpkgs#foo` use locked nixpkgs
-  nix.optimise.automatic = true;
-  nix.registry.nixpkgs.flake = inputs.nixpkgs;
+  # Determinate manages the Nix daemon and /etc/nix/nix.conf on this host.
+  # Disable nix-darwin's native Nix management to avoid activation conflicts.
+  nix.enable = false;
 
   networking.hostName = "macos"; # Define your hostname.
   networking.knownNetworkServices = [
@@ -135,7 +109,7 @@ in
           "${homeDir}/Applications/WebStorm.app"
           "${homeManagerApps}/DataGrip.app"
           "${homeDir}/Applications/PyCharm.app"
-          "${homeManagerApps}/Zed.app"
+          "/Applications/Zed.app"
           "${homeDir}/Applications/Android Studio.app"
           "/Applications/Original Prusa Drivers/PrusaSlicer.app"
           "/Applications/Bitwarden.app"
@@ -240,6 +214,7 @@ in
       "kicad"
       "temurin"
       "vscodium"
+      "zed"
 
       # Browsers
       "helium-browser"

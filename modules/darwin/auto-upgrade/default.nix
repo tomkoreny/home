@@ -11,8 +11,9 @@ let
   rebuild-script = pkgs.writeShellScript "auto-rebuild-darwin" ''
     set -euo pipefail
 
-    # Ensure darwin-rebuild and nix tools are in PATH
-    export PATH="/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/etc/profiles/per-user/tom/bin:$PATH"
+    # Ensure darwin-rebuild and nix tools are in PATH. Use the persistent
+    # system profile instead of /run/current-system, which is volatile on macOS.
+    export PATH="/nix/var/nix/profiles/system/sw/bin:/nix/var/nix/profiles/default/bin:/etc/profiles/per-user/tom/bin:$PATH"
 
     REPO_PATH="$HOME/.config/home"
     LOCK_FILE="/tmp/auto-rebuild-darwin.lock"
@@ -87,7 +88,7 @@ let
       echo "Running flake checks..."
       nix flake check --show-trace
       echo "Rebuilding Darwin..."
-      /usr/bin/sudo -n /run/current-system/sw/bin/darwin-rebuild switch --flake .#macos
+      /usr/bin/sudo -n /nix/var/nix/profiles/system/sw/bin/darwin-rebuild switch --flake .#macos
       echo "Rebuild complete at $(${pkgs.coreutils}/bin/date)"
     else
       echo "Already up to date"
@@ -121,8 +122,7 @@ in
       path = [
         pkgs.git
         pkgs.nix
-        config.nix.package
-        "/run/current-system/sw"
+        "/nix/var/nix/profiles/system/sw"
         "/nix/var/nix/profiles/default"
         "/etc/profiles/per-user/tom"
       ];
