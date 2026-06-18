@@ -334,6 +334,7 @@ in
     mangohud
     protonup-ng
     protontricks
+    prusa-slicer
     goverlay
     docker-buildx
     docker-compose
