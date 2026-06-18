@@ -60,7 +60,11 @@
         modules.nixos = with inputs; [
           hyprland.nixosModules.default
           stylix.nixosModules.stylix
-          lanzaboote.nixosModules.lanzaboote
+          ./nixos/lanzaboote-compat.nix
+          ({ pkgs, ... }: {
+            boot.lanzaboote.package =
+              lanzaboote.packages.${pkgs.stdenv.hostPlatform.system}.lzbt;
+          })
           home-manager.nixosModules.default
           sops-nix.nixosModules.sops
         ];
