@@ -10,6 +10,7 @@ let
       pkgs.wrapThunderbird betterbird-unwrapped {
         applicationName = "betterbird";
         pname = "betterbird";
+        libName = "betterbird-${betterbird-unwrapped.version}";
         icon = "betterbird";
         wmClass = "Betterbird";
       }
