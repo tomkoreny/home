@@ -29,6 +29,7 @@
     ../../../modules/home/kubeconfig
     ../../../modules/home/helium
     ../../../modules/home/jetbrains
+    ../../../modules/home/multiviewer
   ];
 
   home.packages = [
