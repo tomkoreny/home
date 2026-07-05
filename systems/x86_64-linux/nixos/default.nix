@@ -314,6 +314,9 @@ in
 
   home-manager.useUserPackages = true;
   home-manager.useGlobalPkgs = true;
+  # Rename clobbered unmanaged files instead of failing activation (matches
+  # darwin; ported from a hotfix found in the old /etc/nixos/home clone).
+  home-manager.backupFileExtension = "hm-bak";
 
   # List packages installed in system profile. To search, run:
   # $ nix search wget
