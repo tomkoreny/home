@@ -1,3 +1,11 @@
+# VENDORED FORK — verbatim copy of lanzaboote v1.0.0's nix/modules/lanzaboote.nix
+# with exactly ONE change: the `boot.bootspec.enable = true;` line is removed,
+# because current nixos-unstable dropped that option (bootspec is always on).
+# The flake still takes the `lzbt` binary from the pinned lanzaboote input
+# (see flake.nix); only this module logic is vendored, so bumping the input
+# does NOT update this file.
+# TODO: when upstream ships a release that no longer sets boot.bootspec.enable,
+# delete this file and import `inputs.lanzaboote.nixosModules.lanzaboote`.
 {
   lib,
   config,

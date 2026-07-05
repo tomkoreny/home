@@ -5,17 +5,25 @@ on:
     - cron: '0 4 * * *'  # Daily 4am UTC
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   update:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - uses: DeterminateSystems/nix-installer-action@main
-      
+
+      - uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+
       - name: Update flake.lock
         run: nix flake update
-        
+
+      # Never push a lock that doesn't evaluate — every machine's
+      # auto-upgrade would pull it.
+      - name: Validate
+        run: nix flake check --no-build
+
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"

@@ -1,55 +1,36 @@
 {
-  # Snowfall Lib provides a customized `lib` instance with access to your flake's library
-  # as well as the libraries available from your flake's inputs.
-  lib,
-  # An instance of `pkgs` with your overlays and packages applied is also available.
   pkgs,
-  # You also have access to your flake's inputs.
-  inputs,
-  # Additional metadata is provided by Snowfall Lib.
-  namespace, # The namespace used for your flake, defaulting to "internal" if not set.
-  home, # The home architecture for this host (eg. `x86_64-linux`).
-  target, # The Snowfall Lib target for this home (eg. `x86_64-home`).
-  format, # A normalized name for the home target (eg. `home`).
-  virtual, # A boolean to determine whether this home is a virtual target using nixos-generators.
-  host, # The host name for this home.
-  # All other arguments come from the home home.
-  config,
   ...
 }:
 {
-  imports = [
-    (import ../../../modules/home/waybar {
-      inherit lib pkgs;
-      outputs = [
-        "DP-2"
-        "DP-4"
-      ];
-    })
-    ../../../modules/home/kubeconfig
-    ../../../modules/home/helium
-    ../../../modules/home/jetbrains
-    ../../../modules/home/multiviewer
+  # NOTE: all modules under modules/home/ are auto-imported by Snowfall Lib —
+  # no explicit imports needed here, just per-host knobs.
+
+  tomkoreny.waybar.outputs = [
+    "DP-2"
+    "DP-4"
   ];
+
+  # Always show notifications on the main screen (Dell AW3225QF = DP-4),
+  # never the second monitor.
+  tomkoreny.mako.output = "DP-4";
 
   home.packages = [
     pkgs.sshpass
     pkgs.atool
     pkgs.docker
     pkgs.wl-clipboard
-    pkgs.tiramisu
+    pkgs.cliphist # clipboard history (see Hyprland exec-once + Super+Shift+V)
+    pkgs.hyprshot # screenshots (see Hyprland Print binds)
+    pkgs.libnotify # notify-send, used by hyprshot to confirm captures
     pkgs.teams-for-linux
     pkgs.slack
-    #    pkgs.rustdesk
-
-    pkgs.hypridle
     pkgs.git-credential-oauth
     pkgs.gnome-keyring
     pkgs.seahorse
     pkgs.toybox
     pkgs.element-desktop
     pkgs.prismlauncher
-    pkgs.qmk
     pkgs.remmina
   ];
   programs.direnv = {

@@ -1,28 +1,14 @@
 {
-  # Snowfall Lib provides a customized `lib` instance with access to your flake's library
-  # as well as the libraries available from your flake's inputs.
   lib,
-  # An instance of `pkgs` with your overlays and packages applied is also available.
   pkgs,
-  # You also have access to your flake's inputs.
-  inputs,
-  # Additional metadata is provided by Snowfall Lib.
-  namespace, # The namespace used for your flake, defaulting to "internal" if not set.
-  system, # The system architecture for this host (eg. `x86_64-linux`).
-  target, # The Snowfall Lib target for this system (eg. `x86_64-iso`).
-  format, # A normalized name for the system target (eg. `iso`).
-  virtual, # A boolean to determine whether this system is a virtual target using nixos-generators.
-  systems, # An attribute map of your defined hosts.
-  # All other arguments come from the system system.
-  config,
   ...
 }:
+let
+  common = import ../../../lib/common { };
+in
 {
-  imports = [
-    ../../../modules/home/ssh
-    ../../../modules/home/kubeconfig
-    ../../../modules/home/jetbrains
-  ];
+  # NOTE: all modules under modules/home/ are auto-imported by Snowfall Lib —
+  # no explicit imports needed here, just per-host settings.
 
   home.packages = [
     pkgs.raycast
@@ -35,8 +21,10 @@
   };
 
   home.activation = {
+    # Use the store path of the shared wallpaper so this works regardless of
+    # where the repo checkout lives.
     set-wallpaper = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      /usr/bin/osascript -e "tell application \"System Events\" to tell every desktop to set picture to \"/Users/tom/home/modules/darwin/stylix/wallpaper.png\" as POSIX file"
+      /usr/bin/osascript -e "tell application \"System Events\" to tell every desktop to set picture to \"${common.stylix.wallpaper}\" as POSIX file"
     '';
   };
 }

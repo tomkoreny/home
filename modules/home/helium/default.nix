@@ -51,6 +51,29 @@ in
     BROWSER = "helium-browser";
   };
 
+  # The AppImage wrapper ships no desktop entry, so provide one — without it
+  # the mimeApps defaults below point at a .desktop file that doesn't exist
+  # and xdg-open/portal default-browser resolution fails.
+  xdg.desktopEntries.helium-browser = lib.mkIf pkgs.stdenv.isLinux {
+    name = "Helium";
+    genericName = "Web Browser";
+    exec = "helium-browser %U";
+    terminal = false;
+    icon = "web-browser";
+    categories = [
+      "Network"
+      "WebBrowser"
+    ];
+    mimeType = [
+      "text/html"
+      "application/xhtml+xml"
+      "x-scheme-handler/http"
+      "x-scheme-handler/https"
+      "x-scheme-handler/about"
+      "x-scheme-handler/unknown"
+    ];
+  };
+
   xdg.mimeApps = lib.mkIf pkgs.stdenv.isLinux {
     enable = true;
     defaultApplications = {

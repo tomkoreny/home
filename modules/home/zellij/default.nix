@@ -1,3 +1,0 @@
-{
-  programs.zellij.enable = false;
-}

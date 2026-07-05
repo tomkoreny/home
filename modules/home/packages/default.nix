@@ -5,6 +5,8 @@
   ...
 }:
 let
+  # Pinned, reproducible install of the `pi` coding agent. Bump with
+  # scripts/update-pi-coding-agent.sh (updates version + both hashes + lockfile).
   pi-coding-agent = pkgs.buildNpmPackage rec {
     pname = "pi-coding-agent";
     version = "0.79.0";
@@ -34,52 +36,51 @@ in
   home.packages = [
     pkgs.nerd-fonts.jetbrains-mono
     pkgs.nerdfetch
-    #    pkgs.ansible
     pkgs.openfortivpn
     pkgs.kubectl
     pkgs.kubernetes-helm
     pkgs.kubeseal
     pkgs.k9s
-    #pkgs.httpie
     pkgs.nodejs_22
     pkgs.node-gyp
-    #(pkgs.jetbrains.plugins.addPlugins pkgs.jetbrains.webstorm ["github-copilot"])
-    #pkgs.jetbrains.webstorm
     (if pkgs.stdenv.isDarwin then pkgs.ghostty-bin else pkgs.ghostty)
     pkgs.glab
 
     pkgs.php
-    # pkgs.signal-desktop
 
     (pkgs.discord.override {
-      # withOpenASAR = true; # can do this here too
       withVencord = true;
     })
 
-    # pkgs.prismlauncher
     pkgs.qmk
 
     pkgs.typescript
     pkgs.typescript-language-server
 
     pkgs.eas-cli
-    # pkgs.prusa-slicer
 
-    #pkgs.slack
-    #pkgs.teleport
-    pkgs.claude-code
+    inputs.nix-ai-tools.packages.${pkgs.stdenv.hostPlatform.system}.claude-code
     pkgs.codex
     pi-coding-agent
     pkgs.git-crypt
     pkgs.htop
-    pkgs.tmux
     pkgs.nssTools
     pkgs.lazyssh
-    # pkgs.claude-code-acp  # TODO: needs overlay
-    # pkgs.codex-acp  # TODO: needs overlay
     pkgs.usql
+
+    # CLI tools formerly installed via Homebrew on macOS
+    pkgs.pandoc
+    pkgs.imagemagick
+    pkgs.git-lfs
+    pkgs.socat
+    pkgs.uv
+    pkgs.hugo
+    pkgs.mkcert
+    pkgs.cloudflared
+    pkgs.argocd
   ]
   ++ lib.optionals (!pkgs.stdenv.isDarwin) [
+    pkgs.kicad
     pkgs.zed-editor
   ];
 }

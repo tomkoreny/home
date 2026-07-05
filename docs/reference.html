@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Desktop Reference — Hyprland + Miryoku</title>
+<style>
+  :root {
+    --base:#1e1e2e; --mantle:#181825; --crust:#11111b;
+    --surface0:#313244; --surface1:#45475a; --surface2:#585b70;
+    --text:#cdd6f4; --subtext:#a6adc8; --overlay:#6c7086;
+    --blue:#89b4fa; --lavender:#b4befe; --sapphire:#74c7ec; --sky:#89dceb;
+    --teal:#94e2d5; --green:#a6e3a1; --yellow:#f9e2af; --peach:#fab387;
+    --maroon:#eba0ac; --red:#f38ba8; --mauve:#cba6f7; --pink:#f5c2e7;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: radial-gradient(1200px 800px at 80% -10%, #232338 0%, var(--base) 55%);
+    color: var(--text);
+    font-family: "SF Pro Display", -apple-system, "Inter", "Segoe UI", system-ui, sans-serif;
+    line-height: 1.55; padding: 0 0 6rem;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 1.5rem; }
+
+  header { text-align: center; padding: 4rem 1.5rem 3rem;
+    background: radial-gradient(600px 300px at 50% 0%, rgba(137,180,250,.12), transparent 70%); }
+  header h1 { font-size: clamp(2rem, 5vw, 3.2rem); margin: 0 0 .4rem; font-weight: 800; letter-spacing: -.02em;
+    background: linear-gradient(110deg, var(--blue), var(--mauve) 45%, var(--pink));
+    -webkit-background-clip: text; background-clip: text; color: transparent; }
+  header p { color: var(--subtext); margin: 0; font-size: 1.05rem; }
+  .meta { margin-top: 1rem; font-size: .85rem; color: var(--overlay); }
+  .meta code { color: var(--sapphire); }
+
+  nav { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; margin-top: 1.8rem; }
+  nav a { text-decoration: none; color: var(--subtext); background: var(--surface0);
+    border: 1px solid var(--surface1); padding: .35rem .8rem; border-radius: 999px; font-size: .82rem; transition: all .15s ease; }
+  nav a:hover { color: var(--base); background: var(--blue); border-color: var(--blue); }
+
+  section { margin-top: 3rem; }
+  h2 { font-size: 1.5rem; margin: 0 0 1.2rem; display: flex; align-items: center; gap: .6rem;
+    border-bottom: 1px solid var(--surface0); padding-bottom: .6rem; }
+  h2 .ic { font-size: 1.3rem; }
+  h3 { font-size: 1.05rem; color: var(--lavender); margin: 1.6rem 0 .6rem; }
+
+  .cards { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .card { background: linear-gradient(180deg, var(--mantle), var(--crust));
+    border: 1px solid var(--surface0); border-radius: 14px; padding: 1.1rem 1.2rem; }
+  .card h4 { margin: 0 0 .5rem; font-size: .95rem; color: var(--text); }
+  .card p { margin: .2rem 0; color: var(--subtext); font-size: .88rem; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--mantle);
+    border: 1px solid var(--surface0); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: .7rem 1rem; border-bottom: 1px solid var(--surface0); font-size: .92rem; }
+  th { background: var(--crust); color: var(--lavender); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+
+  kbd { display: inline-block; font-family: inherit; font-size: .8rem; font-weight: 600; line-height: 1;
+    padding: .35rem .55rem; color: var(--text);
+    background: linear-gradient(180deg, var(--surface1), var(--surface0));
+    border: 1px solid var(--surface2); border-bottom-width: 3px; border-radius: 7px;
+    box-shadow: 0 1px 0 rgba(0,0,0,.4); white-space: nowrap; }
+  .combo { display:inline-flex; align-items:center; gap:.25rem; }
+  .combo .plus { color: var(--overlay); font-size:.8rem; }
+
+  .note { background: rgba(137,180,250,.08); border-left: 3px solid var(--blue);
+    border-radius: 8px; padding: .8rem 1rem; margin: 1rem 0; font-size: .9rem; color: var(--subtext); }
+  .note.warn { background: rgba(250,179,135,.08); border-left-color: var(--peach); }
+  .note.ok { background: rgba(166,227,161,.08); border-left-color: var(--green); }
+  .note b { color: var(--text); }
+  code { font-family: "SF Mono", ui-monospace, "JetBrains Mono", monospace; font-size: .85em; color: var(--peach); }
+
+  /* keyboard */
+  .kbd-board { background: linear-gradient(180deg, var(--mantle), var(--crust));
+    border: 1px solid var(--surface0); border-radius: 18px; padding: 1.8rem 1.4rem;
+    display: flex; justify-content: center; gap: clamp(1rem, 6vw, 4rem); flex-wrap: wrap; }
+  .hand { display: flex; flex-direction: column; align-items: center; gap: .9rem; }
+  .grid3x5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: .4rem; }
+  .key { width: 58px; height: 58px; border-radius: 9px;
+    background: linear-gradient(180deg, var(--surface0), #262636);
+    border: 1px solid var(--surface1); border-bottom-width: 3px;
+    position: relative; display:flex; align-items:center; justify-content:center;
+    font-size: 1.1rem; font-weight: 700; color: var(--text); }
+  .grid3x5 > .key:nth-child(5n+1) { margin-top: 6px; }
+  .grid3x5 > .key:nth-child(5n+2) { margin-top: 2px; }
+  .grid3x5 > .key:nth-child(5n+3) { margin-top: 0; }
+  .grid3x5 > .key:nth-child(5n+4) { margin-top: 4px; }
+  .grid3x5 > .key:nth-child(5n+5) { margin-top: 10px; }
+  .right .grid3x5 > .key:nth-child(5n+1) { margin-top: 10px; }
+  .right .grid3x5 > .key:nth-child(5n+2) { margin-top: 4px; }
+  .right .grid3x5 > .key:nth-child(5n+3) { margin-top: 0; }
+  .right .grid3x5 > .key:nth-child(5n+4) { margin-top: 2px; }
+  .right .grid3x5 > .key:nth-child(5n+5) { margin-top: 6px; }
+  .key span { position: absolute; font-weight: 700; line-height: 1; }
+  .key .ac { bottom: 3px; right: 4px; font-size: .72rem; color: var(--mauve); }   /* Czech accent */
+  .key .md { bottom: 3px; left: 4px; font-size: .46rem; text-transform: uppercase; letter-spacing:.02em; }
+  .key .cz { top: 3px; left: 0; right: 0; font-size: .46rem; color: var(--red); font-weight: 800; }
+  .key.home { border-color: var(--surface2); box-shadow: inset 0 0 0 1px rgba(180,190,254,.15);
+    background: linear-gradient(180deg, #34344a, #20202e); }
+  .key.swkey { box-shadow: inset 0 0 0 2px var(--red); }
+  .m-gui .md { color: var(--mauve); } .m-alt .md { color: var(--peach); }
+  .m-ctl .md { color: var(--green); } .m-sft .md { color: var(--blue); }
+  .m-etc .md { color: var(--overlay); }
+
+  .thumbs { display: flex; gap: .35rem; }
+  .thumb { width: 58px; height: 46px; border-radius: 9px;
+    background: linear-gradient(180deg, var(--surface0), #262636);
+    border: 1px solid var(--surface1); border-bottom-width: 3px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; font-size: .78rem; font-weight: 600; }
+  .thumb .lyr { font-size: .54rem; font-weight: 700; text-transform: uppercase; margin-top: 2px; }
+  .left .thumbs { margin-left: auto; transform: rotate(8deg); }
+  .right .thumbs { margin-right: auto; transform: rotate(-8deg); }
+  .ly-nav{color:var(--green);} .ly-mouse{color:var(--peach);} .ly-media{color:var(--pink);}
+  .ly-sym{color:var(--teal);} .ly-num{color:var(--blue);} .ly-fun{color:var(--yellow);}
+
+  .legend-row { display:flex; flex-wrap:wrap; gap:.5rem 1.2rem; margin-top:1.2rem; font-size:.8rem; color: var(--subtext);}
+  .legend-row span { display:inline-flex; align-items:center; gap:.35rem; }
+  .swatch { font-weight:700; font-size:.85rem; }
+
+  footer { text-align:center; margin-top:4rem; color: var(--overlay); font-size:.82rem; }
+  footer a, a.src { color: var(--sapphire); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>Desktop Reference</h1>
+    <p>Hyprland workflow &amp; Miryoku keyboard — Tom's NixOS</p>
+    <div class="meta">Keyboard: <code>splitkb Aurora Corne · Miryoku · QWERTY</code> · home-row mods, thumb layers</div>
+    <nav>
+      <a href="#keys">Keybindings</a>
+      <a href="#miryoku">Miryoku layout</a>
+      <a href="#czech">Czech diacritics</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- KEYBINDINGS -->
+  <section id="keys">
+    <h2><span class="ic">⌨️</span> Hyprland keybindings</h2>
+    <table>
+      <tr><th>Shortcut</th><th>Action</th></tr>
+      <tr><td><span class="combo"><kbd>Super</kbd><span class="plus">+</span><kbd>B</kbd></span></td><td>Launch Helium browser</td></tr>
+      <tr><td><span class="combo"><kbd>Super</kbd><span class="plus">+</span><kbd>D</kbd></span></td><td>Proofread selection &amp; rewrite with Czech diacritics (AI)</td></tr>
+      <tr><td><span class="combo"><kbd>Super</kbd><span class="plus">+</span><kbd>Shift</kbd><span class="plus">+</span><kbd>V</kbd></span></td><td>Clipboard history (cliphist via wofi)</td></tr>
+      <tr><td><span class="combo"><kbd>Print</kbd></span></td><td>Screenshot a region (saved + copied)</td></tr>
+      <tr><td><span class="combo"><kbd>Super</kbd><span class="plus">+</span><kbd>Print</kbd></span></td><td>Screenshot the whole monitor</td></tr>
+      <tr><td><span class="combo"><kbd>Super</kbd><span class="plus">+</span><kbd>Shift</kbd><span class="plus">+</span><kbd>Print</kbd></span></td><td>Screenshot the active window</td></tr>
+    </table>
+  </section>
+
+  <!-- MIRYOKU -->
+  <section id="miryoku">
+    <h2><span class="ic">🧬</span> Miryoku layout <span style="font-size:.8rem;color:var(--overlay);font-weight:400;">· QWERTY base</span></h2>
+    <p style="color:var(--subtext); font-size:.9rem; margin-top:-.4rem;">Letters are the base layer; the small badges are <b>holds</b>. Mauve = the Czech accent that key produces on the <b>CZ layer</b> (toggle with <kbd>V</kbd>+<kbd>M</kbd>).</p>
+
+    <div class="kbd-board">
+      <!-- LEFT -->
+      <div class="hand left">
+        <div class="grid3x5">
+          <div class="key">Q</div>
+          <div class="key">W<span class="ac">ě</span></div>
+          <div class="key">E<span class="ac">é</span></div>
+          <div class="key">R<span class="ac">ř</span></div>
+          <div class="key">T<span class="ac">ť</span></div>
+
+          <div class="key home m-gui">A<span class="ac">á</span><span class="md">Super</span></div>
+          <div class="key home m-alt">S<span class="ac">š</span><span class="md">Alt</span></div>
+          <div class="key home m-ctl">D<span class="ac">ď</span><span class="md">Ctrl</span></div>
+          <div class="key home m-sft">F<span class="md">Shift</span></div>
+          <div class="key">G</div>
+
+          <div class="key m-etc">Z<span class="md">Btn</span></div>
+          <div class="key m-etc">X<span class="md">AltGr</span></div>
+          <div class="key">C<span class="ac">č</span></div>
+          <div class="key swkey">V<span class="cz">CZ ⇄</span></div>
+          <div class="key">B</div>
+        </div>
+        <div class="thumbs">
+          <div class="thumb">Esc<span class="lyr ly-media">Media</span></div>
+          <div class="thumb">Spc<span class="lyr ly-nav">Nav</span></div>
+          <div class="thumb">Tab<span class="lyr ly-mouse">Mouse</span></div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="hand right">
+        <div class="grid3x5">
+          <div class="key">Y<span class="ac">ý</span></div>
+          <div class="key">U<span class="ac">ů</span></div>
+          <div class="key">I<span class="ac">í</span></div>
+          <div class="key">O<span class="ac">ó</span></div>
+          <div class="key">P</div>
+
+          <div class="key">H</div>
+          <div class="key home m-sft">J<span class="ac">ú</span><span class="md">Shift</span></div>
+          <div class="key home m-ctl">K<span class="md">Ctrl</span></div>
+          <div class="key home m-alt">L<span class="md">Alt</span></div>
+          <div class="key home m-gui">'<span class="md">Super</span></div>
+
+          <div class="key">N<span class="ac">ň</span></div>
+          <div class="key swkey">M<span class="cz">CZ ⇄</span></div>
+          <div class="key">,</div>
+          <div class="key m-etc">.<span class="md">AltGr</span></div>
+          <div class="key m-etc">/<span class="md">Btn</span></div>
+        </div>
+        <div class="thumbs">
+          <div class="thumb">Ent<span class="lyr ly-sym">Sym</span></div>
+          <div class="thumb">Bsp<span class="lyr ly-num">Num</span></div>
+          <div class="thumb">Del<span class="lyr ly-fun">Fun</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend-row">
+      <span><span class="swatch" style="color:var(--mauve)">á</span> Czech accent (CZ layer)</span>
+      <span><span class="swatch" style="color:var(--red)">CZ ⇄</span> V+M toggles CZ</span>
+      <span><span class="swatch" style="color:var(--mauve)">Super</span>/<span style="color:var(--peach)">Alt</span>/<span style="color:var(--green)">Ctrl</span>/<span style="color:var(--blue)">Shift</span> home-row holds</span>
+      <span><span class="swatch" style="color:var(--overlay)">Btn · AltGr</span> other holds</span>
+    </div>
+
+    <h3>Layers (held with a thumb)</h3>
+    <div class="cards">
+      <div class="card"><h4>🧭 Nav <span style="color:var(--overlay);font-weight:400;font-size:.8rem;">· left thumb (Spc)</span></h4><p>VI-style arrows on the right home row (<b>H J K L = ← ↓ ↑ →</b>), plus Home/End/PgUp/PgDn and the edit cluster (Undo/Cut/Copy/Paste/Redo).</p></div>
+      <div class="card"><h4>🖱️ Mouse <span style="color:var(--overlay);font-weight:400;font-size:.8rem;">· left thumb (Tab)</span></h4><p>Mouse movement, scroll and buttons on the right hand.</p></div>
+      <div class="card"><h4>🎵 Media <span style="color:var(--overlay);font-weight:400;font-size:.8rem;">· left thumb (Esc)</span></h4><p>Volume / mute, prev / play / next, brightness.</p></div>
+      <div class="card"><h4>🔢 Num <span style="color:var(--overlay);font-weight:400;font-size:.8rem;">· right thumb (Bsp)</span></h4><p>Number pad on the left hand (7 8 9 / 4 5 6 / 1 2 3, 0 on the thumb) + symbols on the outer column.</p></div>
+      <div class="card"><h4>🔣 Sym <span style="color:var(--overlay);font-weight:400;font-size:.8rem;">· right thumb (Ent)</span></h4><p>Shifted-number symbols <code>! @ # $ % ^ &amp; * ( )</code> on the left hand.</p></div>
+      <div class="card"><h4>🔠 Fun <span style="color:var(--overlay);font-weight:400;font-size:.8rem;">· right thumb (Del)</span></h4><p>F1–F12 on the left hand; media/print keys.</p></div>
+      <div class="card"><h4>🔘 Button <span style="color:var(--overlay);font-weight:400;font-size:.8rem;">· hold Z or /</span></h4><p>Clipboard / mouse-button helpers.</p></div>
+      <div class="card"><h4>🇨🇿 CZ <span style="color:var(--overlay);font-weight:400;font-size:.8rem;">· tap V+M</span></h4><p>Czech accents (the mauve letters). Tap V+M again to exit.</p></div>
+    </div>
+    <div class="note warn">Layer-card contents follow standard Miryoku (your nav is the <code>VI</code> variant). The base letters, home-row mods and Czech accents are exact from your keymap; tell me if a layer differs.</div>
+    <p style="margin-top:1rem;"><a class="src" href="https://github.com/manna-harbour/miryoku/">↗ manna-harbour / miryoku</a></p>
+  </section>
+
+  <!-- CZECH -->
+  <section id="czech">
+    <h2><span class="ic">🇨🇿</span> Czech diacritics</h2>
+
+    <h3>★ Type them directly — tap <kbd>V</kbd>+<kbd>M</kbd>, then the letter</h3>
+    <p style="color:var(--subtext); font-size:.92rem;">A firmware <b>CZ layer</b> puts every Czech accent on its own letter key. Press the <kbd>V</kbd>+<kbd>M</kbd> chord to toggle it on, type the accented letters, press <kbd>V</kbd>+<kbd>M</kbd> again to exit. Everything else (space, mods, unaccented letters) keeps working normally.</p>
+    <table>
+      <tr><th>Key</th><th>Gives</th><th>Key</th><th>Gives</th></tr>
+      <tr><td>a&nbsp; e&nbsp; i&nbsp; o&nbsp; u&nbsp; y</td><td>á é í ó ú* ý</td><td>w</td><td>ě</td></tr>
+      <tr><td>c&nbsp; s&nbsp; z&nbsp; r&nbsp; t&nbsp; d&nbsp; n</td><td>č š ž ř ť ď ň</td><td>u&nbsp; / &nbsp; j</td><td>ů&nbsp; / &nbsp; ú</td></tr>
+    </table>
+    <p style="font-size:.82rem;color:var(--overlay);margin-top:.5rem;">u → <b>ů</b> (the common one); ú is on <b>j</b>. ě is on <b>w</b>. All 15 letters covered: á č ď é ě í ň ó ř š ť ú ů ý ž.</p>
+    <div class="note ok"><b>Works in GTK/Electron apps</b> (Firefox/Helium, mail, chat) via Linux Unicode mode. Capital accents and terminals/Qt aren't covered — use <kbd>Super</kbd>+<kbd>D</kbd> there.</div>
+
+    <h3>★ Whole phrases / fix-ups — <kbd>Super</kbd>+<kbd>D</kbd></h3>
+    <p style="color:var(--subtext); font-size:.92rem;">Highlight text and press <kbd>Super</kbd>+<kbd>D</kbd>; the <code>diacritics-fix</code> script runs it through the <code>claude</code> CLI to add diacritics + fix typos, then types it back.</p>
+    <div class="card" style="margin-top:.8rem;">
+      <p style="color:var(--overlay);">example</p>
+      <p><code>Prilis zlutoucky kun upel dabelske ody.</code></p>
+      <p style="color:var(--green);">↓ &nbsp; Super + D</p>
+      <p><b>Příliš žluťoučký kůň úpěl ďábelské ódy.</b></p>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    Generated for Tom's NixOS config · Catppuccin Mocha · open <code>docs/reference.html</code> in a browser<br>
+    See also <code>docs/desktop-setup.md</code> for the plain-text version.
+  </div>
+</footer>
+
+</body>
+</html>

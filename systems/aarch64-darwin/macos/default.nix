@@ -27,19 +27,18 @@ let
   homeManagerApps = "${homeDir}/Applications/Home Manager Apps";
 in
 {
-  # Enable auto-upgrade from git
+  # Enable auto-upgrade from git (modules/darwin/* are auto-imported by Snowfall)
   tomkoreny.darwin.auto-upgrade.enable = true;
+  # FortiVPN tunnel + its sops secret
+  tomkoreny.darwin.vpn.enable = true;
   # Avoid collisions with pre-existing manual backups like ~/.ssh/config.bak.
   home-manager.backupFileExtension = "hm-bak";
-
-  imports = [
-    ../../../modules/darwin/vpn
-  ];
 
   # List packages installed in system profile. To search by name, run:
   # $ nix-env -qaP | grep wget
   environment.systemPackages = [
-    pkgs.rustc
+    # rustup manages its own rustc/cargo toolchains; do not also install
+    # pkgs.rustc or the two collide in the profile.
     pkgs.rustup
   ];
 
@@ -53,12 +52,6 @@ in
     "Thunderbolt Bridge"
   ];
   system = {
-    # Enable alternative shell support in nix-darwin.
-    # programs.fish.enable = true;
-
-    # Set Git commit hash for darwin-version.
-    #      system.configurationRevision = self.rev or self.dirtyRev or null;
-
     # Used for backwards compatibility, please read the changelog before changing.
     # $ darwin-rebuild changelog
     stateVersion = 5;
@@ -130,15 +123,6 @@ in
       };
     };
     primaryUser = name;
-
-    #    activationScripts.postUserActivation.text = ''
-    #      apps_source="${config.system.build.applications}/Applications"
-    #      moniker="Nix Trampolines"
-    #      app_target_base="$HOME/Applications"
-    #      app_target="$app_target_base/$moniker"
-    #      mkdir -p "$app_target"
-    #      ${pkgs.rsync}/bin/rsync --archive --checksum --chmod=-w --copy-unsafe-links --delete "$apps_source/" "$app_target"
-    #    '';
   };
 
   # The platform the configuration will be used on.
@@ -146,7 +130,11 @@ in
 
   launchd.user.envVariables = {
     DEVELOPER_DIR = "/Applications/Xcode.app/Contents/Developer";
-    SDKROOT = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk";
+    # Keep this the MacOSX SDK (same as environment.variables below): anything
+    # compiling from a GUI-launched app inherits it, and the iPhoneOS SDK
+    # breaks host builds. Point mobile toolchains at the iPhoneOS SDK
+    # explicitly where needed instead.
+    SDKROOT = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk";
     ANDROID_SDK_ROOT = "${homeDir}/Library/Android/sdk";
     ANDROID_HOME = "${homeDir}/Library/Android/sdk";
   };
@@ -259,11 +247,10 @@ in
       "raspberry-pi-imager"
       "prusaslicer"
     ];
+    # Keep brews for services (postgresql/redis/puma-dev), version managers
+    # (rbenv/nodenv) and mac-specific bits; plain CLI tools live in
+    # modules/home/packages/default.nix as nix packages instead.
     brews = [
-      # Kubernetes & DevOps
-      "argocd"
-      "cloudflared"
-
       # Ruby / Rails
       "cocoapods"
       "rbenv"
@@ -275,7 +262,6 @@ in
 
       # Web / Servers
       "caddy"
-      "mkcert"
 
       # Databases
       "postgresql"
@@ -287,14 +273,8 @@ in
       "vips"
 
       # Tools
-      "git-lfs"
-      "hugo"
-      "imagemagick"
-      "pandoc"
       "python-setuptools"
-      "socat"
       "sshpass"
-      "uv"
       "wakeonlan"
 
       # Hardware

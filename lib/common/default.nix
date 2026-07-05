@@ -4,7 +4,7 @@
 # Usage in system configs:
 #   let common = import ../../../lib/common {}; in { ... }
 #
-# Then access: common.user.name, common.network.localDns, etc.
+# Then access: common.user.name, common.network.upstreamDns, etc.
 {
   lib ? null,
   ...
@@ -26,11 +26,8 @@ rec {
 
   # Network configuration
   network = {
-    # Local DNS server (AdGuard Home)
-    localDns = "1.1.1.1";
-
-    # Home repository URL for auto-upgrade
-    repoUrl = "https://github.com/tomkoreny/home.git";
+    # Upstream DNS resolver (Cloudflare) that dnsmasq and Docker forward to
+    upstreamDns = "1.1.1.1";
   };
 
   # Docker daemon configuration

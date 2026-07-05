@@ -8,31 +8,43 @@
 
   common = import ../../../lib/common {};
 
-  # Script to ensure openclaw is installed
+  userHome = config.users.users.${cfg.user}.home;
+
+  # Script to ensure the pinned openclaw version is installed
   ensureOpenclaw = pkgs.writeShellScript "ensure-openclaw" ''
     set -euo pipefail
-    export PATH="${pkgs.nodejs_22}/bin:${pkgs.pnpm}/bin:$PATH"
-    export HOME="/home/${cfg.user}"
+    export HOME="${userHome}"
     export PNPM_HOME="$HOME/.local/share/pnpm"
+    # pnpm refuses global installs unless its global bin dir ($PNPM_HOME/bin)
+    # is in PATH, so include both candidate bin locations.
+    export PATH="$PNPM_HOME/bin:$PNPM_HOME:${pkgs.nodejs_22}/bin:${pkgs.pnpm}/bin:${pkgs.gnugrep}/bin:${pkgs.coreutils}/bin:$PATH"
 
-    # Setup pnpm
-    pnpm setup 2>/dev/null || true
-    export PATH="$PNPM_HOME:$PATH"
+    want="${cfg.version}"
+    have=""
+    if command -v openclaw &>/dev/null; then
+      have=$(openclaw --version 2>/dev/null | grep -oE '[0-9]+(\.[0-9]+)+' | head -1 || true)
+    fi
 
-    # Install or update openclaw
-    if ! command -v openclaw &>/dev/null; then
-      echo "Installing openclaw..."
-      pnpm add -g openclaw@latest
+    # node-linker=hoisted: openclaw relies on npm-style hoisting (its
+    # pi-coding-agent dep imports @sinclair/typebox that only openclaw
+    # declares); pnpm 11's isolated global layout breaks that.
+    if [ -z "$have" ]; then
+      echo "Installing openclaw@$want..."
+      pnpm add -g "openclaw@$want" --config.node-linker=hoisted
+    ${lib.optionalString cfg.autoUpdate ''
+    elif [ "$have" != "$want" ]; then
+      echo "Updating openclaw $have -> $want..."
+      pnpm add -g "openclaw@$want" --config.node-linker=hoisted
+    ''}
     fi
   '';
 
   # Node run script
   nodeRunScript = pkgs.writeShellScript "openclaw-node-run" ''
     set -euo pipefail
-    export PATH="${pkgs.nodejs_22}/bin:${pkgs.pnpm}/bin:$PATH"
-    export HOME="/home/${cfg.user}"
+    export HOME="${userHome}"
     export PNPM_HOME="$HOME/.local/share/pnpm"
-    export PATH="$PNPM_HOME:$PATH"
+    export PATH="$PNPM_HOME/bin:$PNPM_HOME:${pkgs.nodejs_22}/bin:${pkgs.pnpm}/bin:$PATH"
     export NODE_ENV="production"
 
     exec openclaw node run \
@@ -46,6 +58,15 @@
 in {
   options.tomkoreny.nixos.clawdbot-node = {
     enable = lib.mkEnableOption "OpenClaw node service";
+
+    version = lib.mkOption {
+      type = lib.types.str;
+      # MUST match the gateway's openclaw protocol: mismatched nodes are
+      # rejected with "protocol mismatch" (observed: 2026.3.28 against the
+      # current gateway). Bump this together with gateway upgrades.
+      default = "2026.6.11";
+      description = "openclaw npm package version to install (pinned; bump together with the gateway)";
+    };
 
     gatewayHost = lib.mkOption {
       type = lib.types.str;
@@ -92,7 +113,7 @@ in {
     autoUpdate = lib.mkOption {
       type = lib.types.bool;
       default = true;
-      description = "Auto-update openclaw before starting the service";
+      description = "Reinstall openclaw at service start when the installed version differs from `version` (when false, only install if missing)";
     };
   };
 
@@ -105,14 +126,14 @@ in {
     ];
 
     # Systemd user service for openclaw node
+    # (no network-online.target ordering: that target does not exist in the
+    # user manager; Restart=always covers early starts before the network is up)
     systemd.user.services.openclaw-node = {
       description = "OpenClaw Node - connects to gateway at ${cfg.gatewayHost}:${toString cfg.gatewayPort}";
       wantedBy = ["default.target"];
-      after = ["network-online.target"];
-      wants = ["network-online.target"];
 
-      # Install/update openclaw before starting
-      preStart = lib.optionalString cfg.autoUpdate ''
+      # Install the pinned openclaw before starting
+      preStart = ''
         ${ensureOpenclaw}
       '';
 
@@ -127,8 +148,8 @@ in {
 
     # Ensure required directories exist with correct permissions
     systemd.tmpfiles.rules = [
-      "d /home/${cfg.user}/.openclaw 0700 ${cfg.user} users -"
-      "d /home/${cfg.user}/.local/share/pnpm 0755 ${cfg.user} users -"
+      "d ${userHome}/.openclaw 0700 ${cfg.user} users -"
+      "d ${userHome}/.local/share/pnpm 0755 ${cfg.user} users -"
     ];
   };
 }

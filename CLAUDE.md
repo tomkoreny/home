@@ -9,12 +9,11 @@ This is Tom Koreny's NixOS/Darwin configuration repository using Nix flakes and 
 ## Essential Commands
 
 ### System Rebuild
-- **Primary command**: `sw` (shell alias)
-  - On macOS: executes `nh darwin switch`
-  - On NixOS: executes `nh os switch`
-- The `nh` tool automatically uses the correct flake path:
-  - macOS: `/Users/tom/home`
-  - Linux: `/home/tom/nixos2`
+- **Primary command**: `sw` (script in PATH)
+  - On macOS: executes `nh darwin switch` (flake path `/Users/tom/home`)
+  - On NixOS: executes `sudo nixos-rebuild switch --flake /home/tom/nixos2#nixos`
+    (not nh: the restricted NOPASSWD sudoers rule can't match nh's
+    `sudo env ...` wrapper)
 
 ### Flake Management
 - `nix flake update` - Update all flake inputs
@@ -54,6 +53,21 @@ This is Tom Koreny's NixOS/Darwin configuration repository using Nix flakes and 
 - **NixOS**: Includes Hyprland window manager, Secure Boot via lanzaboote, rootless Docker
 - **Both**: Tailscale VPN, Stylix theming, development tools
 
+### Keyboard Layout (important for keybinds)
+The primary keyboard is a **Miryoku** ergonomic split board running **Colemak-DH**
+in QMK firmware (the OS layout stays `us`/QWERTY; the remap is firmware-side).
+Consequences when adding or changing keybinds:
+- Modifiers are **home-row holds**: Super/GUI, Alt, Ctrl, Shift. Right Alt is a
+  hold-mod (the `I` key) and is **not tappable**, so Compose-key workflows do not
+  work here.
+- Numbers and symbols live on **thumb-activated layers** (Num/Sym/Fun), so the
+  number row and chorded mods (e.g. `Super+Shift+<n>`) are awkward to press.
+- Prefer **single-mod binds**, ideally `Super + <letter on the opposite hand>`.
+- **Czech diacritics**: direct per-key typing is handled in the **QMK firmware**
+  (a dedicated layer on the board), not the OS layout — OS-side compose/group
+  tricks don't fit Miryoku's held mods. `Super+D` runs the `diacritics-fix`
+  script (AI rewrite of the selection) for whole phrases. See `docs/reference.html`.
+
 ### Module Organization
 - Shell configuration: `modules/home/shell/default.nix`
 - Package definitions: `modules/home/packages/default.nix`
@@ -67,8 +81,8 @@ This is Tom Koreny's NixOS/Darwin configuration repository using Nix flakes and 
 - macOS casks: Add to `brews` list in `systems/aarch64-darwin/macos/default.nix`
 
 ### Testing Changes
-Always run `sw` after making changes to apply the new configuration. The `nh` tool will show build progress and automatically clean up old generations.
+Always run `sw` after making changes to apply the new configuration. The `nh` tool shows build progress; old generations are cleaned by nh's scheduled clean (`programs.nh.clean`).
 
 ### Git Workflow
-- git-crypt is configured for secrets management
+- Secrets are managed with **sops-nix** (age keys, rules in `.sops.yaml`); everything under `secrets/` must be sops-encrypted — there is no git-crypt filter, so a plaintext file committed there stays plaintext
 - Standard git workflow applies for version control

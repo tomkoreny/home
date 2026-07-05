@@ -12,17 +12,17 @@
   undmg,
 }:
 let
-  version = "140.10.1esr-bb22";
+  version = "140.12.0esr-bb24";
 
   sources = {
     x86_64-linux = fetchurl {
       url = "https://www.betterbird.eu/downloads/LinuxArchive/betterbird-${version}.en-US.linux-x86_64.tar.xz";
-      hash = "sha256-ZiRxZqayLy5zRrABV2l1ssIHiElOHPCEr0P5Q4hA/34=";
+      hash = "sha256-ChJWJKS7y8NxFmVBtZtD+yRc5jMxo0HN7AaWmUl7RuA=";
     };
 
     aarch64-darwin = fetchurl {
       url = "https://www.betterbird.eu/downloads/MacDiskImage/betterbird-${version}.en-US.mac-arm64.dmg";
-      hash = "sha256-5dwnES1kzZfHsNTpW/7IvBvjOWZSsU9GP9611Yq5SXM=";
+      hash = "sha256-+4lUm7Nw29iJ/GM2fY26dF6Nr0AvKEkyXJTU3iP1rxw=";
     };
   };
 

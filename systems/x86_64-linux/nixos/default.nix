@@ -22,18 +22,33 @@ let
   common = import ../../../lib/common { };
 
   # Shortcuts for frequently used values
-  inherit (common.network) localDns;
+  inherit (common.network) upstreamDns;
   inherit (common.user) name fullName;
 in
 {
-  # Enable auto-upgrade from git
-  tomkoreny.nixos.auto-upgrade.enable = true;
+  tomkoreny.nixos = {
+    # TCP tuning + IPv6 privacy-address fixes (module auto-loaded by Snowfall)
+    networking-fixes.enable = true;
 
-  # Enable OpenClaw node - connects to gateway via Traefik
-  tomkoreny.nixos.clawdbot-node = {
-    enable = true;
-    displayName = "NixOS Desktop";
+    # FortiVPN tunnel + its sops secret
+    openfortivpn.enable = true;
+
+    # OpenClaw node - connects to gateway via Traefik
     # Same as Mac: clawdbot.home.tomkoreny.com:443 with TLS (defaults)
+    clawdbot-node = {
+      enable = true;
+      displayName = "NixOS Desktop";
+    };
+  };
+
+  # Pull the latest pushed config and rebuild (CI keeps flake.lock fresh).
+  # Fetches straight from GitHub, so there is no local clone to go stale.
+  system.autoUpgrade = {
+    enable = true;
+    flake = "github:tomkoreny/home#nixos";
+    operation = "switch";
+    dates = "hourly";
+    randomizedDelaySec = "10min";
   };
 
   # Your configuration.
@@ -41,7 +56,7 @@ in
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
     # Note: modules in modules/nixos/ are auto-loaded by Snowfall Lib
-    # (caddy, openfortivpn, clawdbot-node)
+    # (openfortivpn, clawdbot-node)
   ];
 
   # Configure swap file
@@ -53,15 +68,6 @@ in
   ];
 
   boot = {
-    # this section is wierd and does not work, fix one day
-    #  i18n.inputMethod = {
-    #	  enable = true;
-    #	  type = "ibus";
-    #	  ibus.engines = with pkgs.ibus-engines; [ /* any engine you want, for example */ uniemoji ];
-    #  };
-
-    # end of section
-
     # Bootloader.
     plymouth.enable = true;
     loader = {
@@ -119,7 +125,7 @@ in
       # Let a system-level dnsmasq handle DNS on 127.0.0.1
       dns = "default";
     };
-    # Use local stub; dnsmasq forwards exclusively to local DNS.
+    # Use local stub; dnsmasq forwards exclusively to the upstream resolver.
     nameservers = [ "127.0.0.1" ];
   };
 
@@ -147,7 +153,7 @@ in
   };
 
   services = {
-    # Local caching resolver forwarding all queries to local DNS
+    # Local caching resolver forwarding all queries to the upstream resolver
     dnsmasq = {
       enable = true;
       settings = {
@@ -161,21 +167,11 @@ in
         # Do not include resolvconf-provided auxiliary configs
         conf-file = lib.mkForce [ ];
         resolv-file = lib.mkForce [ ];
-        # Forward exclusively to local resolver
-        server = lib.mkForce [ localDns ];
+        # Forward exclusively to the upstream resolver
+        server = lib.mkForce [ upstreamDns ];
         cache-size = 400;
       };
     };
-    k3s = {
-      enable = false;
-      role = "server";
-      extraFlags = toString [
-        "--disable traefik"
-        "--cluster-dns=10.43.0.10"
-        "--resolv-conf=/etc/rancher/k3s/resolv.conf"
-      ];
-    };
-
     tailscale = {
       enable = true;
       useRoutingFeatures = "client";
@@ -247,12 +243,6 @@ in
       };
     };
 
-    # Open ports in the firewall.
-    # networking.firewall.allowedTCPPorts = [ ... ];
-    # networking.firewall.allowedUDPPorts = [ ... ];
-    # Or disable the firewall altogether.
-    # networking.firewall.enable = false;
-
     hardware.openrgb = {
       enable = true;
       package = pkgs.openrgb-with-all-plugins;
@@ -281,22 +271,22 @@ in
     };
   };
 
-  # NOTE: Passwordless sudo for ALL commands is convenient but carries security risk.
-  # Any process running as 'tom' can escalate to root without authentication.
-  # For a more secure setup, consider restricting to specific commands:
-  #   command = "${pkgs.nixos-rebuild}/bin/nixos-rebuild";
-  #   command = "${pkgs.systemd}/bin/systemctl";
+  # Passwordless sudo only for nixos-rebuild (what `sw` runs) and systemctl;
+  # everything else prompts for a password (wheel default). Note nh cannot be
+  # allowlisted instead: it wraps its elevated calls as `sudo env ... <cmd>`,
+  # and allowlisting `env` would allow everything. This is still
+  # root-equivalent for someone who can author and activate an arbitrary
+  # closure, but it stops compromised user processes from running plain
+  # `sudo <anything>`.
   security.sudo.extraRules = [
     {
       users = [ name ];
-      commands = [
-        {
-          command = "ALL";
-          options = [
-            "NOPASSWD"
-            "SETENV"
-          ];
-        }
+      commands = map (command: {
+        inherit command;
+        options = [ "NOPASSWD" ];
+      }) [
+        "/run/current-system/sw/bin/nixos-rebuild"
+        "/run/current-system/sw/bin/systemctl"
       ];
     }
   ];
@@ -338,17 +328,10 @@ in
     goverlay
     docker-buildx
     docker-compose
-    mkcert
-    caddy
     libva
     libva-utils
     nvidia-vaapi-driver
   ];
-
-  # Create a proper resolv.conf for k3s
-  environment.etc."rancher/k3s/resolv.conf".text = ''
-    nameserver ${localDns}
-  '';
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
@@ -425,8 +408,8 @@ in
       setSocketVariable = false;
     };
     daemon.settings = {
-      # Ensure containers also use local DNS server
-      dns = lib.mkForce [ localDns ];
+      # Ensure containers also use the same upstream resolver
+      dns = lib.mkForce [ upstreamDns ];
       dns-opts = common.docker.dnsOpts;
       insecure-registries = common.docker.insecureRegistries;
       default-address-pools = common.docker.addressPools lib;

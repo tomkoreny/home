@@ -3,129 +3,91 @@
   lib,
   pkgs,
   ...
-}:
-
-let
+}: let
   cfg = config.tomkoreny.darwin.auto-upgrade;
+  common = import ../../../lib/common {};
+  homeDir = common.user.homeDir { isDarwin = true; };
 
-  rebuild-script = pkgs.writeShellScript "auto-rebuild-darwin" ''
+  # darwin-rebuild via the persistent system profile: /run/current-system is
+  # volatile on macOS. Must match the sudoers rule below.
+  darwinRebuild = "/nix/var/nix/profiles/system/sw/bin/darwin-rebuild";
+
+  # Pull + rebuild only. Flake input updates happen in CI (which validates the
+  # lock before pushing); this machine just follows origin/main. Operating on
+  # the same checkout nh uses means "what's running" is "what you edit".
+  upgradeScript = pkgs.writeShellScript "darwin-auto-upgrade" ''
     set -euo pipefail
+    export PATH="${pkgs.git}/bin:/nix/var/nix/profiles/system/sw/bin:/nix/var/nix/profiles/default/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
-    # Ensure darwin-rebuild and nix tools are in PATH. Use the persistent
-    # system profile instead of /run/current-system, which is volatile on macOS.
-    export PATH="/nix/var/nix/profiles/system/sw/bin:/nix/var/nix/profiles/default/bin:/etc/profiles/per-user/tom/bin:$PATH"
+    REPO_PATH=${lib.escapeShellArg cfg.repoPath}
 
-    REPO_PATH="$HOME/.config/home"
-    LOCK_FILE="/tmp/auto-rebuild-darwin.lock"
-    LOG_FILE="$HOME/Library/Logs/auto-rebuild.log"
+    # $TMPDIR is per-user and cleared on reboot, so a crashed run cannot
+    # wedge the lock across boots.
+    LOCK_DIR="''${TMPDIR:-/tmp}/auto-upgrade-$(id -u).lock"
+    if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+      echo "auto-upgrade: another run is in progress; exiting"
+      exit 0
+    fi
+    trap 'rmdir "$LOCK_DIR"' EXIT
 
-    exec >> "$LOG_FILE" 2>&1
-    echo "=== Auto-rebuild check at $(${pkgs.coreutils}/bin/date) ==="
-
-    # Prevent concurrent runs
-    exec 200>"$LOCK_FILE"
-    ${pkgs.flock}/bin/flock -n 200 || { echo "Another rebuild is running"; exit 0; }
-
-    # Clone if missing
-    if [ ! -d "$REPO_PATH" ]; then
-      echo "Cloning repository..."
-      ${pkgs.git}/bin/git clone ${cfg.repoUrl} "$REPO_PATH"
+    if [ ! -d "$REPO_PATH/.git" ]; then
+      echo "auto-upgrade: no git checkout at $REPO_PATH" >&2
+      exit 1
     fi
 
     cd "$REPO_PATH"
 
-    NEEDS_REBUILD=false
+    # Never touch a dirty checkout — this is the repo the user edits. Exit
+    # non-zero so the skip is visible in launchctl instead of silent.
+    if [ -n "$(git status --porcelain)" ]; then
+      echo "auto-upgrade: $REPO_PATH has local changes; skipping" >&2
+      exit 1
+    fi
 
-    # Skip cleanly if the repo has local edits or untracked files.
-    if [ -n "$(${pkgs.git}/bin/git status --porcelain)" ]; then
-      echo "Working tree has local changes, skipping auto-update"
+    git fetch origin main
+
+    if [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ]; then
+      echo "auto-upgrade: already up to date"
       exit 0
     fi
 
-    # Fetch latest config changes
-    ${pkgs.git}/bin/git fetch origin main
+    git merge --ff-only origin/main
 
-    LOCAL=$(${pkgs.git}/bin/git rev-parse HEAD)
-    REMOTE=$(${pkgs.git}/bin/git rev-parse origin/main)
-
-    if [ "$LOCAL" != "$REMOTE" ]; then
-      echo "Config changes detected, updating..."
-      ${pkgs.git}/bin/git merge --ff-only origin/main
-      NEEDS_REBUILD=true
-    fi
-
-    # Update flake inputs (nixpkgs etc.) weekly to keep packages fresh
-    FLAKE_STAMP="/tmp/auto-rebuild-flake-update"
-    WEEK_SECONDS=604800
-    NOW=$(${pkgs.coreutils}/bin/date +%s)
-    STAMP_AGE=0
-    if [ -f "$FLAKE_STAMP" ]; then
-      STAMP_TIME=$(${pkgs.coreutils}/bin/stat -c %Y "$FLAKE_STAMP" 2>/dev/null || echo 0)
-      STAMP_AGE=$(( NOW - STAMP_TIME ))
-    else
-      STAMP_AGE=$((WEEK_SECONDS + 1))
-    fi
-
-    if [ "$STAMP_AGE" -gt "$WEEK_SECONDS" ]; then
-      echo "Updating flake inputs..."
-      if nix flake update 2>&1; then
-        if ${pkgs.git}/bin/git diff --quiet flake.lock 2>/dev/null; then
-          echo "No flake input changes"
-        else
-          echo "Flake inputs updated, committing..."
-          ${pkgs.git}/bin/git add flake.lock
-          ${pkgs.git}/bin/git commit -m "chore: auto-update flake inputs"
-          ${pkgs.git}/bin/git push origin main || echo "Push failed (non-fatal)"
-          NEEDS_REBUILD=true
-        fi
-      else
-        echo "Flake update failed, continuing..."
-      fi
-      ${pkgs.coreutils}/bin/touch "$FLAKE_STAMP"
-    fi
-
-    if [ "$NEEDS_REBUILD" = "true" ]; then
-      echo "Running flake checks..."
-      nix flake check --show-trace
-      echo "Rebuilding Darwin..."
-      /usr/bin/sudo -n /nix/var/nix/profiles/system/sw/bin/darwin-rebuild switch --flake .#macos
-      echo "Rebuild complete at $(${pkgs.coreutils}/bin/date)"
-    else
-      echo "Already up to date"
-    fi
+    echo "auto-upgrade: activating $(git rev-parse --short HEAD)..."
+    /usr/bin/sudo -n ${darwinRebuild} switch --flake "$REPO_PATH#macos"
   '';
-in
-{
+in {
   options.tomkoreny.darwin.auto-upgrade = {
-    enable = lib.mkEnableOption "automatic Darwin upgrades from git";
+    enable = lib.mkEnableOption "periodic pull + rebuild from git";
 
-    repoUrl = lib.mkOption {
+    repoPath = lib.mkOption {
       type = lib.types.str;
-      default = "https://github.com/tomkoreny/home.git";
-      description = "Git repository URL";
+      default = "${homeDir}/home";
+      description = "Git checkout to pull and rebuild (the same one nh uses)";
     };
 
     interval = lib.mkOption {
       type = lib.types.int;
       default = 1800; # 30 minutes in seconds
-      description = "Interval between checks in seconds";
+      description = "Seconds between upgrade attempts";
     };
   };
 
   config = lib.mkIf cfg.enable {
-    launchd.user.agents.auto-rebuild = {
-      script = "${rebuild-script}";
+    # Let the (non-root) launchd agent activate the rebuilt system without a
+    # password. Scoped to darwin-rebuild only.
+    environment.etc."sudoers.d/darwin-rebuild".text = ''
+      ${common.user.name} ALL=(ALL) NOPASSWD: ${darwinRebuild}
+    '';
+
+    launchd.user.agents.auto-upgrade = {
+      command = "${upgradeScript}";
       serviceConfig = {
         StartInterval = cfg.interval;
-        RunAtLoad = true;
+        RunAtLoad = false;
+        StandardOutPath = "${homeDir}/Library/Logs/auto-upgrade.log";
+        StandardErrorPath = "${homeDir}/Library/Logs/auto-upgrade.log";
       };
-      path = [
-        pkgs.git
-        pkgs.nix
-        "/nix/var/nix/profiles/system/sw"
-        "/nix/var/nix/profiles/default"
-        "/etc/profiles/per-user/tom"
-      ];
     };
   };
 }

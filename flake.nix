@@ -8,9 +8,17 @@
     };
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
+    # hyprland deliberately does NOT follow our nixpkgs: upstream recommends
+    # keeping their pin so the Hyprland Cachix cache hits.
     hyprland.url = "github:hyprwm/Hyprland";
-    stylix.url = "github:danth/stylix";
-    nvf.url = "github:notashelf/nvf";
+    stylix = {
+      url = "github:danth/stylix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nvf = {
+      url = "github:notashelf/nvf";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     lanzaboote = {
       url = "github:nix-community/lanzaboote/v1.0.0";
 
@@ -39,15 +47,30 @@
       url = "github:homebrew/homebrew-bundle";
       flake = false;
     };
-    zen-browser.url = "github:0xc000022070/zen-browser-flake";
-    lan-mouse.url = "github:feschber/lan-mouse";
-    mac-app-util.url = "github:hraban/mac-app-util";
+    zen-browser = {
+      url = "github:0xc000022070/zen-browser-flake";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "home-manager";
+    };
+    lan-mouse = {
+      url = "github:feschber/lan-mouse";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    mac-app-util = {
+      url = "github:hraban/mac-app-util";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     puma-rails.url = "github:puma/homebrew-puma";
     puma-rails.flake = false;
 
     # San Francisco Fonts | Apple Fonts
     apple-fonts.url = "github:Lyndeno/apple-fonts.nix";
     apple-fonts.inputs.nixpkgs.follows = "nixpkgs";
+
+    # Fast-moving AI CLIs (claude-code, codex, *-acp) as native binaries,
+    # auto-updated daily and served from Numtide's binary cache.
+    nix-ai-tools.url = "github:numtide/nix-ai-tools";
+    nix-ai-tools.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
@@ -77,15 +100,6 @@
           sops-nix.darwinModules.sops
         ];
 
-        # Add a module to a specific host.
-        # hosts.nixos.modules = with inputs; [
-        #   # my-input.nixosModules.my-module
-        # ];
-        #
-        # Add a custom value to `specialArgs`.
-        hosts.nixos.specialArgs = {
-          my-custom-value = "my-value";
-        };
       };
       homes.modules = [
         inputs.mac-app-util.homeManagerModules.default
@@ -102,8 +116,6 @@
       };
       # Configure Snowfall Lib, all of these settings are optional.
       snowfall = {
-        # Tell Snowfall Lib to look in the `./nix/` directory for your
-        # Nix files.
         root = ./.;
 
         # Choose a namespace to use for your flake's packages, library,
