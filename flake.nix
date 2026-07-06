@@ -52,14 +52,14 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
     };
-    lan-mouse = {
-      url = "github:feschber/lan-mouse";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    mac-app-util = {
-      url = "github:hraban/mac-app-util";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # Note: no `inputs.nixpkgs.follows` here — building lan-mouse against
+    # nixpkgs-unstable breaks (appstream link failure on darwin) and defeats
+    # the lan-mouse.cachix.org binary cache, which is keyed to upstream's pin.
+    lan-mouse.url = "github:feschber/lan-mouse";
+    # Note: no `inputs.nixpkgs.follows` here — mac-app-util is Common Lisp and
+    # breaks with SBCL >= 2.6 from unstable (hraban/mac-app-util#42); upstream
+    # deliberately pins nixos-26.05.
+    mac-app-util.url = "github:hraban/mac-app-util";
     puma-rails.url = "github:puma/homebrew-puma";
     puma-rails.flake = false;
 
