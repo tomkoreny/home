@@ -20,9 +20,10 @@ jobs:
         run: nix flake update
 
       # Never push a lock that doesn't evaluate — every machine's
-      # auto-upgrade would pull it.
+      # auto-upgrade would pull it. Determinate Nix lazy trees can leave
+      # virtual source paths unmaterialized during flake checks.
       - name: Validate
-        run: nix flake check --no-build
+        run: nix flake check --no-build --no-lazy-trees
 
       - name: Commit and push
         run: |
