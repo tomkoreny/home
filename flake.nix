@@ -2,10 +2,6 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
 
-    snowfall-lib = {
-      url = "github:snowfallorg/lib";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     # hyprland deliberately does NOT follow our nixpkgs: upstream recommends
@@ -74,62 +70,141 @@
   };
 
   outputs =
-    inputs:
-    inputs.snowfall-lib.mkFlake {
-      inherit inputs;
-      src = ./.;
-      systems = {
-        # Add modules to all NixOS systems.
-        modules.nixos = with inputs; [
-          hyprland.nixosModules.default
-          stylix.nixosModules.stylix
-          ./nixos/lanzaboote-compat.nix
-          ({ pkgs, ... }: {
-            boot.lanzaboote.package =
-              lanzaboote.packages.${pkgs.stdenv.hostPlatform.system}.lzbt;
-          })
-          home-manager.nixosModules.default
-          sops-nix.nixosModules.sops
-        ];
+    inputs@{
+      nixpkgs,
+      home-manager,
+      darwin,
+      ...
+    }:
+    let
+      namespace = "tomkoreny";
 
-        # If you wanted to configure a Darwin (macOS) system.
-        modules.darwin = with inputs; [
-          nix-homebrew.darwinModules.nix-homebrew
-          stylix.darwinModules.stylix
-          mac-app-util.darwinModules.default
-          sops-nix.darwinModules.sops
-        ];
+      homeModules = [
+        ./modules/home/betterbird
+        ./modules/home/bun
+        ./modules/home/git
+        ./modules/home/helium
+        ./modules/home/hyprland
+        ./modules/home/jetbrains
+        ./modules/home/k9s
+        ./modules/home/kubeconfig
+        ./modules/home/lanmouse
+        ./modules/home/mako
+        ./modules/home/multiviewer
+        ./modules/home/nh
+        ./modules/home/nixvim
+        ./modules/home/packages
+        ./modules/home/shell
+        ./modules/home/ssh
+        ./modules/home/stylix
+        ./modules/home/waybar
+      ];
 
-      };
-      homes.modules = [
+      sharedHomeModules = [
         inputs.mac-app-util.homeManagerModules.default
         inputs.stylix.homeModules.stylix
         inputs.sops-nix.homeManagerModules.sops
+      ] ++ homeModules;
+
+      nixosModules = [
+        inputs.hyprland.nixosModules.default
+        inputs.stylix.nixosModules.stylix
+        ./nixos/lanzaboote-compat.nix
+        ({ pkgs, ... }: {
+          boot.lanzaboote.package =
+            inputs.lanzaboote.packages.${pkgs.stdenv.hostPlatform.system}.lzbt;
+        })
+        home-manager.nixosModules.home-manager
+        inputs.sops-nix.nixosModules.sops
+        ./modules/nixos/clawdbot-node
+        ./modules/nixos/hyprland
+        ./modules/nixos/networking-fixes
+        ./modules/nixos/openfortivpn
+        ./modules/nixos/stylix
       ];
-      outputs-builder = channels: {
-        formatter = channels.nixpkgs.nixfmt;
-      };
 
-      channels-config = {
-        # Allow unfree packages.
-        allowUnfree = true;
-      };
-      # Configure Snowfall Lib, all of these settings are optional.
-      snowfall = {
-        root = ./.;
+      darwinModules = [
+        inputs.nix-homebrew.darwinModules.nix-homebrew
+        inputs.stylix.darwinModules.stylix
+        inputs.mac-app-util.darwinModules.default
+        inputs.sops-nix.darwinModules.sops
+        home-manager.darwinModules.home-manager
+        ./modules/darwin/auto-upgrade
+        ./modules/darwin/stylix
+        ./modules/darwin/vpn
+      ];
 
-        # Choose a namespace to use for your flake's packages, library,
-        # and overlays.
-        namespace = "tomkoreny";
-
-        # Add flake metadata that can be processed by tools like Snowfall Frost.
-        meta = {
-          # A slug to use in documentation when displaying things like file paths.
-          name = "tomk-dots";
-
-          # A title to show for your flake, typically the name.
-          title = "Tom Koreny's NixOS config";
+      mkPkgs = system:
+        import nixpkgs {
+          inherit system;
+          config.allowUnfree = true;
         };
+
+      mkSpecialArgs = system: {
+        inherit inputs namespace system;
+        target = system;
+        format = if nixpkgs.lib.hasSuffix "-darwin" system then "darwin" else "linux";
+        virtual = false;
+        systems = { };
+      };
+
+      mkHome = { system, module }:
+        home-manager.lib.homeManagerConfiguration {
+          pkgs = mkPkgs system;
+          extraSpecialArgs = mkSpecialArgs system;
+          modules = sharedHomeModules ++ [ module ];
+        };
+
+      homeManagerSystemConfig = system: {
+        home-manager = {
+          useGlobalPkgs = true;
+          useUserPackages = true;
+          extraSpecialArgs = mkSpecialArgs system;
+          sharedModules = sharedHomeModules;
+        };
+      };
+    in
+    {
+      nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        specialArgs = mkSpecialArgs "x86_64-linux";
+        modules = nixosModules ++ [
+          (homeManagerSystemConfig "x86_64-linux")
+          {
+            nixpkgs.config.allowUnfree = true;
+            home-manager.users.tom = import ./homes/x86_64-linux/tom@nixos;
+          }
+          ./systems/x86_64-linux/nixos
+        ];
+      };
+
+      darwinConfigurations.macos = darwin.lib.darwinSystem {
+        system = "aarch64-darwin";
+        specialArgs = mkSpecialArgs "aarch64-darwin";
+        modules = darwinModules ++ [
+          (homeManagerSystemConfig "aarch64-darwin")
+          {
+            nixpkgs.config.allowUnfree = true;
+            home-manager.users.tom = import ./homes/aarch64-darwin/tom@macos;
+          }
+          ./systems/aarch64-darwin/macos
+        ];
+      };
+
+      homeConfigurations = {
+        "tom@nixos" = mkHome {
+          system = "x86_64-linux";
+          module = ./homes/x86_64-linux/tom@nixos;
+        };
+        "tom@macos" = mkHome {
+          system = "aarch64-darwin";
+          module = ./homes/aarch64-darwin/tom@macos;
+        };
+      };
+
+      formatter = {
+        x86_64-linux = (mkPkgs "x86_64-linux").nixfmt;
+        aarch64-darwin = (mkPkgs "aarch64-darwin").nixfmt;
       };
     };
 }
