@@ -14,8 +14,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Nix 2.34 currently mishandles derivation string contexts used by
-      # Stylix/base16 and reports valid store derivations as invalid.
+      # Keep validation reproducible instead of silently changing Nix semantics
+      # whenever ubuntu-latest starts shipping a newer installer release.
       - uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
         with:
           install_url: https://releases.nixos.org/nix/nix-2.31.3/install
@@ -25,10 +25,11 @@ jobs:
           nix --version
           nix flake update
 
-      # Never push a lock that doesn't evaluate — every machine's
-      # auto-upgrade would pull it.
+      # Never push a lock that doesn't evaluate — every machine's auto-upgrade
+      # would pull it. Do not use --no-build: Stylix/base16 uses import from
+      # derivation and a clean runner must realise that derivation to evaluate.
       - name: Validate
-        run: nix flake check path:. --no-build
+        run: nix flake check path:.
 
       - name: Commit and push
         run: |
