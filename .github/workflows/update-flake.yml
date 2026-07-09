@@ -22,7 +22,7 @@ jobs:
       # Never push a lock that doesn't evaluate — every machine's
       # auto-upgrade would pull it.
       - name: Validate
-        run: nix flake check --no-build
+        run: nix flake check path:. --no-build
 
       - name: Commit and push
         run: |
