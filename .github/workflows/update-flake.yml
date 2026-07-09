@@ -14,16 +14,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+      - uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
 
       - name: Update flake.lock
         run: nix flake update
 
       # Never push a lock that doesn't evaluate — every machine's
-      # auto-upgrade would pull it. Determinate Nix lazy trees can leave
-      # virtual source paths unmaterialized during flake checks.
+      # auto-upgrade would pull it.
       - name: Validate
-        run: nix flake check --no-build --no-lazy-trees
+        run: nix flake check --no-build
 
       - name: Commit and push
         run: |
