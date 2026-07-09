@@ -78,6 +78,8 @@
     }:
     let
       namespace = "tomkoreny";
+      linuxHome = ./homes/x86_64-linux + "/tom@nixos";
+      darwinHome = ./homes/aarch64-darwin + "/tom@macos";
 
       homeModules = [
         ./modules/home/betterbird
@@ -172,7 +174,7 @@
           (homeManagerSystemConfig "x86_64-linux")
           {
             nixpkgs.config.allowUnfree = true;
-            home-manager.users.tom = import ./homes/x86_64-linux/tom@nixos;
+            home-manager.users.tom = import linuxHome;
           }
           ./systems/x86_64-linux/nixos
         ];
@@ -185,7 +187,7 @@
           (homeManagerSystemConfig "aarch64-darwin")
           {
             nixpkgs.config.allowUnfree = true;
-            home-manager.users.tom = import ./homes/aarch64-darwin/tom@macos;
+            home-manager.users.tom = import darwinHome;
           }
           ./systems/aarch64-darwin/macos
         ];
@@ -194,11 +196,11 @@
       homeConfigurations = {
         "tom@nixos" = mkHome {
           system = "x86_64-linux";
-          module = ./homes/x86_64-linux/tom@nixos;
+          module = linuxHome;
         };
         "tom@macos" = mkHome {
           system = "aarch64-darwin";
-          module = ./homes/aarch64-darwin/tom@macos;
+          module = darwinHome;
         };
       };
 
