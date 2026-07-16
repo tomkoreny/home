@@ -80,6 +80,16 @@ in
     lanzaboote = {
       enable = true;
       pkiBundle = "/etc/secureboot";
+      # Auto-enroll Secure Boot keys via systemd-boot on next boot (requires
+      # firmware to be in Setup Mode at that boot). includeMicrosoftKeys keeps
+      # Microsoft's certs in db so the Windows bootloader still passes Secure
+      # Boot validation in this dual-boot setup — without it, Windows won't boot.
+      autoEnrollKeys = {
+        enable = true;
+        includeMicrosoftKeys = true; # default, but explicit: dual-boot needs it
+        # autoReboot stays off so keys are only enrolled on a manual reboot,
+        # after firmware has been put into Setup Mode.
+      };
     };
     kernelParams = [
       # "quiet"
