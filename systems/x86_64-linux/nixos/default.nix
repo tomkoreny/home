@@ -216,7 +216,10 @@ in
       enable = true;
       settings = rec {
         initial_session = {
-          command = "Hyprland";
+          # The launcher, not the bare Hyprland binary — same thing the
+          # hyprland.desktop session file execs (Hyprland >= 0.55 warns
+          # otherwise).
+          command = "start-hyprland";
           user = name;
         };
         # Also autologin after logout/session exit (no greeter on this box;

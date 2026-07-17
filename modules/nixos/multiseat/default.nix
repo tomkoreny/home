@@ -44,9 +44,12 @@ let
   '';
 
   startSession = pkgs.writeShellScript "hyprland-seat1-session" ''
-    # Home-manager per-user profile first so binds (ghostty, wofi, waybar...)
-    # resolve; the service does not go through a login shell.
-    export PATH=/etc/profiles/per-user/${cfg.user}/bin:/run/wrappers/bin:/run/current-system/sw/bin:$PATH
+    # Full NixOS session environment — PATH (incl. the per-user profile, via
+    # $USER) and XDG_DATA_DIRS, without which wofi finds no .desktop files and
+    # binds can't resolve apps. A display manager's session wrapper would
+    # normally source this; nothing does it for a bare systemd session.
+    . /etc/set-environment
+    export PATH=/etc/profiles/per-user/${cfg.user}/bin:/run/wrappers/bin:$PATH
     export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
     export XDG_SESSION_TYPE=wayland
     export XDG_CURRENT_DESKTOP=Hyprland
@@ -59,11 +62,13 @@ let
     export AQ_DRM_DEVICES="$card"
 
     # This seat renders on the AMD iGPU; override the system-wide NVIDIA
-    # VA-API/VDPAU defaults from environment.sessionVariables.
+    # VA-API/VDPAU defaults from environment.sessionVariables (sourced above).
     export LIBVA_DRIVER_NAME=radeonsi
     export VDPAU_DRIVER=radeonsi
 
-    exec ${hyprland}/bin/Hyprland
+    # Hyprland >= 0.55 wants its launcher (portal/dbus/env setup); launching
+    # the bare binary prints a warning on screen.
+    exec ${hyprland}/bin/start-hyprland
   '';
 in
 {
