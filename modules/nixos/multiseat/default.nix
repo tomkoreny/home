@@ -68,7 +68,13 @@ let
 
     # Hyprland >= 0.55 wants its launcher (portal/dbus/env setup); launching
     # the bare binary prints a warning on screen.
-    exec ${hyprland}/bin/start-hyprland
+    #
+    # setpriv drops the ambient CAP_WAKE_ALARM that pam_systemd grants user
+    # sessions: ambient caps propagate to every descendant, and bubblewrap
+    # (FHS-wrapped apps like helium) refuses to run with unexpected
+    # capabilities ("Unexpected capabilities but not setuid"). Seat0 sessions
+    # lose it implicitly by exec'ing through a file-caps Hyprland wrapper.
+    exec ${pkgs.util-linux}/bin/setpriv --ambient-caps -all ${hyprland}/bin/start-hyprland
   '';
 in
 {
