@@ -79,6 +79,7 @@
     let
       namespace = "tomkoreny";
       linuxHome = ./homes/x86_64-linux + "/tom@nixos";
+      terkaHome = ./homes/x86_64-linux + "/terka@nixos";
       darwinHome = ./homes/aarch64-darwin + "/tom@macos";
 
       homeModules = [
@@ -120,6 +121,7 @@
         inputs.sops-nix.nixosModules.sops
         ./modules/nixos/clawdbot-node
         ./modules/nixos/hyprland
+        ./modules/nixos/multiseat
         ./modules/nixos/networking-fixes
         ./modules/nixos/openfortivpn
         ./modules/nixos/stylix
@@ -175,6 +177,7 @@
           {
             nixpkgs.config.allowUnfree = true;
             home-manager.users.tom = import linuxHome;
+            home-manager.users.terka = import terkaHome;
           }
           ./systems/x86_64-linux/nixos
         ];
@@ -197,6 +200,10 @@
         "tom@nixos" = mkHome {
           system = "x86_64-linux";
           module = linuxHome;
+        };
+        "terka@nixos" = mkHome {
+          system = "x86_64-linux";
+          module = terkaHome;
         };
         "tom@macos" = mkHome {
           system = "aarch64-darwin";

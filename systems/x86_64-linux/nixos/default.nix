@@ -39,6 +39,10 @@ in
       enable = true;
       displayName = "NixOS Desktop";
     };
+
+    # Second seat (Terka): AMD iGPU + her USB ports, Hyprland autologin.
+    # Hardware specifics (PCI/USB paths) live in the module's option defaults.
+    multiseat.enable = true;
   };
 
   # Pull the latest pushed config and rebuild (CI keeps flake.lock fresh).
@@ -204,14 +208,21 @@ in
     };
 
     gnome.gnome-keyring.enable = true;
-    displayManager = {
-      # Enable the XFCE Desktop Environment.
-      sddm.enable = true;
-      sddm.wayland.enable = true;
-
-      # Enable automatic login for the user.
-      autoLogin.enable = true;
-      autoLogin.user = name;
+    # Seat0 login: greetd autologin straight into Hyprland. SDDM was replaced
+    # when the second seat was added — SDDM starts a greeter on every
+    # graphical logind seat and would fight the dedicated seat1 session
+    # service (see modules/nixos/multiseat); greetd only manages seat0's VT.
+    greetd = {
+      enable = true;
+      settings = rec {
+        initial_session = {
+          command = "Hyprland";
+          user = name;
+        };
+        # Also autologin after logout/session exit (no greeter on this box;
+        # SDDM's autologin behaved the same at boot, greeter only on logout).
+        default_session = initial_session;
+      };
     };
 
     # Enable CUPS to print documents.
