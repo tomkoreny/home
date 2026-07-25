@@ -22,11 +22,14 @@
       systemd.enable = false;
     };
 
-    # `services.hyprpaper.enable` writes hyprpaper's config/systemd unit, but the
-    # Hyprland config starts it with `exec-once = uwsm app -- hyprpaper`. Make the
-    # binary available in PATH so that autostart command can actually launch it.
+    # `services.hyprpaper.enable` / `services.hypridle.enable` write the config
+    # files plus systemd units wanted by graphical-session.target — but that
+    # target is never activated here (systemd.enable = false, session is driven
+    # by uwsm), so the units stay dead. Both daemons are actually started by
+    # `exec-once = uwsm app -- …` in main.conf, which needs the binaries in PATH.
     home.packages = [
       pkgs.hyprpaper
+      pkgs.hypridle
 
       # Programs referenced by binds in main.conf
       pkgs.nautilus # Super+E file manager
