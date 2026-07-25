@@ -91,10 +91,12 @@ let
       exit 1
     fi
 
+    # No icon prefix: the Protect camera names already carry their own emoji,
+    # so a second one just doubles up. The All entry uses ▦ to stand apart.
     ALL_LABEL="▦  All cameras"
     choice=$(
       {
-        printf '%s\n' "''${names[@]}" | ${pkgs.gnused}/bin/sed 's/^/🎥 /'
+        printf '%s\n' "''${names[@]}"
         printf '%s\n' "$ALL_LABEL"
       } | "$WOFI" --dmenu --prompt "Camera" --insensitive
     ) || exit 0
@@ -109,7 +111,6 @@ let
       exit 0
     fi
 
-    choice="''${choice#🎥 }"
     for i in "''${!names[@]}"; do
       if [ "''${names[$i]}" = "$choice" ]; then
         play "''${names[$i]}" "''${urls[$i]}"
