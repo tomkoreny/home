@@ -74,7 +74,10 @@ let
     # (FHS-wrapped apps like helium) refuses to run with unexpected
     # capabilities ("Unexpected capabilities but not setuid"). Seat0 sessions
     # lose it implicitly by exec'ing through a file-caps Hyprland wrapper.
-    exec ${pkgs.util-linux}/bin/setpriv --ambient-caps -all ${hyprland}/bin/start-hyprland
+    # Select the Home Manager config explicitly. Hyprland otherwise prefers a
+    # hyprland.lua left behind by a newer version, ignoring hyprland.conf.
+    exec ${pkgs.util-linux}/bin/setpriv --ambient-caps -all ${hyprland}/bin/start-hyprland -- \
+      --config /home/${cfg.user}/.config/hypr/hyprland.conf
   '';
 in
 {
@@ -113,30 +116,39 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # A seat-specific group grants access only to seat1 event nodes. Using the
+    # global "input" group here would let this user read both seats.
+    users.groups.seat1-input = { };
+
     users.users.${cfg.user} = {
       isNormalUser = true;
       description = "Terka";
-      # No wheel/docker: plain desktop user. render+video are belt-and-braces
-      # for PRIME offload; session device access itself comes from logind.
+      # No wheel: plain desktop user. render+video are belt-and-braces for
+      # PRIME offload; Docker access is intentionally shared with this user.
       extraGroups = [
+        "docker"
         "networkmanager"
         "video"
         "render"
+        "seat1-input"
       ];
     };
 
-    services.udev.extraRules =
-      ''
-        # ---- multi-seat: assign seat1 hardware (see modules/nixos/multiseat) ----
-        # iGPU. The card keeps its default "master-of-seat" tag: logind only
-        # creates seat1 when a master device carries it.
-        SUBSYSTEM=="drm", KERNEL=="card*", ENV{ID_PATH}=="${cfg.gpuPciPath}", TAG+="seat", ENV{ID_SEAT}="seat1"
-        # iGPU HDMI/DP audio, so the monitor's speakers/jack belong to seat1.
-        SUBSYSTEM=="sound", ENV{ID_PATH}=="${cfg.gpuAudioPciPath}", TAG+="seat", ENV{ID_SEAT}="seat1"
-      ''
-      + lib.concatMapStrings (path: ''
-        ENV{ID_PATH}=="${path}*", TAG+="seat", ENV{ID_SEAT}="seat1"
-      '') cfg.usbPciPaths;
+    services.udev.extraRules = ''
+      # ---- multi-seat: assign seat1 hardware (see modules/nixos/multiseat) ----
+      # iGPU. The card keeps its default "master-of-seat" tag: logind only
+      # creates seat1 when a master device carries it.
+      SUBSYSTEM=="drm", KERNEL=="card*", ENV{ID_PATH}=="${cfg.gpuPciPath}", TAG+="seat", ENV{ID_SEAT}="seat1"
+      # iGPU HDMI/DP audio, so the monitor's speakers/jack belong to seat1.
+      SUBSYSTEM=="sound", ENV{ID_PATH}=="${cfg.gpuAudioPciPath}", TAG+="seat", ENV{ID_SEAT}="seat1"
+    ''
+    + lib.concatMapStrings (path: ''
+      ENV{ID_PATH}=="${path}*", TAG+="seat", ENV{ID_SEAT}="seat1"
+      # 70-uaccess.rules intentionally excludes keyboards and mice, so merely
+      # assigning these event nodes to seat1 leaves them root-only. A dedicated
+      # group grants this seat access without exposing seat0's input devices.
+      SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_PATH}=="${path}*", GROUP="seat1-input", MODE="0660"
+    '') cfg.usbPciPaths;
 
     # Minimal PAM stack for the autologin session: no authentication (that is
     # what autologin means — same trust model as getty/greetd autologin), but

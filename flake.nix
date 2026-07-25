@@ -4,9 +4,11 @@
 
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
-    # hyprland deliberately does NOT follow our nixpkgs: upstream recommends
-    # keeping their pin so the Hyprland Cachix cache hits.
-    hyprland.url = "github:hyprwm/Hyprland";
+    # Hyprland deliberately does NOT follow our nixpkgs: upstream recommends
+    # keeping their pin so the Hyprland Cachix cache hits. Pin a release rather
+    # than main: main removed hyprlang config support without a migration
+    # window, causing Hyprland to ignore Home Manager's hyprland.conf.
+    hyprland.url = "github:hyprwm/Hyprland/v0.55.0";
     stylix = {
       url = "github:danth/stylix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -103,19 +105,20 @@
         inputs.mac-app-util.homeManagerModules.default
         inputs.stylix.homeModules.stylix
         inputs.sops-nix.homeManagerModules.sops
-      ] ++ homeModules;
+      ]
+      ++ homeModules;
 
       nixosModules = [
         inputs.hyprland.nixosModules.default
         inputs.stylix.nixosModules.stylix
         ./nixos/lanzaboote-compat.nix
         ({ pkgs, ... }: {
-          boot.lanzaboote.package =
-            inputs.lanzaboote.packages.${pkgs.stdenv.hostPlatform.system}.lzbt;
+          boot.lanzaboote.package = inputs.lanzaboote.packages.${pkgs.stdenv.hostPlatform.system}.lzbt;
         })
         home-manager.nixosModules.home-manager
         inputs.sops-nix.nixosModules.sops
-      ] ++ autoModules ./modules/nixos;
+      ]
+      ++ autoModules ./modules/nixos;
 
       darwinModules = [
         inputs.nix-homebrew.darwinModules.nix-homebrew
@@ -123,9 +126,11 @@
         inputs.mac-app-util.darwinModules.default
         inputs.sops-nix.darwinModules.sops
         home-manager.darwinModules.home-manager
-      ] ++ autoModules ./modules/darwin;
+      ]
+      ++ autoModules ./modules/darwin;
 
-      mkPkgs = system:
+      mkPkgs =
+        system:
         import nixpkgs {
           inherit system;
           config.allowUnfree = true;
@@ -139,7 +144,8 @@
         systems = { };
       };
 
-      mkHome = { system, module }:
+      mkHome =
+        { system, module }:
         home-manager.lib.homeManagerConfiguration {
           pkgs = mkPkgs system;
           extraSpecialArgs = mkSpecialArgs system;

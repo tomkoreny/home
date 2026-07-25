@@ -223,8 +223,9 @@ in
         initial_session = {
           # The launcher, not the bare Hyprland binary — same thing the
           # hyprland.desktop session file execs (Hyprland >= 0.55 warns
-          # otherwise).
-          command = "start-hyprland";
+          # otherwise). Select the Home Manager config explicitly so a stale
+          # hyprland.lua cannot take precedence over hyprland.conf.
+          command = "start-hyprland -- --config /home/${name}/.config/hypr/hyprland.conf";
           user = name;
         };
         # Also autologin after logout/session exit (no greeter on this box;
@@ -310,13 +311,16 @@ in
   security.sudo.extraRules = [
     {
       users = [ name ];
-      commands = map (command: {
-        inherit command;
-        options = [ "NOPASSWD" ];
-      }) [
-        "/run/current-system/sw/bin/nixos-rebuild"
-        "/run/current-system/sw/bin/systemctl"
-      ];
+      commands =
+        map
+          (command: {
+            inherit command;
+            options = [ "NOPASSWD" ];
+          })
+          [
+            "/run/current-system/sw/bin/nixos-rebuild"
+            "/run/current-system/sw/bin/systemctl"
+          ];
     }
   ];
   security.rtkit.enable = true;
