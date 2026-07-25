@@ -128,6 +128,28 @@ in
     programs.waybar = {
       enable = true;
       settings = map (output: base // { inherit output; }) cfg.outputs;
+      # Run the bar as a supervised user service instead of a bare
+      # `exec-once`. Waybar 0.15.0's pulseaudio module recurses forever inside
+      # AudioBackend::connectContext when the PulseAudio socket disappears
+      # (pa_context_connect -> autospawn fails -> state callback -> reconnect
+      # -> ...), ballooning to tens of GB before it aborts. A `sw` restarts
+      # pipewire-pulse, so every rebuild silently killed the bar for good.
+      systemd.enable = true;
+    };
+
+    # The unit is started from Hyprland's exec-once, not by
+    # graphical-session.target: this session runs Hyprland with
+    # `systemd.enable = false`, so that target never activates and the
+    # generated `WantedBy` is inert.
+    systemd.user.services.waybar = {
+      # No start rate limiting: if pipewire-pulse is mid-restart the bar may
+      # crash several times in a row, and the default burst limit would give up
+      # exactly when we most need it to keep trying.
+      Unit.StartLimitIntervalSec = 0;
+      Service = {
+        Restart = lib.mkForce "always";
+        RestartSec = 3;
+      };
     };
 
     home.file.".config/waybar/power_menu.xml" = {
