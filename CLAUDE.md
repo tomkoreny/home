@@ -43,7 +43,15 @@ This is Tom Koreny's NixOS/Darwin configuration repository using Nix flakes and 
 ```
 
 ### Key Concepts
-- **Snowfall Lib**: The framework organizing this flake, providing conventions for module organization
+- **No flake framework**: `flake.nix` is hand-wired — it calls `nixpkgs.lib.nixosSystem`,
+  `darwin.lib.darwinSystem` and `home-manager.lib.homeManagerConfiguration` directly.
+  Snowfall Lib is **not** an input and is not used, despite the layout following its
+  conventions and some module headers still mentioning it. `namespace`, `target`,
+  `format`, `virtual` and `systems` are passed to modules by a hand-rolled
+  `mkSpecialArgs`, which mimics Snowfall's contract.
+- **Module discovery**: every directory under `modules/<platform>/` is picked up
+  automatically by `autoModules` in `flake.nix` — no manual registration. But Nix only
+  sees git-tracked files, so `git add` a new module or it stays invisible.
 - **Multi-platform**: Supports both NixOS and macOS through unified configuration
 - **Namespace**: `tomkoreny` - custom namespace for the project
 - **Home-manager**: Integrated into system configurations for user-level settings

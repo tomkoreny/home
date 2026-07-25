@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-The root `flake.nix` wires Snowfall Lib with the flake inputs; treat it as the entry point for adding new modules or packages. Reusable modules live in `modules/<platform>/<topic>/` (for example `modules/nixos/networking-fixes`), while host manifests sit under `systems/<arch>/<host>/default.nix` next to hardware profiles or assets like `mkcert-ca.pem`. Home Manager profiles mirror that layout in `homes/<arch>/<user@host>/default.nix`, keeping user tweaks separate from system code.
+The root `flake.nix` is hand-wired (no Snowfall Lib, no flake-parts — it calls `nixosSystem`/`darwinSystem`/`homeManagerConfiguration` directly); treat it as the entry point for adding new modules or packages. Directories under `modules/<platform>/` are discovered automatically by `autoModules`, but Nix only sees git-tracked files, so `git add` a new module before building. Reusable modules live in `modules/<platform>/<topic>/` (for example `modules/nixos/networking-fixes`), while host manifests sit under `systems/<arch>/<host>/default.nix` next to hardware profiles or assets like `mkcert-ca.pem`. Home Manager profiles mirror that layout in `homes/<arch>/<user@host>/default.nix`, keeping user tweaks separate from system code.
 
 ## Build, Test, and Development Commands
 - `nix flake show` – confirm the flake evaluates and exposes the expected outputs.

@@ -78,30 +78,26 @@
     }:
     let
       namespace = "tomkoreny";
+
+      # Every directory under modules/<platform>/ is a module; discover them
+      # instead of maintaining a list by hand. This is the one convenience
+      # Snowfall Lib would have provided, and it does not need Snowfall (or any
+      # framework) to get: forgetting to register a new module here used to
+      # surface as a baffling "option does not exist" at eval time.
+      #
+      # NOTE: Nix only sees git-tracked files, so a newly created module still
+      # has to be `git add`ed before it is discoverable.
+      autoModules =
+        dir:
+        nixpkgs.lib.mapAttrsToList (name: _: dir + "/${name}") (
+          nixpkgs.lib.filterAttrs (_: type: type == "directory") (builtins.readDir dir)
+        );
+
       linuxHome = ./homes/x86_64-linux + "/tom@nixos";
       terkaHome = ./homes/x86_64-linux + "/terka@nixos";
       darwinHome = ./homes/aarch64-darwin + "/tom@macos";
 
-      homeModules = [
-        ./modules/home/betterbird
-        ./modules/home/bun
-        ./modules/home/git
-        ./modules/home/helium
-        ./modules/home/hyprland
-        ./modules/home/jetbrains
-        ./modules/home/k9s
-        ./modules/home/kubeconfig
-        ./modules/home/lanmouse
-        ./modules/home/mako
-        ./modules/home/multiviewer
-        ./modules/home/nh
-        ./modules/home/nixvim
-        ./modules/home/packages
-        ./modules/home/shell
-        ./modules/home/ssh
-        ./modules/home/stylix
-        ./modules/home/waybar
-      ];
+      homeModules = autoModules ./modules/home;
 
       sharedHomeModules = [
         inputs.mac-app-util.homeManagerModules.default
@@ -119,14 +115,7 @@
         })
         home-manager.nixosModules.home-manager
         inputs.sops-nix.nixosModules.sops
-        ./modules/nixos/clawdbot-node
-        ./modules/nixos/hyprland
-        ./modules/nixos/multiseat
-        ./modules/nixos/networking-fixes
-        ./modules/nixos/openfortivpn
-        ./modules/nixos/stylix
-        ./modules/nixos/unifi-cameras
-      ];
+      ] ++ autoModules ./modules/nixos;
 
       darwinModules = [
         inputs.nix-homebrew.darwinModules.nix-homebrew
@@ -134,10 +123,7 @@
         inputs.mac-app-util.darwinModules.default
         inputs.sops-nix.darwinModules.sops
         home-manager.darwinModules.home-manager
-        ./modules/darwin/auto-upgrade
-        ./modules/darwin/stylix
-        ./modules/darwin/vpn
-      ];
+      ] ++ autoModules ./modules/darwin;
 
       mkPkgs = system:
         import nixpkgs {
