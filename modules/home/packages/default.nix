@@ -4,34 +4,6 @@
   pkgs,
   ...
 }:
-let
-  # Pinned, reproducible install of the `pi` coding agent. Bump with
-  # scripts/update-pi-coding-agent.sh (updates version + both hashes + lockfile).
-  pi-coding-agent = pkgs.buildNpmPackage rec {
-    pname = "pi-coding-agent";
-    version = "0.79.0";
-
-    src = pkgs.fetchurl {
-      url = "https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-${version}.tgz";
-      hash = "sha512-pZoXk65vFR3dAzzmPNWEX61aHnT6+BaVhTyFDQAs1DyumaMeWpvzRV9ZrGxqlbVLwhrq+0LnXbaqDAFkhe2+MQ==";
-    };
-
-    postPatch = ''
-      cp ${./pi-coding-agent-lock.json} package-lock.json
-      rm -f npm-shrinkwrap.json
-    '';
-
-    npmDepsHash = "sha256-4qFbQr2y6m7IKZ7gyMSphVqwr25eq5NWOtujaX/KxBQ=";
-    dontNpmBuild = true;
-
-    meta = {
-      description = "Minimal terminal coding harness";
-      homepage = "https://pi.dev/";
-      license = lib.licenses.mit;
-      mainProgram = "pi";
-    };
-  };
-in
 {
   home.packages = [
     pkgs.nerd-fonts.jetbrains-mono
@@ -61,7 +33,13 @@ in
 
     inputs.nix-ai-tools.packages.${pkgs.stdenv.hostPlatform.system}.claude-code
     pkgs.codex
-    pi-coding-agent
+    # `pi` was hand-packaged here with buildNpmPackage + a vendored 142 KB
+    # package-lock.json, which meant it only moved when someone remembered to
+    # run scripts/update-pi-coding-agent.sh — it had drifted 7 weeks behind.
+    # nixpkgs ships the same upstream (github.com/earendil-works/pi) with a
+    # nix-update updateScript, so it now rides the daily flake.lock CI instead,
+    # comes from the binary cache, and gets the Darwin fixes we didn't have.
+    pkgs.pi-coding-agent
     pkgs.git-crypt
     pkgs.htop
     pkgs.nssTools

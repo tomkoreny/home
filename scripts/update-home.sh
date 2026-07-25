@@ -3,28 +3,25 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: scripts/update-home.sh [--no-switch] [--no-push] [--skip-pi] [--skip-flake]
+Usage: scripts/update-home.sh [--no-switch] [--no-push] [--skip-flake]
 
 One-shot dependency refresh for this home flake:
   1. requires a clean working tree
   2. pulls origin/main with rebase
   3. updates flake inputs
-  4. updates the pinned pi-coding-agent npm package
-  5. runs nix flake check
-  6. switches the current host configuration
-  7. commits and pushes dependency changes
+  4. runs nix flake check
+  5. switches the current host configuration
+  6. commits and pushes dependency changes
 
 Options:
   --no-switch   Do not run darwin-rebuild/nixos-rebuild switch
   --no-push     Commit locally but do not push
-  --skip-pi     Do not update pi-coding-agent
   --skip-flake  Do not run nix flake update
 EOF
 }
 
 switch_config=true
 push_changes=true
-update_pi=true
 update_flake=true
 
 while [[ $# -gt 0 ]]; do
@@ -34,9 +31,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-push)
       push_changes=false
-      ;;
-    --skip-pi)
-      update_pi=false
       ;;
     --skip-flake)
       update_flake=false
@@ -68,11 +62,7 @@ if [[ "$update_flake" == true ]]; then
   nix flake update
 fi
 
-if [[ "$update_pi" == true ]]; then
-  scripts/update-pi-coding-agent.sh
-fi
-
-if git diff --quiet -- flake.lock modules/home/packages/default.nix modules/home/packages/pi-coding-agent-lock.json; then
+if git diff --quiet -- flake.lock; then
   echo "No dependency changes."
   exit 0
 fi
@@ -94,7 +84,7 @@ if [[ "$switch_config" == true ]]; then
   esac
 fi
 
-git add flake.lock modules/home/packages/default.nix modules/home/packages/pi-coding-agent-lock.json
+git add flake.lock
 git commit -m "chore: update dependencies"
 
 if [[ "$push_changes" == true ]]; then
