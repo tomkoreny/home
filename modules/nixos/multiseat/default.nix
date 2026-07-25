@@ -177,6 +177,11 @@ in
       serviceConfig = {
         User = cfg.user;
         PAMName = "hyprland-seat1";
+        # Re-apply the seat-specific input ownership before each login. NixOS
+        # reloads udev rules during a switch but does not retrigger existing
+        # keyboards/mice, otherwise they keep their old root:input ownership.
+        # The leading + runs only this preparatory command as root.
+        ExecStartPre = "+${config.systemd.package}/bin/udevadm trigger --settle --subsystem-match=input --property-match=ID_SEAT=seat1";
         ExecStart = startSession;
         Restart = "always";
         RestartSec = 3;
