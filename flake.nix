@@ -125,6 +125,7 @@
         ./modules/nixos/networking-fixes
         ./modules/nixos/openfortivpn
         ./modules/nixos/stylix
+        ./modules/nixos/unifi-cameras
       ];
 
       darwinModules = [

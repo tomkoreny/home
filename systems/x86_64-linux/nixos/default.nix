@@ -43,6 +43,11 @@ in
     # Second seat (Terka): AMD iGPU + her USB ports, Hyprland autologin.
     # Hardware specifics (PCI/USB paths) live in the module's option defaults.
     multiseat.enable = true;
+
+    # Super+U picker for UniFi Protect streams. Protect's Enhanced profile is
+    # H.265 and Helium ships no HEVC decoder, so play them in mpv instead of
+    # downgrading the cameras to H.264. Camera list: secrets/unifi/cameras.conf.
+    unifi-cameras.enable = true;
   };
 
   # Pull the latest pushed config and rebuild (CI keeps flake.lock fresh).
