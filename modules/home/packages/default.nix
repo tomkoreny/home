@@ -59,6 +59,7 @@
   ]
   ++ lib.optionals (!pkgs.stdenv.isDarwin) [
     pkgs.kicad
+    pkgs.mailspring
     pkgs.zed-editor
   ];
 }
