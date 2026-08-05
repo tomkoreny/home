@@ -120,6 +120,16 @@ in
     # global "input" group here would let this user read both seats.
     users.groups.seat1-input = { };
 
+    # A compositor restart closes this user's graphical login. Kill processes
+    # left in that old session instead of abandoning its scope: singleton apps
+    # such as WebStorm otherwise remain attached to the dead Wayland display
+    # and prevent a fresh instance from opening. Restrict this to the seat1
+    # user so seat0's tmux/nohup processes keep the normal NixOS behavior.
+    services.logind.settings.Login = {
+      KillUserProcesses = true;
+      KillOnlyUsers = cfg.user;
+    };
+
     users.users.${cfg.user} = {
       isNormalUser = true;
       description = "Terka";
@@ -165,6 +175,11 @@ in
 
     systemd.services.hyprland-seat1 = {
       description = "Hyprland session for ${cfg.user} on seat1 (autologin)";
+      # A flake update often changes the script or Hyprland store path in this
+      # unit. Do not let `nixos-rebuild switch` restart the live compositor and
+      # destroy every open window; the new unit takes effect after logout or
+      # reboot instead.
+      restartIfChanged = false;
       wantedBy = [ "graphical.target" ];
       after = [
         "systemd-user-sessions.service"
