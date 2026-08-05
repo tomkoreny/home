@@ -3,6 +3,7 @@
 # home-manager.sharedModules in flake.nix); this file only overrides what
 # differs for her.
 {
+  config,
   lib,
   pkgs,
   ...
@@ -31,7 +32,9 @@
     # config, not in a shared module)
     pkgs.wl-clipboard
     pkgs.cliphist
-    pkgs.hyprshot
+    # Keep hyprshot on the same pinned Hyprland as the running compositor.
+    # nixpkgs' newer Hyprland currently fails while fetching glaze in CMake.
+    (pkgs.hyprshot.override { hyprland = config.wayland.windowManager.hyprland.package; })
     pkgs.libnotify
 
     # Run an app on the NVIDIA dGPU while the desktop itself runs on the iGPU:

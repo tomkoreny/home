@@ -1,4 +1,5 @@
 {
+  config,
   pkgs,
   ...
 }:
@@ -21,7 +22,9 @@
     pkgs.docker
     pkgs.wl-clipboard
     pkgs.cliphist # clipboard history (see Hyprland exec-once + Super+Shift+V)
-    pkgs.hyprshot # screenshots (see Hyprland Print binds)
+    # Keep hyprshot on the same pinned Hyprland as the running compositor.
+    # nixpkgs' newer Hyprland currently fails while fetching glaze in CMake.
+    (pkgs.hyprshot.override { hyprland = config.wayland.windowManager.hyprland.package; })
     pkgs.libnotify # notify-send, used by hyprshot to confirm captures
     pkgs.teams-for-linux
     pkgs.slack
