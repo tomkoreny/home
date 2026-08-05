@@ -11,13 +11,14 @@
   # All other arguments come from the module system.
   config,
   ...
-}: {
+}:
+{
   config = lib.mkIf pkgs.stdenv.isLinux {
     wayland.windowManager.hyprland = {
       enable = true; # enable Hyprland
       systemd.enableXdgAutostart = true; # enable HyprlandAutostart
-      configType = "hyprlang";
-      extraConfig = builtins.readFile ./config/hyprland/main.conf;
+      configType = "lua";
+      extraConfig = builtins.readFile ./config/hyprland/main.lua;
       package = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
       systemd.enable = false;
     };
@@ -26,12 +27,12 @@
     # files plus systemd units wanted by graphical-session.target — but that
     # target is never activated here (systemd.enable = false, session is driven
     # by uwsm), so the units stay dead. Both daemons are actually started by
-    # `exec-once = uwsm app -- …` in main.conf, which needs the binaries in PATH.
+    # startup callback in main.lua, which needs the binaries in PATH.
     home.packages = [
       pkgs.hyprpaper
       pkgs.hypridle
 
-      # Programs referenced by binds in main.conf
+      # Programs referenced by binds in main.lua
       pkgs.nautilus # Super+E file manager
       pkgs.playerctl # media keys
       pkgs.brightnessctl # brightness keys
@@ -39,7 +40,7 @@
       # Proofread the current selection and rewrite it with Czech diacritics.
       # Reads the highlighted text (Wayland primary selection), sends it through
       # the already-authenticated `claude` CLI, then types the corrected text
-      # back over the selection. Bound to Super+D in main.conf.
+      # back over the selection. Bound to Super+D in main.lua.
       (pkgs.writeShellScriptBin "diacritics-fix" ''
         set -uo pipefail
 
@@ -80,7 +81,7 @@
         {
           # Intentionally aggressive (60s): these are OLED panels, so we blank
           # them quickly when idle to minimise burn-in. Pairs with the
-          # mouse_move_enables_dpms = false misc setting in main.conf.
+          # mouse_move_enables_dpms = false misc setting in main.lua.
           timeout = 60;
           on-timeout = "hyprctl dispatch dpms off";
           on-resume = "hyprctl dispatch dpms on";

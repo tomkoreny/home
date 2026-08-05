@@ -5,10 +5,9 @@
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     # Hyprland deliberately does NOT follow our nixpkgs: upstream recommends
-    # keeping their pin so the Hyprland Cachix cache hits. Pin a release rather
-    # than main: main removed hyprlang config support without a migration
-    # window, causing Hyprland to ignore Home Manager's hyprland.conf.
-    hyprland.url = "github:hyprwm/Hyprland/v0.55.0";
+    # keeping its dependency pins so the Hyprland Cachix cache hits. Both seats
+    # use the new Lua configuration API, so they can follow current main.
+    hyprland.url = "github:hyprwm/Hyprland";
     stylix = {
       url = "github:danth/stylix";
       inputs.nixpkgs.follows = "nixpkgs";

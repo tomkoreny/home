@@ -82,7 +82,7 @@ let
       # (which contains the stream token). $3, when set, is the grid slot
       # index: it makes the title unique so the placement pass below can find
       # this exact window, and the "CameraGrid" prefix is what the float
-      # windowrule in main.conf keys on — single playback keeps the plain
+      # window rule in main.lua keys on — single playback keeps the plain
       # "Camera: " title and so still tiles normally.
       if [ -n "''${3:-}" ]; then
         exec "$MPV" ${mpvFlags} --title="CameraGrid $3 $1" --force-media-title="$1" "$2"

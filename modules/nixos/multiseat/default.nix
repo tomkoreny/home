@@ -74,10 +74,9 @@ let
     # (FHS-wrapped apps like helium) refuses to run with unexpected
     # capabilities ("Unexpected capabilities but not setuid"). Seat0 sessions
     # lose it implicitly by exec'ing through a file-caps Hyprland wrapper.
-    # Select the Home Manager config explicitly. Hyprland otherwise prefers a
-    # hyprland.lua left behind by a newer version, ignoring hyprland.conf.
+    # Select the Home Manager Lua config explicitly.
     exec ${pkgs.util-linux}/bin/setpriv --ambient-caps -all ${hyprland}/bin/start-hyprland -- \
-      --config /home/${cfg.user}/.config/hypr/hyprland.conf
+      --config /home/${cfg.user}/.config/hypr/hyprland.lua
   '';
 in
 {

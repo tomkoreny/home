@@ -3,7 +3,7 @@
 # home-manager.sharedModules in flake.nix); this file only overrides what
 # differs for her.
 {
-  config,
+  inputs,
   lib,
   pkgs,
   ...
@@ -25,19 +25,21 @@
     email = lib.mkForce "mvdr@terka.vet";
   };
 
-  # Replace tom's Hyprland config wholesale: his pins monitors by EDID
-  # description and disables everything else (`monitor = ,disable`), which
-  # would blank her screen, and his exec-once lines go through uwsm.
-  wayland.windowManager.hyprland.extraConfig = lib.mkForce (builtins.readFile ./hyprland.conf);
+  # Replace tom's Hyprland config wholesale: his Lua config pins monitors by
+  # EDID and disables every unmatched output, which would blank her screen;
+  # his startup commands also go through UWSM.
+  wayland.windowManager.hyprland.extraConfig = lib.mkForce (builtins.readFile ./hyprland.lua);
 
   home.packages = [
-    # Referenced by binds in hyprland.conf (tom carries these in his own home
+    # Referenced by binds in hyprland.lua (tom carries these in his own home
     # config, not in a shared module)
     pkgs.wl-clipboard
     pkgs.cliphist
-    # Keep hyprshot on the same pinned Hyprland as the running compositor.
-    # nixpkgs' newer Hyprland currently fails while fetching glaze in CMake.
-    (pkgs.hyprshot.override { hyprland = config.wayland.windowManager.hyprland.package; })
+    # Keep hyprshot on the same upstream package as the running compositor;
+    # nixpkgs' independently packaged Hyprland can diverge or fail to build.
+    (pkgs.hyprshot.override {
+      hyprland = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
+    })
     pkgs.libnotify
 
     # Run an app on the NVIDIA dGPU while the desktop itself runs on the iGPU:
