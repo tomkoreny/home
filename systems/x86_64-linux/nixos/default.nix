@@ -392,6 +392,19 @@ in
   '';
 
   hardware = {
+    printers = {
+      ensurePrinters = [
+        {
+          name = "HP_Color_LaserJet_4302";
+          description = "HP Color LaserJet Pro MFP 4302";
+          location = "Home";
+          deviceUri = "ipp://10.10.60.248/ipp/print";
+          model = "everywhere";
+        }
+      ];
+      ensureDefaultPrinter = "HP_Color_LaserJet_4302";
+    };
+
     steam-hardware.enable = true;
 
     # Did you read the comment?
