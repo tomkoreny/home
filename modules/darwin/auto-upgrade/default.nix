@@ -3,21 +3,29 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.tomkoreny.darwin.auto-upgrade;
-  common = import ../../../lib/common {};
+  common = import ../../../lib/common { };
   homeDir = common.user.homeDir { isDarwin = true; };
 
   # darwin-rebuild via the persistent system profile: /run/current-system is
   # volatile on macOS. Must match the sudoers rule below.
   darwinRebuild = "/nix/var/nix/profiles/system/sw/bin/darwin-rebuild";
 
-  # Pull + rebuild only. Flake input updates happen in CI (which validates the
-  # lock before pushing); this machine just follows origin/main. Operating on
-  # the same checkout nh uses means "what's running" is "what you edit".
+  # Refresh flake inputs and the pinned pi package, then validate, activate the
+  # system/Home Manager configuration, and commit dependency changes. Operating
+  # on the same checkout nh uses means "what's running" is "what you edit".
   upgradeScript = pkgs.writeShellScript "darwin-auto-upgrade" ''
     set -euo pipefail
-    export PATH="${pkgs.git}/bin:/nix/var/nix/profiles/system/sw/bin:/nix/var/nix/profiles/default/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    export PATH="${
+      lib.makeBinPath [
+        pkgs.git
+        pkgs.nodejs
+        pkgs.gnutar
+      ]
+    }:${homeDir}/.nix-profile/bin:/etc/profiles/per-user/${common.user.name}/bin:/nix/var/nix/profiles/system/sw/bin:/nix/var/nix/profiles/default/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    export GIT_TERMINAL_PROMPT=0
 
     REPO_PATH=${lib.escapeShellArg cfg.repoPath}
 
@@ -44,21 +52,13 @@
       exit 1
     fi
 
-    git fetch origin main
-
-    if [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ]; then
-      echo "auto-upgrade: already up to date"
-      exit 0
-    fi
-
-    git merge --ff-only origin/main
-
-    echo "auto-upgrade: activating $(git rev-parse --short HEAD)..."
-    /usr/bin/sudo -n ${darwinRebuild} switch --flake "$REPO_PATH#macos"
+    echo "auto-upgrade: refreshing flake inputs, pi, and Home Manager..."
+    "$REPO_PATH/scripts/update-home.sh"
   '';
-in {
+in
+{
   options.tomkoreny.darwin.auto-upgrade = {
-    enable = lib.mkEnableOption "periodic pull + rebuild from git";
+    enable = lib.mkEnableOption "periodic dependency refresh and system/Home Manager rebuild";
 
     repoPath = lib.mkOption {
       type = lib.types.str;

@@ -41,6 +41,7 @@
     # comes from the binary cache, and gets the Darwin fixes we didn't have.
     pkgs.pi-coding-agent
     pkgs.git-crypt
+    pkgs.gh
     pkgs.htop
     pkgs.nssTools
     pkgs.lazyssh
@@ -57,9 +58,12 @@
     pkgs.cloudflared
     pkgs.argocd
   ]
+  ++ lib.optionals pkgs.stdenv.isDarwin [
+    # Clipboard image provider used by img-clip.nvim/PiPasteImage.
+    pkgs.pngpaste
+  ]
   ++ lib.optionals (!pkgs.stdenv.isDarwin) [
     pkgs.kicad
-    pkgs.mailspring
     pkgs.zed-editor
   ];
 }

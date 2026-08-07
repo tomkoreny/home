@@ -1,4 +1,4 @@
-{ inputs, ... }: {
+{ inputs, pkgs, ... }: {
   imports = [
     inputs.nvf.homeManagerModules.default
   ];
@@ -259,6 +259,42 @@
             enable = false;
             cmp.enable = false;
           };
+        };
+
+        extraPlugins = {
+          pi2-nvim = {
+            package = pkgs.vimUtils.buildVimPlugin {
+              pname = "pi2.nvim";
+              version = "unstable-${inputs.pi2-nvim.shortRev or "unknown"}";
+              src = inputs.pi2-nvim;
+            };
+            setup = ''
+              require("pi").setup()
+
+              vim.keymap.set({ "n", "v" }, "<Leader>pp", function() vim.cmd("Pi layout=side") end, { desc = "Pi side" })
+              vim.keymap.set({ "n", "v" }, "<Leader>pf", function() vim.cmd("Pi layout=float") end, { desc = "Pi float" })
+              vim.keymap.set({ "n", "v" }, "<Leader>pl", "<Cmd>PiToggleLayout<CR>", { desc = "Pi toggle layout" })
+              vim.keymap.set({ "n", "v" }, "<Leader>pc", "<Cmd>PiContinue<CR>", { desc = "Pi continue last session" })
+              vim.keymap.set({ "n", "v" }, "<Leader>pr", "<Cmd>PiResume<CR>", { desc = "Pi resume past session" })
+              vim.keymap.set({ "n", "v" }, "<Leader>pm", "<Cmd>PiSendMention<CR>", { desc = "Pi mention file/selection" })
+              vim.keymap.set({ "n", "v" }, "<Leader>pa", "<Cmd>PiAttention<CR>", { desc = "Pi open next attention request" })
+              vim.keymap.set({ "n", "v" }, "<Leader>pi", "<Cmd>PiPasteImage<CR>", { desc = "Pi paste clipboard image" })
+
+              -- Terminal paste shortcuts only send text, so an image-only clipboard
+              -- never reaches Neovim's paste handler. Query it explicitly in π prompts.
+              vim.api.nvim_create_autocmd("FileType", {
+                pattern = "pi-chat-prompt",
+                callback = function(event)
+                  vim.keymap.set({ "n", "i" }, "<C-v>", "<Cmd>PiPasteImage<CR>", {
+                    buffer = event.buf,
+                    desc = "Pi paste clipboard image",
+                  })
+                end,
+              })
+            '';
+          };
+          img-clip-nvim.package = pkgs.vimPlugins.img-clip-nvim;
+          render-markdown-nvim.package = pkgs.vimPlugins.render-markdown-nvim;
         };
 
         session = {

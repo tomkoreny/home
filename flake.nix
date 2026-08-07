@@ -17,6 +17,10 @@
       url = "github:notashelf/nvf";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    pi2-nvim = {
+      url = "github:zgs225/pi2.nvim";
+      flake = false;
+    };
     lanzaboote = {
       url = "github:nix-community/lanzaboote/v1.0.0";
 
@@ -105,6 +109,11 @@
         inputs.mac-app-util.homeManagerModules.default
         inputs.stylix.homeModules.stylix
         inputs.sops-nix.homeManagerModules.sops
+        ({ lib, ... }: {
+          # Reapplying Stylix's package overlays inside Home Manager is
+          # incompatible with useGlobalPkgs and causes standalone HM recursion.
+          stylix.overlays.enable = lib.mkForce false;
+        })
       ]
       ++ homeModules;
 
@@ -146,9 +155,15 @@
 
       mkHome =
         { system, module }:
-        home-manager.lib.homeManagerConfiguration {
+        let
           pkgs = mkPkgs system;
-          extraSpecialArgs = mkSpecialArgs system;
+        in
+        home-manager.lib.homeManagerConfiguration {
+          inherit pkgs;
+          # Stylix constructs overlay modules while the module graph is being
+          # evaluated, so standalone profiles need pkgs as a special argument
+          # rather than via Home Manager's recursive nixpkgs module.
+          extraSpecialArgs = (mkSpecialArgs system) // { inherit pkgs; };
           modules = sharedHomeModules ++ [ module ];
         };
 

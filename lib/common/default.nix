@@ -53,13 +53,19 @@ rec {
   stylix = {
     # Shared wallpaper (relative to this file)
     wallpaper = ./wallpaper.png;
+    # Single source of truth for theme colors; see docs/theming.md.
+    background = "#000000";
+    accent = "#219fff";
 
     # Core theme settings (shared across all platforms)
     base = pkgs: {
       enable = true;
       polarity = "dark";
       base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
-      override.base00 = "#000000"; # OLEDpuccin - true black
+      override = {
+        base00 = stylix.background; # OLEDpuccin - true black
+        base0D = stylix.accent; # Unified blue/accent color
+      };
       opacity = {
         applications = 1.0;
         terminal = 1.0;
@@ -80,7 +86,7 @@ rec {
       };
       serif = {
         package = inputs.apple-fonts.packages.${pkgs.stdenv.hostPlatform.system}.ny-nerd;
-        name = "NYDisplay Nerd Font";
+        name = "NewYork Nerd Font";
       };
     };
 

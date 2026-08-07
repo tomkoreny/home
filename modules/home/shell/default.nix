@@ -21,6 +21,9 @@
     dev = "npm run dev";
     start = "npm run start";
   };
+  xdg.configFile."nix/nix.conf".text = ''
+    !include ${config.home.homeDirectory}/.config/nix/access-tokens.conf
+  '';
   home.packages = [
     (pkgs.writeShellScriptBin "sw" ''
       set -euo pipefail
@@ -38,6 +41,29 @@
             --flake /home/tom/nixos2#nixos "$@"
           ;;
       esac
+    '')
+    (pkgs.writeShellScriptBin "nix-github-token-refresh" ''
+      set -euo pipefail
+
+      token_file="$HOME/.config/nix/access-tokens.conf"
+      token=""
+
+      if [ -n "''${GITHUB_TOKEN:-}" ]; then
+        token="$GITHUB_TOKEN"
+      elif [ -n "''${GH_TOKEN:-}" ]; then
+        token="$GH_TOKEN"
+      elif command -v gh >/dev/null 2>&1; then
+        token="$(gh auth token 2>/dev/null || true)"
+      fi
+
+      if [ -z "$token" ]; then
+        echo "error: set GITHUB_TOKEN/GH_TOKEN or run: gh auth login" >&2
+        exit 1
+      fi
+
+      mkdir -p "$(dirname "$token_file")"
+      (umask 077 && printf 'access-tokens = github.com=%s\n' "$token" > "$token_file")
+      echo "wrote $token_file"
     '')
   ];
   programs.bash.enable = true;
@@ -69,6 +95,7 @@
       SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" \
         ${pkgs.sops}/bin/sops "$secret_file"
     }
+
   '';
   programs.starship.enable = true;
 }

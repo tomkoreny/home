@@ -38,6 +38,15 @@
         User = "tom";
       };
 
+      # Attach directly to the persistent NixOS tmux session over Tailscale.
+      # This relies on Tailscale MagicDNS resolving the machine hostname.
+      "nixos-session" = {
+        HostName = "nixos";
+        User = "tom";
+        RequestTTY = "force";
+        RemoteCommand = "mux main";
+      };
+
       "lempls" = {
         HostName = "lempls.com";
         User = "puma";

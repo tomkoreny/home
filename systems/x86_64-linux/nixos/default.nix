@@ -33,6 +33,9 @@ in
     # FortiVPN tunnel + its sops secret
     openfortivpn.enable = true;
 
+    # Local I2P proxies and a stable, sops-backed Yggdrasil identity.
+    privacy-networks.enable = true;
+
     # OpenClaw node - connects to gateway via Traefik
     # Same as Mac: clawdbot.home.tomkoreny.com:443 with TLS (defaults)
     clawdbot-node = {
@@ -347,6 +350,14 @@ in
 
   home-manager.useUserPackages = true;
   home-manager.useGlobalPkgs = true;
+  home-manager.sharedModules = [
+    {
+      # Home Manager inherits the system package set, which already includes
+      # Stylix's overlays. Reapplying them in the user profile is redundant and
+      # is incompatible with useGlobalPkgs.
+      stylix.overlays.enable = false;
+    }
+  ];
   # Rename clobbered unmanaged files instead of failing activation (matches
   # darwin; ported from a hotfix found in the old /etc/nixos/home clone).
   home-manager.backupFileExtension = "hm-bak";

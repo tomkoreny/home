@@ -16,6 +16,8 @@
   # never the second monitor.
   tomkoreny.mako.output = "DP-4";
 
+  home.username = "tom";
+  home.homeDirectory = "/home/tom";
   home.packages = [
     pkgs.sshpass
     pkgs.atool
@@ -49,6 +51,4 @@
   programs = {
     wofi.enable = true; # required for the default Hyprland config
   };
-  programs.tmux.enable = true;
-  programs.tmux.sensibleOnTop = true;
 }

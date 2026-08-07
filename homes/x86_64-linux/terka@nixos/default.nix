@@ -9,6 +9,9 @@
   ...
 }:
 {
+  home.username = "terka";
+  home.homeDirectory = "/home/terka";
+
   # Her monitor hangs off the iGPU, whose connectors are DP-1/HDMI-A-1.
   # Listing both means the bar shows up regardless of which port is used.
   tomkoreny.waybar.outputs = [

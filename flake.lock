@@ -1221,6 +1221,22 @@
         "url": "https://devimages-cdn.apple.com/design/resources/download/NY.dmg"
       }
     },
+    "pi2-nvim": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1786090819,
+        "narHash": "sha256-1pxMniCbnSUVkZTjBDdXvyHSJ4iWd0As8Js1ksC8bR4=",
+        "owner": "zgs225",
+        "repo": "pi2.nvim",
+        "rev": "8611abe87d141d69d08e9913d9fb17a4bd814999",
+        "type": "github"
+      },
+      "original": {
+        "owner": "zgs225",
+        "repo": "pi2.nvim",
+        "type": "github"
+      }
+    },
     "pre-commit": {
       "inputs": {
         "flake-compat": "flake-compat_2",
@@ -1299,6 +1315,7 @@
         "nix-homebrew": "nix-homebrew",
         "nixpkgs": "nixpkgs_7",
         "nvf": "nvf",
+        "pi2-nvim": "pi2-nvim",
         "puma-rails": "puma-rails",
         "sops-nix": "sops-nix",
         "stylix": "stylix",

@@ -10,6 +10,8 @@ in
   # NOTE: all modules under modules/home/ are auto-imported by Snowfall Lib —
   # no explicit imports needed here, just per-host settings.
 
+  home.username = "tom";
+  home.homeDirectory = "/Users/tom";
   home.packages = [
     pkgs.raycast
   ];

@@ -31,6 +31,8 @@ in
   tomkoreny.darwin.auto-upgrade.enable = true;
   # FortiVPN tunnel + its sops secret
   tomkoreny.darwin.vpn.enable = true;
+  # Local I2P proxies and a stable, sops-backed Yggdrasil identity.
+  tomkoreny.darwin.privacy-networks.enable = true;
   # Avoid collisions with pre-existing manual backups like ~/.ssh/config.bak.
   home-manager.backupFileExtension = "hm-bak";
 
@@ -159,6 +161,7 @@ in
   users.users.${name} = {
     uid = 501;
     description = fullName;
+    home = homeDir;
     shell = pkgs.bashInteractive;
   };
   services.tailscale.enable = true;
@@ -247,8 +250,8 @@ in
       "raspberry-pi-imager"
       "prusaslicer"
     ];
-    # Keep brews for services (postgresql/redis/puma-dev), version managers
-    # (rbenv/nodenv) and mac-specific bits; plain CLI tools live in
+    # Keep brews for services (redis/puma-dev), version managers
+    # (rbenv/nodenv), and mac-specific bits; plain CLI tools live in
     # modules/home/packages/default.nix as nix packages instead.
     brews = [
       # Ruby / Rails
@@ -264,7 +267,6 @@ in
       "caddy"
 
       # Databases
-      "postgresql"
       "redis"
 
       # Libraries

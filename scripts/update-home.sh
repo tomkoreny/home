@@ -24,6 +24,25 @@ switch_config=true
 push_changes=true
 update_flake=true
 
+nix_flake_update() {
+  local token=""
+
+  if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+    token="$GITHUB_TOKEN"
+  elif [[ -n "${GH_TOKEN:-}" ]]; then
+    token="$GH_TOKEN"
+  elif command -v gh >/dev/null 2>&1; then
+    token="$(gh auth token 2>/dev/null || true)"
+  fi
+
+  if [[ -n "$token" ]]; then
+    nix --option access-tokens "github.com=$token" flake update
+  else
+    echo "warning: no GitHub token found; set GITHUB_TOKEN/GH_TOKEN or run 'gh auth login' to avoid GitHub API rate limits" >&2
+    nix flake update
+  fi
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --no-switch)
@@ -35,7 +54,7 @@ while [[ $# -gt 0 ]]; do
     --skip-flake)
       update_flake=false
       ;;
-    -h|--help)
+    -h | --help)
       usage
       exit 0
       ;;
@@ -56,14 +75,22 @@ if ! git diff --quiet || ! git diff --cached --quiet || [[ -n "$(git ls-files --
   exit 1
 fi
 
+starting_revision="$(git rev-parse HEAD)"
+dependency_files=(flake.lock)
+
 git pull --rebase origin main
 
 if [[ "$update_flake" == true ]]; then
-  nix flake update
+  nix_flake_update
 fi
 
-if git diff --quiet -- flake.lock; then
-  echo "No dependency changes."
+dependencies_changed=false
+if ! git diff --quiet -- "${dependency_files[@]}"; then
+  dependencies_changed=true
+fi
+
+if [[ "$(git rev-parse HEAD)" == "$starting_revision" && "$dependencies_changed" == false ]]; then
+  echo "No repository or dependency changes."
   exit 0
 fi
 
@@ -84,9 +111,11 @@ if [[ "$switch_config" == true ]]; then
   esac
 fi
 
-git add flake.lock
-git commit -m "chore: update dependencies"
+if [[ "$dependencies_changed" == true ]]; then
+  git add -- "${dependency_files[@]}"
+  git commit -m "chore: update dependencies"
 
-if [[ "$push_changes" == true ]]; then
-  git push origin main
+  if [[ "$push_changes" == true ]]; then
+    git push origin main
+  fi
 fi

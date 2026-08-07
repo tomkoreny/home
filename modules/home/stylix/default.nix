@@ -11,17 +11,29 @@ let
   sharedFonts = common.stylix.fonts pkgs inputs;
 in
 {
-  # NixOS imports Stylix's Home Manager options through the system module.
-  config = lib.mkIf (pkgs.stdenv.isLinux && options ? stylix) {
-    stylix = stylixBase // {
-      image = common.stylix.wallpaper;
-      cursor = common.stylix.cursor pkgs;
-
-      fonts = sharedFonts // {
-        sizes = common.stylix.fontSizes;
+  # Apply the shared theme to Home Manager programs on both platforms. The
+  # system-level Stylix integrations deliberately disable their automatic Home
+  # Manager import, so this remains the single user-level configuration.
+  config = lib.mkIf (options ? stylix) {
+    stylix =
+      stylixBase
+      // {
+        image = common.stylix.wallpaper;
+        fonts = sharedFonts // {
+          sizes = common.stylix.fontSizes;
+        };
+      }
+      // lib.optionalAttrs pkgs.stdenv.isLinux {
+        cursor = common.stylix.cursor pkgs;
+        targets.waybar.font = "sansSerif";
       };
 
-      targets.waybar.font = "sansSerif";
+    # The package is installed separately by modules/home/packages. Enabling the
+    # Home Manager module lets Stylix generate Ghostty's font and color config.
+    programs.ghostty = {
+      enable = true;
+      package = null;
+      systemd.enable = false;
     };
   };
 }
