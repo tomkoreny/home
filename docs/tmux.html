@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux Manual — Tom’s Setup</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <style>
+    :root {
+      color-scheme: dark;
+      --base: #1e1e2e;
+      --mantle: #181825;
+      --crust: #11111b;
+      --surface0: #313244;
+      --surface1: #45475a;
+      --surface2: #585b70;
+      --overlay0: #6c7086;
+      --subtext0: #a6adc8;
+      --text: #cdd6f4;
+      --blue: #89b4fa;
+      --lavender: #b4befe;
+      --sapphire: #74c7ec;
+      --teal: #94e2d5;
+      --green: #a6e3a1;
+      --yellow: #f9e2af;
+      --peach: #fab387;
+      --red: #f38ba8;
+      --mauve: #cba6f7;
+      --pink: #f5c2e7;
+      --rail: 286px;
+      --content: 1060px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 32px; }
+    body {
+      margin: 0;
+      padding: 0 0 7rem;
+      max-width: none;
+      overflow-x: hidden;
+      color: var(--text);
+      background:
+        radial-gradient(900px 600px at 85% -10%, rgba(203,166,247,.10), transparent 70%),
+        radial-gradient(800px 600px at 20% 25%, rgba(137,180,250,.055), transparent 70%),
+        var(--base);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .22;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.95' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.08'/%3E%3C/svg%3E");
+      z-index: -1;
+    }
+
+    body > :not(#TOC):not(#reading-progress):not(#back-top) {
+      width: min(var(--content), calc(100vw - var(--rail) - 64px));
+      margin-left: calc(var(--rail) + max(32px, (100vw - var(--rail) - var(--content)) / 2));
+      margin-right: auto;
+    }
+
+    #reading-progress {
+      position: fixed;
+      inset: 0 auto auto 0;
+      width: 0;
+      height: 3px;
+      z-index: 30;
+      background: linear-gradient(90deg, var(--blue), var(--mauve), var(--pink));
+      box-shadow: 0 0 14px rgba(203,166,247,.75);
+    }
+
+    #TOC {
+      position: fixed;
+      inset: 0 auto 0 0;
+      z-index: 20;
+      width: var(--rail);
+      overflow-y: auto;
+      padding: 2.2rem 1.35rem 2rem;
+      color: var(--subtext0);
+      background: linear-gradient(180deg, rgba(17,17,27,.98), rgba(24,24,37,.96));
+      border-right: 1px solid var(--surface0);
+      box-shadow: 18px 0 50px rgba(0,0,0,.16);
+      scrollbar-width: thin;
+      scrollbar-color: var(--surface1) transparent;
+    }
+
+    #TOC::before {
+      content: "❯_  TMUX";
+      display: block;
+      margin: 0 .5rem .2rem;
+      color: var(--green);
+      font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: .08em;
+    }
+
+    #TOC::after {
+      content: "SECOND-SCREEN REFERENCE";
+      display: block;
+      position: absolute;
+      top: 4rem;
+      left: 1.85rem;
+      color: var(--overlay0);
+      font-size: .64rem;
+      font-weight: 750;
+      letter-spacing: .15em;
+    }
+
+    #TOC ul { margin: 0; padding: 0; list-style: none; }
+    #TOC > ul { margin-top: 4.1rem; }
+    #TOC > ul > li > a { display: none; }
+    #TOC > ul > li > ul { margin: 0; }
+    #TOC li { margin: .18rem 0; }
+    #TOC a {
+      display: block;
+      padding: .55rem .72rem;
+      border-left: 2px solid transparent;
+      border-radius: 0 8px 8px 0;
+      color: var(--subtext0);
+      font-size: .84rem;
+      font-weight: 550;
+      line-height: 1.3;
+      text-decoration: none;
+      transition: color .15s ease, background .15s ease, border-color .15s ease, transform .15s ease;
+    }
+    #TOC a:hover {
+      color: var(--text);
+      background: rgba(137,180,250,.08);
+      transform: translateX(2px);
+    }
+    #TOC a.active {
+      color: var(--blue);
+      border-left-color: var(--blue);
+      background: linear-gradient(90deg, rgba(137,180,250,.12), transparent);
+    }
+
+    h1 {
+      margin-top: 0;
+      padding-top: clamp(4.5rem, 8vw, 7.5rem);
+      margin-bottom: .25rem;
+      border: 0;
+      font-size: clamp(3rem, 6vw, 5.8rem);
+      font-weight: 900;
+      line-height: .95;
+      letter-spacing: -.065em;
+      background: linear-gradient(110deg, var(--blue) 4%, var(--lavender) 44%, var(--mauve) 72%, var(--pink));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-wrap: balance;
+    }
+    h1 + p {
+      margin-top: 1rem !important;
+      margin-bottom: 1.8rem;
+      color: var(--subtext0);
+      font-size: 1.08rem;
+    }
+
+    h2 {
+      position: relative;
+      margin-top: 4.5rem;
+      margin-bottom: 1.25rem;
+      padding: 0 0 .7rem;
+      border-bottom: 1px solid var(--surface0);
+      color: var(--text);
+      font-size: clamp(1.45rem, 3vw, 2rem);
+      font-weight: 800;
+      letter-spacing: -.025em;
+    }
+    h2::after {
+      content: "";
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 70px;
+      height: 2px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, var(--blue), var(--mauve));
+    }
+    h3 {
+      margin-top: 2.6rem;
+      margin-bottom: .8rem;
+      color: var(--lavender);
+      font-size: 1.15rem;
+      font-weight: 750;
+    }
+    h2:hover .anchor, h3:hover .anchor { opacity: 1; }
+    h2 .anchor, h3 .anchor { color: var(--surface2); text-decoration: none; opacity: 0; }
+
+    p, li { color: var(--subtext0); }
+    strong { color: var(--text); }
+    a { color: var(--blue); }
+
+    #quick-strip {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(115px, 1fr));
+      gap: .7rem;
+      margin-top: 0;
+      margin-bottom: 1.5rem;
+    }
+    .quick-card {
+      min-width: 0;
+      padding: .85rem .85rem .78rem;
+      border: 1px solid var(--surface0);
+      border-radius: 12px;
+      background: linear-gradient(145deg, rgba(49,50,68,.72), rgba(24,24,37,.72));
+      box-shadow: 0 10px 26px rgba(0,0,0,.13);
+    }
+    .quick-card small {
+      display: block;
+      margin-bottom: .45rem;
+      color: var(--overlay0);
+      font-size: .65rem;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    blockquote {
+      position: relative;
+      margin-top: 1.4rem !important;
+      margin-bottom: 2.5rem;
+      padding: 1.15rem 1.25rem 1.15rem 3.4rem;
+      border: 1px solid rgba(250,179,135,.23);
+      border-left: 3px solid var(--peach);
+      border-radius: 12px;
+      color: var(--subtext0);
+      background: linear-gradient(90deg, rgba(250,179,135,.09), rgba(24,24,37,.45));
+      box-shadow: 0 12px 35px rgba(0,0,0,.10);
+    }
+    blockquote::before {
+      content: "!";
+      position: absolute;
+      top: 1.1rem;
+      left: 1.15rem;
+      display: grid;
+      width: 1.45rem;
+      height: 1.45rem;
+      place-items: center;
+      border-radius: 50%;
+      color: var(--crust);
+      background: var(--peach);
+      font-size: .9rem;
+      font-weight: 900;
+    }
+    blockquote p { margin: 0; color: var(--subtext0); }
+    blockquote .callout-label {
+      display: block;
+      margin-bottom: .25rem;
+      color: var(--peach);
+      font-size: .7rem;
+      font-weight: 850;
+      letter-spacing: .11em;
+    }
+
+    code, kbd {
+      font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+      font-size: .84em;
+    }
+    :not(pre) > code {
+      padding: .16em .42em;
+      border: 1px solid var(--surface0);
+      border-radius: 6px;
+      color: var(--peach);
+      background: var(--mantle);
+      white-space: nowrap;
+    }
+    :not(pre) > code.keycap {
+      display: inline-block;
+      padding: .28em .52em .34em;
+      border: 1px solid var(--surface2);
+      border-bottom-width: 3px;
+      border-radius: 7px;
+      color: var(--text);
+      background: linear-gradient(180deg, var(--surface1), var(--surface0));
+      box-shadow: 0 2px 0 var(--crust), inset 0 1px rgba(255,255,255,.05);
+      font-weight: 700;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    pre {
+      position: relative;
+      margin: 1.3rem 0 1.7rem;
+      padding: 1.25rem 1.35rem;
+      overflow: auto;
+      border: 1px solid var(--surface0);
+      border-radius: 13px;
+      color: var(--text);
+      background: linear-gradient(145deg, var(--crust), #151521);
+      box-shadow: 0 16px 40px rgba(0,0,0,.16);
+      scrollbar-width: thin;
+      scrollbar-color: var(--surface1) transparent;
+    }
+    pre::before {
+      content: "";
+      display: block;
+      width: 42px;
+      height: 8px;
+      margin-bottom: 1rem;
+      background:
+        radial-gradient(circle at 4px 4px, var(--red) 0 4px, transparent 4.5px),
+        radial-gradient(circle at 21px 4px, var(--yellow) 0 4px, transparent 4.5px),
+        radial-gradient(circle at 38px 4px, var(--green) 0 4px, transparent 4.5px);
+    }
+    pre code { color: var(--text); background: none; }
+
+    table {
+      width: 100%;
+      margin: 1rem 0 1.7rem;
+      border-spacing: 0;
+      border-collapse: separate;
+      overflow: hidden;
+      border: 1px solid var(--surface0);
+      border-radius: 13px;
+      background: rgba(24,24,37,.78);
+      box-shadow: 0 12px 32px rgba(0,0,0,.11);
+    }
+    th, td {
+      padding: .72rem 1rem;
+      border: 0;
+      border-bottom: 1px solid rgba(49,50,68,.8);
+      text-align: left;
+      vertical-align: middle;
+    }
+    th {
+      color: var(--lavender);
+      background: var(--crust);
+      font-size: .74rem;
+      font-weight: 850;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    td { color: var(--subtext0); font-size: .91rem; }
+    td:first-child { width: 31%; color: var(--text); }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr { transition: background .12s ease; }
+    tbody tr:hover { background: rgba(137,180,250,.055); }
+
+    ul, ol { padding-left: 1.35rem; }
+    li { margin: .35rem 0; padding-left: .22rem; }
+    li::marker { color: var(--mauve); font-weight: 800; }
+
+    hr { border: 0; border-top: 1px solid var(--surface0); }
+
+    #back-top {
+      position: fixed;
+      right: 1.4rem;
+      bottom: 1.4rem;
+      z-index: 15;
+      width: 42px;
+      height: 42px;
+      border: 1px solid var(--surface1);
+      border-radius: 11px;
+      color: var(--text);
+      background: rgba(49,50,68,.88);
+      box-shadow: 0 12px 30px rgba(0,0,0,.25);
+      cursor: pointer;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity .2s ease, transform .2s ease, border-color .2s ease;
+      backdrop-filter: blur(8px);
+    }
+    #back-top.visible { opacity: 1; transform: translateY(0); }
+    #back-top:hover { border-color: var(--blue); }
+
+    ::selection { color: var(--crust); background: var(--mauve); }
+
+    @media (max-width: 1050px) {
+      :root { --rail: 248px; }
+      #quick-strip { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (max-width: 780px) {
+      :root { --rail: 0px; }
+      body { padding: 0 1rem 5rem; }
+      body > :not(#TOC):not(#reading-progress):not(#back-top) {
+        width: min(100%, 680px);
+        margin-left: auto;
+        margin-right: auto;
+      }
+      #TOC {
+        position: relative;
+        width: calc(100% + 2rem);
+        height: auto;
+        margin: 0 -1rem !important;
+        padding: 1rem 1.2rem;
+        border-right: 0;
+        border-bottom: 1px solid var(--surface0);
+      }
+      #TOC::after, #TOC > ul { display: none; }
+      #TOC::before { margin: 0; }
+      h1 { padding-top: 3.5rem; }
+      #quick-strip { grid-template-columns: repeat(2, 1fr); }
+      table { display: block; overflow-x: auto; }
+    }
+
+    @media (max-width: 480px) {
+      #quick-strip { grid-template-columns: 1fr 1fr; }
+      .quick-card:last-child { grid-column: 1 / -1; }
+      th, td { padding: .65rem .75rem; }
+    }
+
+    @media print {
+      :root { color-scheme: light; }
+      body { padding: 0; color: #222; background: white; font-size: 10pt; }
+      body::before, #TOC, #reading-progress, #back-top, #quick-strip { display: none !important; }
+      body > :not(#TOC):not(#reading-progress):not(#back-top) { width: 100%; margin: 0; }
+      h1 { padding-top: 0; color: #111; background: none; font-size: 34pt; }
+      h2 { margin-top: 2rem; color: #111; break-after: avoid; }
+      h3 { color: #333; break-after: avoid; }
+      p, li, td { color: #333; }
+      table, pre, blockquote { break-inside: avoid; box-shadow: none; }
+      table { border-color: #bbb; background: white; }
+      th { color: #111; background: #eee; }
+      td { border-color: #ddd; }
+      :not(pre) > code, :not(pre) > code.keycap { color: #111; background: #eee; border-color: #aaa; box-shadow: none; }
+      pre { color: #111; background: #f5f5f5; border-color: #bbb; }
+      pre code { color: #111; }
+    }
+  </style>
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#tmux-manual" id="toc-tmux-manual">tmux manual</a>
+<ul>
+<li><a href="#quick-start" id="toc-quick-start">Quick start</a></li>
+<li><a href="#mental-model" id="toc-mental-model">Mental model</a></li>
+<li><a href="#everyday-workflow" id="toc-everyday-workflow">Everyday
+workflow</a></li>
+<li><a href="#essential-keybindings"
+id="toc-essential-keybindings">Essential keybindings</a></li>
+<li><a href="#scrolling-selection-and-clipboard"
+id="toc-scrolling-selection-and-clipboard">Scrolling, selection, and
+clipboard</a></li>
+<li><a href="#mouse-controls" id="toc-mouse-controls">Mouse
+controls</a></li>
+<li><a href="#saving-and-restoring-sessions"
+id="toc-saving-and-restoring-sessions">Saving and restoring
+sessions</a></li>
+<li><a href="#shell-command-cheat-sheet"
+id="toc-shell-command-cheat-sheet">Shell command cheat sheet</a></li>
+<li><a href="#deployed-behavior-and-appearance"
+id="toc-deployed-behavior-and-appearance">Deployed behavior and
+appearance</a></li>
+<li><a href="#configuration-maintenance"
+id="toc-configuration-maintenance">Configuration maintenance</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="tmux-manual">tmux manual</h1>
+<p>This documents the declaratively managed tmux setup for
+<code>tom</code> on NixOS (tmux 3.7b).</p>
+<h2 id="quick-start">Quick start</h2>
+<p>Opening Ghostty runs <code>mux</code>, which creates or attaches to a
+tmux session named <code>main</code>.</p>
+<pre class="console"><code>mux                 # create or attach to the main session
+mux work            # create or attach to a session named work
+mux list            # list sessions; &quot;mux ls&quot; is equivalent
+tmux attach -t work # attach using tmux directly</code></pre>
+<p>Inside tmux, press <strong>Ctrl-b</strong>, release it, and then
+press the command key. This manual writes that sequence as
+<code>C-b key</code>. For example, <code>C-b c</code> means:</p>
+<ol type="1">
+<li>Hold Ctrl and press b.</li>
+<li>Release both keys.</li>
+<li>Press c.</li>
+</ol>
+<p>The prefix remains tmux's standard <code>C-b</code>. <code>M-</code>
+means Alt/Meta, so <code>C-b M-Left</code> means prefix followed by
+Alt-Left.</p>
+<h2 id="mental-model">Mental model</h2>
+<ul>
+<li>A <strong>server</strong> owns all tmux state and processes.</li>
+<li>A <strong>session</strong> is a workspace, such as <code>main</code>
+or <code>work</code>.</li>
+<li>A <strong>window</strong> is like a terminal tab inside a
+session.</li>
+<li>A <strong>pane</strong> is one terminal region inside a window.</li>
+<li>A <strong>client</strong> is a visible terminal attached to a
+session.</li>
+</ul>
+<p>Detaching a client does not stop its session, shells, or programs.
+This is tmux's main benefit: leave work running and return later.</p>
+<h2 id="everyday-workflow">Everyday workflow</h2>
+<ol type="1">
+<li>Open Ghostty; it attaches to <code>main</code> automatically.</li>
+<li>Create a window with <code>C-b c</code>.</li>
+<li>Split it with <code>C-b %</code> (left/right) or <code>C-b "</code>
+(top/bottom).</li>
+<li>Move between panes with <code>C-b</code> plus an arrow key.</li>
+<li>Detach with <code>C-b d</code>.</li>
+<li>Return by opening Ghostty or running <code>mux</code>.</li>
+</ol>
+<p>For a separate workspace, run <code>mux project-name</code>. If this
+is run from inside tmux, <code>mux</code> creates the session if needed
+and switches the current client to it.</p>
+<p>Session names accepted by <code>mux</code> may contain letters,
+numbers, dots, dashes, and underscores.</p>
+<h2 id="essential-keybindings">Essential keybindings</h2>
+<h3 id="help-and-tmux-itself">Help and tmux itself</h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>C-b ?</code></td>
+<td>Show all current prefix keybindings</td>
+</tr>
+<tr>
+<td><code>C-b /</code></td>
+<td>Prompt for a key and describe its binding</td>
+</tr>
+<tr>
+<td><code>C-b :</code></td>
+<td>Open the tmux command prompt</td>
+</tr>
+<tr>
+<td><code>C-b R</code></td>
+<td>Reload <code>~/.config/tmux/tmux.conf</code></td>
+</tr>
+<tr>
+<td><code>C-b C-b</code></td>
+<td>Send a literal <code>C-b</code> to the program in the pane</td>
+</tr>
+<tr>
+<td><code>C-b ~</code></td>
+<td>Show tmux messages</td>
+</tr>
+</tbody>
+</table>
+<p>Press <code>q</code> to leave most chooser/help screens.</p>
+<h3 id="sessions-and-clients">Sessions and clients</h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>C-b d</code></td>
+<td>Detach this client; work keeps running</td>
+</tr>
+<tr>
+<td><code>C-b s</code></td>
+<td>Choose a session interactively</td>
+</tr>
+<tr>
+<td><code>C-b $</code></td>
+<td>Rename the current session</td>
+</tr>
+<tr>
+<td><code>C-b (</code> / <code>C-b )</code></td>
+<td>Switch to the previous/next session</td>
+</tr>
+<tr>
+<td><code>C-b L</code></td>
+<td>Return to the last session</td>
+</tr>
+<tr>
+<td><code>C-b D</code></td>
+<td>Choose a client to detach</td>
+</tr>
+</tbody>
+</table>
+<h3 id="windows">Windows</h3>
+<p>Windows and panes start at index <strong>1</strong>. Window numbers
+are automatically compacted after a window closes.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>C-b c</code></td>
+<td>Create a window</td>
+</tr>
+<tr>
+<td><code>C-b 1</code> … <code>C-b 9</code></td>
+<td>Select a numbered window</td>
+</tr>
+<tr>
+<td><code>C-b n</code> / <code>C-b p</code></td>
+<td>Next/previous window</td>
+</tr>
+<tr>
+<td><code>C-b C-n</code> / <code>C-b C-p</code></td>
+<td>Next/previous window; added by tmux-sensible</td>
+</tr>
+<tr>
+<td><code>C-b l</code> or <code>C-b b</code></td>
+<td>Return to the last window</td>
+</tr>
+<tr>
+<td><code>C-b w</code></td>
+<td>Choose a window from a tree</td>
+</tr>
+<tr>
+<td><code>C-b ,</code></td>
+<td>Rename the current window</td>
+</tr>
+<tr>
+<td><code>C-b &amp;</code></td>
+<td>Kill the current window after confirmation</td>
+</tr>
+<tr>
+<td><code>C-b .</code></td>
+<td>Move the current window to another index</td>
+</tr>
+<tr>
+<td><code>C-b Space</code></td>
+<td>Cycle through pane layouts</td>
+</tr>
+<tr>
+<td><code>C-b E</code></td>
+<td>Spread panes evenly</td>
+</tr>
+</tbody>
+</table>
+<p>Closing the shell in the last pane also closes its window. Killing a
+window terminates every process in all of its panes.</p>
+<h3 id="panes">Panes</h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>C-b %</code></td>
+<td>Split into left and right panes</td>
+</tr>
+<tr>
+<td><code>C-b "</code></td>
+<td>Split into top and bottom panes</td>
+</tr>
+<tr>
+<td><code>C-b Arrow</code></td>
+<td>Select the pane in that direction</td>
+</tr>
+<tr>
+<td><code>C-b o</code></td>
+<td>Select the next pane</td>
+</tr>
+<tr>
+<td><code>C-b ;</code></td>
+<td>Return to the previously active pane</td>
+</tr>
+<tr>
+<td><code>C-b q</code></td>
+<td>Display pane numbers; press a shown number to select it</td>
+</tr>
+<tr>
+<td><code>C-b z</code></td>
+<td>Zoom/unzoom the active pane</td>
+</tr>
+<tr>
+<td><code>C-b x</code></td>
+<td>Kill the active pane after confirmation</td>
+</tr>
+<tr>
+<td><code>C-b {</code> / <code>C-b }</code></td>
+<td>Swap the pane up/down</td>
+</tr>
+<tr>
+<td><code>C-b C-Arrow</code></td>
+<td>Resize by one cell; repeatable</td>
+</tr>
+<tr>
+<td><code>C-b M-Arrow</code></td>
+<td>Resize by five cells; repeatable</td>
+</tr>
+<tr>
+<td><code>C-b &gt;</code></td>
+<td>Open the pane menu</td>
+</tr>
+</tbody>
+</table>
+<h2 id="scrolling-selection-and-clipboard">Scrolling, selection, and
+clipboard</h2>
+<p>The history limit is <strong>100,000 lines per pane</strong>, and
+copy mode uses vi keys.</p>
+<h3 id="keyboard-workflow">Keyboard workflow</h3>
+<ol type="1">
+<li>Enter copy mode with <code>C-b [</code>.</li>
+<li>Navigate with vi keys.</li>
+<li>Press <code>Space</code> to begin a selection.</li>
+<li>Move to extend the selection.</li>
+<li>Press <code>Enter</code> to copy and leave copy mode.</li>
+<li>Paste the newest tmux buffer with <code>C-b ]</code>.</li>
+</ol>
+<p>Useful copy-mode keys:</p>
+<table>
+<thead>
+<tr>
+<th>Key in copy mode</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>h j k l</code></td>
+<td>Move left/down/up/right</td>
+</tr>
+<tr>
+<td><code>w</code>, <code>b</code>, <code>e</code></td>
+<td>Move by words</td>
+</tr>
+<tr>
+<td><code>0</code>, <code>$</code>, <code>^</code></td>
+<td>Start/end/first non-blank character of line</td>
+</tr>
+<tr>
+<td><code>g</code> / <code>G</code></td>
+<td>Top/bottom of history</td>
+</tr>
+<tr>
+<td><code>C-u</code> / <code>C-d</code></td>
+<td>Half-page up/down</td>
+</tr>
+<tr>
+<td><code>C-b</code> / <code>C-f</code></td>
+<td>Page up/down</td>
+</tr>
+<tr>
+<td><code>/text</code> / <code>?text</code></td>
+<td>Search forward/backward</td>
+</tr>
+<tr>
+<td><code>n</code> / <code>N</code></td>
+<td>Repeat/reverse the last search</td>
+</tr>
+<tr>
+<td><code>Space</code></td>
+<td>Begin selection</td>
+</tr>
+<tr>
+<td><code>V</code></td>
+<td>Select a complete line</td>
+</tr>
+<tr>
+<td><code>v</code></td>
+<td>Toggle rectangular selection</td>
+</tr>
+<tr>
+<td><code>o</code></td>
+<td>Move to the other end of the selection</td>
+</tr>
+<tr>
+<td><code>Enter</code></td>
+<td>Copy selection and exit</td>
+</tr>
+<tr>
+<td><code>q</code></td>
+<td>Exit without copying</td>
+</tr>
+</tbody>
+</table>
+<p><code>set-clipboard</code> is enabled. With Ghostty's OSC 52 support,
+text copied by tmux should also become the desktop clipboard contents.
+<code>C-b ]</code> always pastes from tmux's own buffer even if desktop
+clipboard integration is unavailable.</p>
+<p>Other buffer commands:</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>C-b #</code></td>
+<td>List paste buffers</td>
+</tr>
+<tr>
+<td><code>C-b =</code></td>
+<td>Choose a buffer</td>
+</tr>
+<tr>
+<td><code>C-b -</code></td>
+<td>Delete the newest buffer</td>
+</tr>
+</tbody>
+</table>
+<h2 id="mouse-controls">Mouse controls</h2>
+<p>Mouse mode is enabled.</p>
+<ul>
+<li>Click a pane to focus it.</li>
+<li>Drag a pane border to resize it.</li>
+<li>Use the wheel over a pane to enter/scroll copy mode.</li>
+<li>Drag over text to select it; releasing copies it.</li>
+<li>Double-click a word or triple-click a line to copy it.</li>
+<li>Middle-click a pane to paste the latest tmux buffer.</li>
+<li>Right-click a pane or status entry for tmux's context menu.</li>
+<li>Click a window in the status bar to select it.</li>
+<li>Scroll over the status bar to move through windows.</li>
+</ul>
+<p>A full-screen program such as Neovim may handle mouse events itself.
+Terminal-level selection can usually be forced with Shift while
+dragging, depending on Ghostty's bindings.</p>
+<h2 id="saving-and-restoring-sessions">Saving and restoring
+sessions</h2>
+<p>The deployed setup uses:</p>
+<ul>
+<li><strong>tmux-resurrect</strong> for snapshots;</li>
+<li><strong>tmux-continuum</strong> to save every <strong>10
+minutes</strong>;</li>
+<li>automatic restoration when a new tmux server starts.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>C-b C-s</code></td>
+<td>Save a snapshot now</td>
+</tr>
+<tr>
+<td><code>C-b C-r</code></td>
+<td>Restore the latest snapshot now</td>
+</tr>
+</tbody>
+</table>
+<p>Snapshots are stored under <code>~/.tmux/resurrect/</code>.</p>
+<p>A snapshot includes sessions, windows, panes, ordering, pane layouts,
+working directories, focus, and a conservative set of running programs.
+Resurrect only restarts these programs by default: <code>vi</code>,
+<code>vim</code>, <code>nvim</code>, <code>emacs</code>,
+<code>man</code>, <code>less</code>, <code>more</code>,
+<code>tail</code>, <code>top</code>, <code>htop</code>,
+<code>irssi</code>, <code>weechat</code>, and <code>mutt</code>. Other
+panes normally return as shells in their saved directories.</p>
+<p>This is not process hibernation: unsaved editor state, generic
+application memory, and pane scrollback are not preserved. Pane-content
+capture is not enabled. Save important application data normally before
+rebooting.</p>
+<h2 id="shell-command-cheat-sheet">Shell command cheat sheet</h2>
+<pre class="console"><code>tmux list-sessions              # list sessions
+tmux list-windows               # list windows in the attached session
+tmux list-panes                 # list panes in the current window
+tmux attach -t main             # attach to main
+tmux detach                     # detach the current client
+tmux rename-session -t old new  # rename a session
+tmux kill-session -t work       # terminate one session and its processes
+tmux kill-server                # terminate ALL sessions and their processes</code></pre>
+<p>Prefer detaching over killing. <code>tmux kill-server</code> is
+destructive.</p>
+<h2 id="deployed-behavior-and-appearance">Deployed behavior and
+appearance</h2>
+<p>The active generated configuration currently provides:</p>
+<ul>
+<li><code>C-b</code> prefix and tmux-sensible defaults;</li>
+<li>windows and panes numbered from 1;</li>
+<li>automatic window renumbering;</li>
+<li>vi keys in copy mode and the status prompts;</li>
+<li>mouse support;</li>
+<li>24-hour clock;</li>
+<li>100,000 lines of history per pane;</li>
+<li>a 10 ms escape delay;</li>
+<li>Catppuccin Mocha colors supplied by Stylix;</li>
+<li><code>tmux-256color</code> and explicit Ghostty RGB/true-color
+support;</li>
+<li>terminal clipboard integration;</li>
+<li>resurrect and continuum persistence.</li>
+</ul>
+<p>The sensible plugin also increases message visibility to four
+seconds, refreshes the status every five seconds, and supplies
+<code>C-b b</code> and <code>C-b R</code>.</p>
+<h2 id="configuration-maintenance">Configuration maintenance</h2>
+<p>The live config is:</p>
+<pre class="text"><code>~/.config/tmux/tmux.conf</code></pre>
+<p>It is a Home Manager-managed symlink into the Nix store, so do
+<strong>not</strong> edit it directly. The rich tmux, <code>mux</code>,
+persistence, and Ghostty integration are declared in:</p>
+<pre class="text"><code>modules/home/session-management/default.nix</code></pre>
+<p>The <code>tom@nixos</code> profile also enables tmux in:</p>
+<pre class="text"><code>homes/x86_64-linux/tom@nixos/default.nix</code></pre>
+<p>After changing the declarative configuration, apply it with:</p>
+<pre class="console"><code>home-manager switch --flake &quot;.#tom@nixos&quot;</code></pre>
+<p>Then use <code>C-b R</code> in an existing server if it has not
+picked up the new config. Use <code>tmux show-options -g</code> and
+<code>tmux list-keys</code> to inspect the effective running
+configuration rather than guessing which defaults or plugins won.</p>
+<script>
+(() => {
+  const onReady = () => {
+    // Turn the source Markdown's GitHub-style warning into a proper callout.
+    const callout = document.querySelector('blockquote p');
+    if (callout && callout.textContent.trim().startsWith('[!IMPORTANT]')) {
+      const html = callout.innerHTML.replace(/^\[!IMPORTANT\]\s*/, '');
+      callout.innerHTML = '<span class="callout-label">CONFIGURATION NOTE</span>' + html;
+    }
+
+    // Add an at-a-glance strip for a second-screen workflow.
+    const subtitle = document.querySelector('h1 + p');
+    if (subtitle) {
+      const strip = document.createElement('div');
+      strip.id = 'quick-strip';
+      strip.setAttribute('aria-label', 'Quick key reference');
+      strip.innerHTML = `
+        <div class="quick-card"><small>Prefix</small><code class="keycap">Ctrl-b</code></div>
+        <div class="quick-card"><small>New window</small><code class="keycap">C-b c</code></div>
+        <div class="quick-card"><small>Split</small><code class="keycap">C-b %</code></div>
+        <div class="quick-card"><small>Detach</small><code class="keycap">C-b d</code></div>
+        <div class="quick-card"><small>Help</small><code class="keycap">C-b ?</code></div>`;
+      subtitle.insertAdjacentElement('afterend', strip);
+    }
+
+    // Render key cells and inline shortcuts as physical-looking keycaps.
+    document.querySelectorAll('table td:first-child code').forEach(el => el.classList.add('keycap'));
+    document.querySelectorAll('p code, li code').forEach(el => {
+      const value = el.textContent.trim();
+      if (/^(C-b(?:\s|$)|Ctrl-b$|M-|Space$|Enter$|Arrow$)/.test(value)) el.classList.add('keycap');
+    });
+
+    // Active section tracking in the fixed table of contents.
+    const links = [...document.querySelectorAll('#TOC a[href^="#"]')];
+    const linkById = new Map(links.map(link => [decodeURIComponent(link.hash.slice(1)), link]));
+    const sections = [...document.querySelectorAll('h2[id]')];
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver(entries => {
+        const visible = entries.filter(entry => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        if (!visible) return;
+        links.forEach(link => link.classList.remove('active'));
+        linkById.get(visible.target.id)?.classList.add('active');
+      }, { rootMargin: '-8% 0px -78% 0px', threshold: 0 });
+      sections.forEach(section => observer.observe(section));
+    }
+
+    // Reading progress and back-to-top affordance.
+    const progress = document.createElement('div');
+    progress.id = 'reading-progress';
+    document.body.prepend(progress);
+    const top = document.createElement('button');
+    top.id = 'back-top';
+    top.type = 'button';
+    top.title = 'Back to top';
+    top.setAttribute('aria-label', 'Back to top');
+    top.textContent = '↑';
+    top.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    document.body.append(top);
+
+    const updateScroll = () => {
+      const max = document.documentElement.scrollHeight - innerHeight;
+      progress.style.width = `${max > 0 ? (scrollY / max) * 100 : 0}%`;
+      top.classList.toggle('visible', scrollY > 700);
+    };
+    addEventListener('scroll', updateScroll, { passive: true });
+    addEventListener('resize', updateScroll);
+    updateScroll();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', onReady);
+  } else {
+    onReady();
+  }
+})();
+</script>
+</body>
+</html>
