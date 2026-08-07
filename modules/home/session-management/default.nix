@@ -62,6 +62,7 @@ in
       # Keep window numbering compact and preserve true-colour applications.
       set -g renumber-windows on
       set -g set-clipboard on
+      set -g extended-keys on
       set -as terminal-features ',xterm-ghostty:RGB'
     '';
   };
