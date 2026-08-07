@@ -96,6 +96,17 @@ fi
 
 nix flake check --show-trace
 
+if [[ "$dependencies_changed" == true ]]; then
+  # A Darwin activation reloads this launchd agent and terminates the running
+  # script, so persist validated dependency updates before switching.
+  git add -- "${dependency_files[@]}"
+  git commit -m "chore: update dependencies"
+
+  if [[ "$push_changes" == true ]]; then
+    git push origin main
+  fi
+fi
+
 if [[ "$switch_config" == true ]]; then
   case "$(uname -s)" in
     Darwin)
@@ -109,13 +120,4 @@ if [[ "$switch_config" == true ]]; then
       exit 1
       ;;
   esac
-fi
-
-if [[ "$dependencies_changed" == true ]]; then
-  git add -- "${dependency_files[@]}"
-  git commit -m "chore: update dependencies"
-
-  if [[ "$push_changes" == true ]]; then
-    git push origin main
-  fi
 fi
