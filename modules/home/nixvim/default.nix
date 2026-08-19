@@ -158,7 +158,9 @@
 
         minimap = {
           minimap-vim.enable = false;
-          codewindow.enable = false; # lighter, faster, and uses lua for configuration
+          # codewindow was dropped upstream: nvf now asserts on any definition
+          # of vim.minimap.codewindow.enable, because it does not support the
+          # tree-sitter main branch.
         };
 
         dashboard = {
