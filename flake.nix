@@ -4,6 +4,10 @@
 
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
+    herdr = {
+      url = "github:herdrdev/herdr/v0.8.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     # Hyprland deliberately does NOT follow our nixpkgs: upstream recommends
     # keeping its dependency pins so the Hyprland Cachix cache hits. Both seats
     # use the new Lua configuration API, so they can follow current main.
@@ -16,6 +20,7 @@
       url = "github:notashelf/nvf";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    omp.url = "github:can1357/oh-my-pi";
     pi2-nvim = {
       url = "github:zgs225/pi2.nvim";
       flake = false;
@@ -33,7 +38,19 @@
     darwin.url = "github:LnL7/nix-darwin";
     darwin.inputs.nixpkgs.follows = "nixpkgs";
 
-    nix-homebrew.url = "github:zhaofengli-wip/nix-homebrew";
+    # The Homebrew CLI must be at least as new as the pinned taps: homebrew-core
+    # formulae use the InstallSteps DSL (`overwrite:`, `change_dylib_id`,
+    # `update_gdk_pixbuf_loaders_cache`), which older brew releases cannot read
+    # ("formula is unreadable"). nix-homebrew pins brew itself, so override it
+    # and bump this tag whenever homebrew-core/homebrew-cask are updated.
+    brew-src = {
+      url = "github:Homebrew/brew/6.0.18";
+      flake = false;
+    };
+    nix-homebrew = {
+      url = "github:zhaofengli-wip/nix-homebrew";
+      inputs.brew-src.follows = "brew-src";
+    };
 
     # Optional: Declarative tap management
     homebrew-core = {
@@ -63,6 +80,10 @@
     mac-app-util.url = "github:hraban/mac-app-util";
     puma-rails.url = "github:puma/homebrew-puma";
     puma-rails.flake = false;
+    sikarugir-tap = {
+      url = "github:Sikarugir-App/homebrew-sikarugir";
+      flake = false;
+    };
 
     # San Francisco Fonts | Apple Fonts
     apple-fonts.url = "github:Lyndeno/apple-fonts.nix";
@@ -106,12 +127,21 @@
 
       sharedHomeModules = [
         inputs.mac-app-util.homeManagerModules.default
+        inputs.omp.homeManagerModules.default
         inputs.stylix.homeModules.stylix
         inputs.sops-nix.homeManagerModules.sops
         ({ lib, ... }: {
           # Reapplying Stylix's package overlays inside Home Manager is
           # incompatible with useGlobalPkgs and causes standalone HM recursion.
           stylix.overlays.enable = lib.mkForce false;
+
+          # `man home-configuration.nix` builds nixpkgs' options.json, which
+          # embeds nixpkgs store paths after unsafeDiscardStringContext (see
+          # nixos/lib/make-options-doc/default.nix) and warns on every eval,
+          # because Home Manager imports nixos/modules/misc/meta.nix by path and
+          # does not rewrite those declarations. Nothing repo-side can fix that,
+          # and the same reference lives in the online option search.
+          manual.manpages.enable = false;
         })
       ]
       ++ homeModules;
@@ -162,7 +192,9 @@
           # Stylix constructs overlay modules while the module graph is being
           # evaluated, so standalone profiles need pkgs as a special argument
           # rather than via Home Manager's recursive nixpkgs module.
-          extraSpecialArgs = (mkSpecialArgs system) // { inherit pkgs; };
+          extraSpecialArgs = (mkSpecialArgs system) // {
+            inherit pkgs;
+          };
           modules = sharedHomeModules ++ [ module ];
         };
 
