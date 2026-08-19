@@ -7,7 +7,7 @@
 }:
 let
   common = import ../../../lib/common { };
-  stylixBase = common.stylix.base pkgs;
+  stylixBase = common.stylix.base;
   sharedFonts = common.stylix.fonts pkgs inputs;
 in
 {

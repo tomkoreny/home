@@ -49,7 +49,7 @@ rec {
   };
 
   # Stylix theme base configuration
-  # Usage: common.stylix.base pkgs // { fonts.sizes = ...; }
+  # Usage: common.stylix.base // { fonts.sizes = ...; }
   stylix = {
     # Shared wallpaper (relative to this file)
     wallpaper = ./wallpaper.png;
@@ -58,10 +58,16 @@ rec {
     accent = "#219fff";
 
     # Core theme settings (shared across all platforms)
-    base = pkgs: {
+    # Takes no `pkgs`: the scheme is a repo-local file, so evaluating a
+    # x86_64-linux home from an aarch64-darwin machine no longer has to realise
+    # that platform's base16-schemes derivation just to read one YAML file.
+    # base16.nix reads the scheme with builtins.readFile, so a store path from
+    # `pkgs.base16-schemes` turns theming into cross-system import-from-derivation
+    # and breaks `nix flake check` on every nixpkgs bump.
+    base = {
       enable = true;
       polarity = "dark";
-      base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
+      base16Scheme = ./catppuccin-mocha.yaml;
       override = {
         base00 = stylix.background; # OLEDpuccin - true black
         base0D = stylix.accent; # Unified blue/accent color
