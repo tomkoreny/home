@@ -34,6 +34,11 @@ in
       enable = true;
       package = null;
       systemd.enable = false;
+
+      # Stylix scales the terminal size by 4/3 on macOS (13 -> 17.333…), a float
+      # Nix stringifies with six decimals, which no longer round-trips and warns
+      # on every evaluation. Override with a flat integer.
+      settings.font-size = lib.mkIf pkgs.stdenv.isDarwin (lib.mkForce 16);
     };
   };
 }
