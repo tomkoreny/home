@@ -72,6 +72,10 @@ let
 
         config = {
             "default_theme": f"custom-{theme['name']}",
+            # The app bundle is owned by Homebrew (darwin) / Nix (linux), so Element's
+            # Squirrel updater can never replace it and only nags. A falsy
+            # update_base_url makes electron-main skip updater.start() entirely.
+            "update_base_url": "",
             "features": {
                 "feature_custom_themes": True,
             },
@@ -90,7 +94,7 @@ in
   # Element Desktop loads config.json from a platform-specific per-user path.
   # The config provides and defaults to the generated Catppuccin/Stylix theme.
   home.file = lib.mkIf pkgs.stdenv.isDarwin {
-    "Library/Application Support/Element Nightly/config.json".source = elementConfig;
+    "Library/Application Support/Element/config.json".source = elementConfig;
   };
 
   xdg.configFile = lib.mkIf pkgs.stdenv.isLinux {
