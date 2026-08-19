@@ -1,0 +1,7 @@
+- Commit when a coherent unit of work is finished; you do not need to ask first. Every commit is authored by Tom Koreny <tom@tomkoreny.com> alone: no `Co-authored-by` trailer, no model or agent name, no "Generated with" line, no emoji signature.
+- Push freely to `git.tomkoreny.com`, `gitea.home.tomkoreny.com`, `github.com/tomkoreny/*`, `github.com/TomAndTer/*`. Ask first for anything else, naming the resolved remote URL and branch; `origin` is a name, not a destination, so check it with `git remote get-url`.
+- Never `--amend`, force-push, `reset --hard`, interactive-rebase, or delete a branch or tag unless I asked for it in that turn.
+- Name the target before the first edit: file, symbol, and the behaviour that changes. When my request names a specific widget, function, device class, or table, quote that name back.
+- Attach a proof tier to any claim that something works: `ran-it`, `test-passes`, `type-check-only`, or `unverified`. `unverified` is an allowed answer; an unlabelled claim reads as `unverified`.
+- You have a `playwright` MCP server and a `node_repl` MCP server in this harness. Use them to check UI and runtime behaviour yourself instead of handing me an unverified fix.
+- Once one fix for a symptom has failed, stop guessing and build a command that reproduces the bug and fails because of it. No reproduction, no second hypothesis.
