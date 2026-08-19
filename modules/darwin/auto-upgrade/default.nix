@@ -13,9 +13,11 @@ let
   # volatile on macOS. Must match the sudoers rule below.
   darwinRebuild = "/nix/var/nix/profiles/system/sw/bin/darwin-rebuild";
 
-  # Refresh flake inputs and the coding-agent packages, then validate, activate
-  # the system/Home Manager configuration, and commit dependency changes. Operating
-  # on the same checkout nh uses means "what's running" is "what you edit".
+  # Pull the configuration CI has already validated, then activate it. Flake
+  # inputs are bumped by .github/workflows/update-flake.yml, never here: this
+  # machine cannot evaluate the NixOS host, so a lock it bumped locally would be
+  # half-validated. Operating on the same checkout nh uses means "what's
+  # running" is "what you edit".
   upgradeScript = pkgs.writeShellScript "darwin-auto-upgrade" ''
     set -euo pipefail
     export PATH="${
@@ -52,13 +54,13 @@ let
       exit 1
     fi
 
-    echo "auto-upgrade: refreshing flake inputs, coding agents, and Home Manager..."
+    echo "auto-upgrade: adopting the configuration on origin/main..."
     "$REPO_PATH/scripts/update-home.sh"
   '';
 in
 {
   options.tomkoreny.darwin.auto-upgrade = {
-    enable = lib.mkEnableOption "periodic dependency refresh and system/Home Manager rebuild";
+    enable = lib.mkEnableOption "periodic pull of the CI-validated configuration and system/Home Manager rebuild";
 
     repoPath = lib.mkOption {
       type = lib.types.str;

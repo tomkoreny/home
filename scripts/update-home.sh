@@ -3,56 +3,31 @@ set -euo pipefail
 
 usage() {
 	cat <<'EOF'
-Usage: scripts/update-home.sh [--no-switch] [--no-push] [--skip-flake]
+Usage: scripts/update-home.sh [--no-switch]
 
-One-shot dependency refresh for this home flake:
+Adopt the configuration currently on origin/main for this host:
   1. requires a clean working tree
   2. pulls origin/main with rebase
-  3. updates flake inputs
-  4. runs nix flake check
-  5. switches the current host configuration
-  6. commits and pushes dependency changes
+  3. validates every host this machine can evaluate
+  4. switches the current host configuration
+
+Flake inputs are owned by .github/workflows/update-flake.yml, which bumps
+flake.lock only after instantiating every host. This script never runs
+`nix flake update` and never pushes, so a machine can only ever adopt a lock
+that already passed that gate. A Mac cannot evaluate the NixOS host at all
+(see below), which is why local bumping was retired.
 
 Options:
   --no-switch   Do not run darwin-rebuild/nixos-rebuild switch
-  --no-push     Commit locally but do not push
-  --skip-flake  Do not run nix flake update
 EOF
 }
 
 switch_config=true
-push_changes=true
-update_flake=true
-
-nix_flake_update() {
-	local token=""
-
-	if [[ -n "${GITHUB_TOKEN:-}" ]]; then
-		token="$GITHUB_TOKEN"
-	elif [[ -n "${GH_TOKEN:-}" ]]; then
-		token="$GH_TOKEN"
-	elif command -v gh >/dev/null 2>&1; then
-		token="$(gh auth token 2>/dev/null || true)"
-	fi
-
-	if [[ -n "$token" ]]; then
-		nix --option access-tokens "github.com=$token" flake update
-	else
-		echo "warning: no GitHub token found; set GITHUB_TOKEN/GH_TOKEN or run 'gh auth login' to avoid GitHub API rate limits" >&2
-		nix flake update
-	fi
-}
 
 while [[ $# -gt 0 ]]; do
 	case "$1" in
 	--no-switch)
 		switch_config=false
-		;;
-	--no-push)
-		push_changes=false
-		;;
-	--skip-flake)
-		update_flake=false
 		;;
 	-h | --help)
 		usage
@@ -70,27 +45,16 @@ done
 cd "$(git rev-parse --show-toplevel)"
 
 if ! git diff --quiet || ! git diff --cached --quiet || [[ -n "$(git ls-files --others --exclude-standard)" ]]; then
-	echo "error: working tree is not clean; commit/stash local changes first" >&2
-	git status --short >&2
+	echo "error: working tree is not clean; refusing to touch it" >&2
 	exit 1
 fi
 
 starting_revision="$(git rev-parse HEAD)"
-dependency_files=(flake.lock)
 
 git pull --rebase origin main
 
-if [[ "$update_flake" == true ]]; then
-	nix_flake_update
-fi
-
-dependencies_changed=false
-if ! git diff --quiet -- "${dependency_files[@]}"; then
-	dependencies_changed=true
-fi
-
-if [[ "$(git rev-parse HEAD)" == "$starting_revision" && "$dependencies_changed" == false ]]; then
-	echo "No repository or dependency changes."
+if [[ "$(git rev-parse HEAD)" == "$starting_revision" ]]; then
+	echo "Already on the latest validated configuration."
 	exit 0
 fi
 
@@ -108,7 +72,7 @@ hosts=(
 # nixosConfigurations.nixos is the one host a Mac cannot reach: home-manager's
 # hyprland module realises hyprland's x86_64-linux source to build its onChange
 # hook, and no configured substituter carries it. The GitHub workflow validates
-# that host on every bump, so this only narrows the local gate, never CI's.
+# that host on every bump, so it is covered, just not from here.
 if [[ "$(uname -s)" == "Linux" ]]; then
 	hosts+=('nixosConfigurations.nixos.config.system.build.toplevel')
 fi
@@ -118,17 +82,6 @@ for attr in "${hosts[@]}"; do
 	echo "validating $attr"
 	nix eval --raw ".#$attr.drvPath" >/dev/null
 done
-
-if [[ "$dependencies_changed" == true ]]; then
-	# A Darwin activation reloads this launchd agent and terminates the running
-	# script, so persist validated dependency updates before switching.
-	git add -- "${dependency_files[@]}"
-	git commit -m "chore: update dependencies"
-
-	if [[ "$push_changes" == true ]]; then
-		git push origin main
-	fi
-fi
 
 if [[ "$switch_config" == true ]]; then
 	case "$(uname -s)" in
