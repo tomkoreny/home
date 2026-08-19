@@ -25,14 +25,12 @@ in
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [ pkgs.yggdrasil ];
 
-    services.i2pd = {
-      enable = true;
-      proto = {
-        http.enable = true;
-        httpProxy.enable = true;
-        socksProxy.enable = true;
-      };
-    };
+    # nixpkgs rewrote this module around a freeform `settings` attrset and
+    # dropped `proto.*` without a rename. The three protocols that block used to
+    # turn on (webconsole, HTTP proxy, SOCKS proxy) are `http.enabled`,
+    # `httpproxy.enabled` and `socksproxy.enabled`, all of which the module now
+    # defaults to true, so enabling the service is enough.
+    services.i2pd.enable = true;
 
     sops.secrets.${secretName} = {
       sopsFile = ../../../secrets/yggdrasil/nixos-private.pem;
