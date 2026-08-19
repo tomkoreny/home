@@ -5,6 +5,8 @@
   ...
 }:
 {
+  programs.omp.enable = true;
+
   home.packages = [
     pkgs.nerd-fonts.jetbrains-mono
     pkgs.nerdfetch
@@ -39,6 +41,7 @@
     # nixpkgs ships the same upstream (github.com/earendil-works/pi) with a
     # nix-update updateScript, so it now rides the daily flake.lock CI instead,
     # comes from the binary cache, and gets the Darwin fixes we didn't have.
+    # Keep it as a fallback while OMP is being evaluated.
     pkgs.pi-coding-agent
     pkgs.git-crypt
     pkgs.gh

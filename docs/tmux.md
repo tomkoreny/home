@@ -4,7 +4,7 @@ This documents the declaratively managed tmux setup for `tom` on NixOS (tmux 3.7
 
 ## Quick start
 
-Opening Ghostty runs `mux`, which creates or attaches to a tmux session named `main`.
+Ghostty currently starts Herdr by default for the experiment. tmux remains installed as a fallback: run `mux` manually to create or attach to a session named `main`.
 
 ```console
 mux                 # create or attach to the main session
@@ -31,9 +31,9 @@ The prefix remains tmux's standard `C-b`. `M-` means Alt/Meta, so `C-b M-Left` m
 
 Detaching a client does not stop its session, shells, or programs. This is tmux's main benefit: leave work running and return later.
 
-## Everyday workflow
+## Everyday tmux fallback workflow
 
-1. Open Ghostty; it attaches to `main` automatically.
+1. Run `mux`; it attaches to `main` automatically.
 2. Create a window with `C-b c`.
 3. Split it with `C-b %` (left/right) or `C-b "` (top/bottom).
 4. Move between panes with `C-b` plus an arrow key.
@@ -49,7 +49,7 @@ Session names accepted by `mux` may contain letters, numbers, dots, dashes, and 
 ### Help and tmux itself
 
 | Key | Action |
-|---|---|
+| --- | --- |
 | `C-b ?` | Show all current prefix keybindings |
 | `C-b /` | Prompt for a key and describe its binding |
 | `C-b :` | Open the tmux command prompt |
@@ -62,7 +62,7 @@ Press `q` to leave most chooser/help screens.
 ### Sessions and clients
 
 | Key | Action |
-|---|---|
+| --- | --- |
 | `C-b d` | Detach this client; work keeps running |
 | `C-b s` | Choose a session interactively |
 | `C-b $` | Rename the current session |
@@ -75,7 +75,7 @@ Press `q` to leave most chooser/help screens.
 Windows and panes start at index **1**. Window numbers are automatically compacted after a window closes.
 
 | Key | Action |
-|---|---|
+| --- | --- |
 | `C-b c` | Create a window |
 | `C-b 1` … `C-b 9` | Select a numbered window |
 | `C-b n` / `C-b p` | Next/previous window |
@@ -93,7 +93,7 @@ Closing the shell in the last pane also closes its window. Killing a window term
 ### Panes
 
 | Key | Action |
-|---|---|
+| --- | --- |
 | `C-b %` | Split into left and right panes |
 | `C-b "` | Split into top and bottom panes |
 | `C-b Arrow` | Select the pane in that direction |
@@ -123,7 +123,7 @@ The history limit is **100,000 lines per pane**, and copy mode uses vi keys.
 Useful copy-mode keys:
 
 | Key in copy mode | Action |
-|---|---|
+| --- | --- |
 | `h j k l` | Move left/down/up/right |
 | `w`, `b`, `e` | Move by words |
 | `0`, `$`, `^` | Start/end/first non-blank character of line |
@@ -144,7 +144,7 @@ Useful copy-mode keys:
 Other buffer commands:
 
 | Key | Action |
-|---|---|
+| --- | --- |
 | `C-b #` | List paste buffers |
 | `C-b =` | Choose a buffer |
 | `C-b -` | Delete the newest buffer |
@@ -174,7 +174,7 @@ The deployed setup uses:
 - automatic restoration when a new tmux server starts.
 
 | Key | Action |
-|---|---|
+| --- | --- |
 | `C-b C-s` | Save a snapshot now |
 | `C-b C-r` | Restore the latest snapshot now |
 
@@ -226,7 +226,7 @@ The live config is:
 ~/.config/tmux/tmux.conf
 ```
 
-It is a Home Manager-managed symlink into the Nix store, so do **not** edit it directly. The rich tmux, `mux`, persistence, and Ghostty integration are declared in:
+It is a Home Manager-managed symlink into the Nix store, so do **not** edit it directly. The tmux fallback, `mux`, persistence, and Herdr's Ghostty launch are declared in:
 
 ```text
 modules/home/session-management/default.nix

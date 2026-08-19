@@ -269,7 +269,12 @@
               src = inputs.pi2-nvim;
             };
             setup = ''
-              require("pi").setup()
+              require("pi").setup({
+                cli = {
+                  bin = "${inputs.omp.packages.${pkgs.stdenv.hostPlatform.system}.omp}/bin/omp",
+                },
+                agent_dir = vim.fn.expand("~/.omp/agent"),
+              })
 
               vim.keymap.set({ "n", "v" }, "<Leader>pp", function() vim.cmd("Pi layout=side") end, { desc = "Pi side" })
               vim.keymap.set({ "n", "v" }, "<Leader>pf", function() vim.cmd("Pi layout=float") end, { desc = "Pi float" })

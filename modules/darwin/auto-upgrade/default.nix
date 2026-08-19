@@ -13,8 +13,8 @@ let
   # volatile on macOS. Must match the sudoers rule below.
   darwinRebuild = "/nix/var/nix/profiles/system/sw/bin/darwin-rebuild";
 
-  # Refresh flake inputs and the pinned pi package, then validate, activate the
-  # system/Home Manager configuration, and commit dependency changes. Operating
+  # Refresh flake inputs and the coding-agent packages, then validate, activate
+  # the system/Home Manager configuration, and commit dependency changes. Operating
   # on the same checkout nh uses means "what's running" is "what you edit".
   upgradeScript = pkgs.writeShellScript "darwin-auto-upgrade" ''
     set -euo pipefail
@@ -52,7 +52,7 @@ let
       exit 1
     fi
 
-    echo "auto-upgrade: refreshing flake inputs, pi, and Home Manager..."
+    echo "auto-upgrade: refreshing flake inputs, coding agents, and Home Manager..."
     "$REPO_PATH/scripts/update-home.sh"
   '';
 in

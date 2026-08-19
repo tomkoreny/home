@@ -1,9 +1,12 @@
 {
+  inputs,
   lib,
   pkgs,
   ...
 }:
 let
+  herdrPackage = inputs.herdr.packages.${pkgs.stdenv.hostPlatform.system}.default;
+  continuumPlugin = pkgs.tmuxPlugins.continuum;
   mux = pkgs.writeShellApplication {
     name = "mux";
     runtimeInputs = [ pkgs.tmux ];
@@ -34,7 +37,17 @@ let
   };
 in
 {
-  home.packages = [ mux ];
+  # Keep tmux and mux installed as a fallback while Herdr is being evaluated.
+  home.packages = [
+    herdrPackage
+    mux
+  ];
+
+  # OMP has no reliable screen fallback in Herdr; its lifecycle extension is
+  # authoritative for working/idle state and must track the Herdr package.
+  home.activation.herdrOmpIntegration = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    run ${lib.getExe herdrPackage} integration install omp
+  '';
 
   programs.tmux = {
     enable = true;
@@ -45,12 +58,13 @@ in
     historyLimit = 100000;
     keyMode = "vi";
     mouse = true;
+    shell = "/etc/profiles/per-user/tom/bin/bash";
     terminal = "tmux-256color";
 
     plugins = with pkgs.tmuxPlugins; [
       resurrect
       {
-        plugin = continuum;
+        plugin = continuumPlugin;
         extraConfig = ''
           set -g @continuum-restore 'on'
           set -g @continuum-save-interval '10'
@@ -59,21 +73,49 @@ in
     ];
 
     extraConfig = ''
+      # Clear stale namespace wrappers retained by long-running tmux servers.
+      set -g default-command ""
+
       # Keep window numbering compact and preserve true-colour applications.
       set -g renumber-windows on
       set -g set-clipboard on
       set -g extended-keys on
       set -as terminal-features ',xterm-ghostty:RGB'
+
+      # Use process-aware tmux names, then pass the active one through to
+      # Ghostty's native window title. Idle shells show their working directory;
+      # full-screen applications may provide a more useful pane title.
+      set -wg allow-rename off
+      set -wg allow-set-title on
+      set -wg automatic-rename on
+      set -wg automatic-rename-format '#{?pane_in_mode,[tmux],#{?#{==:#{pane_current_command},bash},#{b:pane_current_path},#{?#{==:#{s/ *$//:pane_title},},#{pane_current_command},#{s/ *$//:pane_title}}}}#{?pane_dead,[dead],}'
+      set -g set-titles on
+      set -g set-titles-string '#{?#{==:#S,main},,#S · }#W'
+
+      # A quiet, palette-driven status line: session at the left, windows in the
+      # centre, and only useful context at the right. ANSI palette slots come
+      # from Stylix, so this follows the Ghostty theme without hard-coded colors.
+      set -g status-position bottom
+      set -g status-interval 5
+      set -g status-justify absolute-centre
+      set -g status-style 'bg=default,fg=colour7'
+      set -g status-left-length 30
+      set -g status-left '#[fg=colour4,bold] 󰆍 #S #[fg=colour8,nobold]│'
+      set -g status-right-length 80
+      set -g status-right '#(${continuumPlugin}/share/tmux-plugins/continuum/scripts/continuum_save.sh)#[fg=colour0,bg=colour3,bold]#{?client_prefix, PREFIX ,}#[fg=colour8,bg=default,nobold]#{?window_zoomed_flag,󰊓  ,}󰉋 #{b:pane_current_path}  #[fg=colour4]󰥔 #[fg=colour7]%H:%M '
+      set -wg window-status-separator ""
+      set -wg window-status-format '#[fg=colour8] #I #[fg=colour7]#W#[fg=colour3]#{?window_bell_flag, 󰂞,}#[fg=colour4]#{?window_activity_flag, •,} '
+      set -wg window-status-current-format '#[fg=colour4,bg=default]#[fg=colour0,bg=colour4,bold] #I #W#{?window_zoomed_flag, 󰊓,} #[fg=colour4,bg=default,nobold]'
     '';
   };
 
-  # Ghostty is only the renderer; tmux owns windows and process lifetime.
-  # The package itself is installed by modules/home/packages.
+  # Herdr owns workspaces and process lifetime; Ghostty is only the renderer.
+  # tmux remains available through `mux` during the experiment.
   programs.ghostty = {
     enable = true;
     package = null;
     systemd.enable = false;
     enableBashIntegration = true;
-    settings.command = lib.getExe mux;
+    settings.command = lib.getExe herdrPackage;
   };
 }
