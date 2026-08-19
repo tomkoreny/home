@@ -44,12 +44,21 @@ let
       }) externalExtensions
     );
 
+  # `all-userstyles-export` is a rolling release tag that upstream regenerates,
+  # and there is no versioned artifact to point at instead, so this hash has to
+  # be refreshed whenever the export changes. Verify the download before
+  # trusting a new hash: it must be a JSON array that still contains the style
+  # names selected below, or the generator fails in a much less obvious way.
   catppuccinStylusExport = pkgs.fetchurl {
     url = "https://github.com/catppuccin/userstyles/releases/download/all-userstyles-export/import.json";
-    hash = "sha256-+eqOt92dkNcnFK7L1jMrsMyOocxZXdbz1UdAOjZGsvw=";
+    hash = "sha256-kPWI8G5P0CsT6rI/MB6GzpoPTw9rTOAgmj1ASLcjhd4=";
   };
+  # Upstream migrated the standard library to a versioned path and left
+  # lib/lib.less as a two-line shim that imports this file. The shim is a moving
+  # target that breaks the pin whenever it is touched; the versioned URL is
+  # stable, and the hash below is unchanged because the content is the same.
   catppuccinUserstyleLibrary = pkgs.fetchurl {
-    url = "https://userstyles.catppuccin.com/lib/lib.less";
+    url = "https://userstyles.catppuccin.com/lib/std/v1.less";
     hash = "sha256-XK9Oqan7Kz81DNyE3+ryl5sPi/OpvV+EkgL7WuLoGfM=";
   };
   notionCatppuccinUsercss = pkgs.fetchurl {
@@ -95,7 +104,7 @@ let
             f"@blue: {accent_filter};",
             library,
         )
-        library_import = '@import "https://userstyles.catppuccin.com/lib/lib.less";'
+        library_import = '@import "https://userstyles.catppuccin.com/lib/std/v1.less";'
 
         selected_names = {"GitHub Catppuccin", "YouTube Catppuccin"}
         selected = [
