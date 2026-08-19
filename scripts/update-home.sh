@@ -94,7 +94,30 @@ if [[ "$(git rev-parse HEAD)" == "$starting_revision" && "$dependencies_changed"
 	exit 0
 fi
 
+# `nix flake check` is a weaker gate than it looks: it only recurses into the
+# output schemas nix knows, and it silently omits systems this host cannot
+# build. Instantiate each host explicitly as well — evaluating a drvPath needs
+# no builder for that system, so a Mac can still vet the NixOS homes.
+hosts=(
+	'darwinConfigurations.macos.system'
+	'homeConfigurations."tom@macos".activationPackage'
+	'homeConfigurations."tom@nixos".activationPackage'
+	'homeConfigurations."terka@nixos".activationPackage'
+)
+
+# nixosConfigurations.nixos is the one host a Mac cannot reach: home-manager's
+# hyprland module realises hyprland's x86_64-linux source to build its onChange
+# hook, and no configured substituter carries it. The GitHub workflow validates
+# that host on every bump, so this only narrows the local gate, never CI's.
+if [[ "$(uname -s)" == "Linux" ]]; then
+	hosts+=('nixosConfigurations.nixos.config.system.build.toplevel')
+fi
+
 nix flake check --show-trace
+for attr in "${hosts[@]}"; do
+	echo "validating $attr"
+	nix eval --raw ".#$attr.drvPath" >/dev/null
+done
 
 if [[ "$dependencies_changed" == true ]]; then
 	# A Darwin activation reloads this launchd agent and terminates the running
