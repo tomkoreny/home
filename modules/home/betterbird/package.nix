@@ -12,17 +12,21 @@
   undmg,
 }:
 let
-  version = "140.12.0esr-bb24";
+  # Betterbird deletes superseded builds from its download server, so a pin that
+  # falls behind stops being fetchable at all: bb24 now 404s. Bump this in step
+  # with https://www.betterbird.eu/downloads/ rather than waiting for a rebuild
+  # to fail on a dead URL.
+  version = "140.13.0esr-bb25";
 
   sources = {
     x86_64-linux = fetchurl {
       url = "https://www.betterbird.eu/downloads/LinuxArchive/betterbird-${version}.en-US.linux-x86_64.tar.xz";
-      hash = "sha256-ChJWJKS7y8NxFmVBtZtD+yRc5jMxo0HN7AaWmUl7RuA=";
+      hash = "sha256-00bAxsT43N4gT5fy14DWhVMLkWPYZLzNXBSUVjlLocA=";
     };
 
     aarch64-darwin = fetchurl {
       url = "https://www.betterbird.eu/downloads/MacDiskImage/betterbird-${version}.en-US.mac-arm64.dmg";
-      hash = "sha256-+4lUm7Nw29iJ/GM2fY26dF6Nr0AvKEkyXJTU3iP1rxw=";
+      hash = "sha256-shLFN25XXSTNoZwra/ERqyWIJO77p50CDCuEgl+ocws=";
     };
   };
 
