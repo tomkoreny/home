@@ -25,6 +25,24 @@ let
   inherit (common.user) name fullName;
   homeDir = common.user.homeDir { isDarwin = true; };
   homeManagerApps = "${homeDir}/Applications/Home Manager Apps";
+
+  # nix-homebrew reads the brew version from *its own* flake.lock, so with
+  # `inputs.brew-src.follows` the label would describe the wrong tree. Derive it
+  # from our lock instead.
+  brewVersion = (builtins.fromJSON (builtins.readFile ../../../flake.lock)).nodes.brew-src.original.ref;
+
+  # nix-homebrew embeds that version with `sed -e 's/^HOMEBREW_VERSION=.*/…/'`,
+  # but brew 6 only assigns HOMEBREW_VERSION indented inside a conditional, so
+  # the sed matches nothing and `brew --version` degrades to the git-less
+  # fallback ">=4.3.0 (shallow or no git repository)". Pin it right after the
+  # git-based detection: an accurate version is what makes a CLI/tap skew like
+  # the unreadable-formula failures diagnosable.
+  brewSource = pkgs.runCommand "brew-${brewVersion}" { } ''
+    cp -R ${inputs.brew-src} $out
+    chmod -R u+w $out
+    substituteInPlace $out/Library/Homebrew/brew.sh \
+      --replace-fail 'set-homebrew-version-from-git' 'set-homebrew-version-from-git''\nHOMEBREW_VERSION="${brewVersion}"'
+  '';
 in
 {
   # Enable auto-upgrade from git (modules/darwin/* are auto-imported by Snowfall)
@@ -81,6 +99,13 @@ in
         "com.apple.Spotlight" = {
           MenuItemHidden = true;
         };
+        "com.pilotmoon.scroll-reverser" = {
+          InvertScrollingOn = true;
+          ReverseMouse = true;
+          ReverseTrackpad = false;
+          ReverseX = false;
+          ReverseY = true;
+        };
       };
       controlcenter = {
         AirDrop = false;
@@ -95,7 +120,7 @@ in
         persistent-apps = [
           "/Applications/Helium.app"
           "${homeManagerApps}/Betterbird.app"
-          "/Applications/Element Nightly.app"
+          "/Applications/Element.app"
           "/System/Applications/Calendar.app"
           "/System/Applications/Notes.app"
           "/Applications/Ghostty.app"
@@ -129,6 +154,16 @@ in
 
   # The platform the configuration will be used on.
   nixpkgs.hostPlatform = "aarch64-darwin";
+
+  launchd.user.agents.scroll-reverser.serviceConfig = {
+    ProgramArguments = [
+      "/usr/bin/open"
+      "-gj"
+      "/Applications/Scroll Reverser.app"
+    ];
+    ProcessType = "Interactive";
+    RunAtLoad = true;
+  };
 
   launchd.user.envVariables = {
     DEVELOPER_DIR = "/Applications/Xcode.app/Contents/Developer";
@@ -164,6 +199,25 @@ in
     home = homeDir;
     shell = pkgs.bashInteractive;
   };
+
+  # Touch ID for sudo, declaratively: /etc/pam.d/sudo was patched imperatively
+  # (pam_tid ahead of `auth include sudo_local`), which macOS updates revert.
+  # pam_reattach is what makes it work from tmux at all: the tmux server is
+  # detached from the Aqua session, so pam_tid alone cannot show its prompt and
+  # falls through to the password prompt.
+  security.pam.services.sudo_local = {
+    reattach = true;
+    touchIdAuth = true;
+  };
+
+  # One authentication per `sw`: nh elevates once up front, then Homebrew's
+  # casks shell out to sudo again minutes later (pkg receipts, LaunchAgents
+  # under /Library) from a different tty, which re-prompted every time with
+  # sudo's 5-minute per-tty default.
+  security.sudo.extraConfig = ''
+    Defaults:${name} timestamp_timeout=30
+    Defaults:${name} !tty_tickets
+  '';
   services.tailscale.enable = true;
   environment.etc."resolver/ts.net".enable = lib.mkForce false;
   nix-homebrew = {
@@ -173,6 +227,11 @@ in
     # Apple Silicon Only: Also install Homebrew under the default Intel prefix for Rosetta 2
     enableRosetta = true;
 
+    # Ships the brew tree from our `brew-src` input, labelled to match.
+    package = brewSource // {
+      version = brewVersion;
+    };
+
     # User owning the Homebrew prefix
     user = name;
     # Optional: Declarative tap management
@@ -181,6 +240,7 @@ in
       "homebrew/homebrew-cask" = inputs.homebrew-cask;
       "homebrew/homebrew-bundle" = inputs.homebrew-bundle;
       "puma/homebrew-puma" = inputs.puma-rails;
+      "sikarugir-app/homebrew-sikarugir" = inputs.sikarugir-tap;
     };
 
     # Optional: Enable fully-declarative tap management
@@ -191,6 +251,7 @@ in
 
   homebrew = {
     enable = true;
+    onActivation.upgrade = true;
     onActivation.extraFlags = [
       # Overwrite pre-existing app bundles and binaries when a declarative cask collides.
       "--force"
@@ -215,9 +276,18 @@ in
       # Communication
       "beeper"
       "discord"
-      "element@nightly"
+      {
+        # The cask is flagged auto_updates, so plain `brew upgrade` skips it;
+        # greedy keeps it current since Element's in-app updater is disabled
+        # (see modules/home/element).
+        name = "element";
+        greedy = true;
+      }
       "loom"
-      "microsoft-teams"
+      {
+        name = "microsoft-teams";
+        greedy = true;
+      }
       "notion"
       "signal"
 
@@ -243,13 +313,20 @@ in
       "spotify"
       "vlc"
 
+      # Gaming compatibility
+      "sikarugir"
+
       # AI
       "claude"
 
       # Hardware
       "raspberry-pi-imager"
       "prusaslicer"
+      "scroll-reverser"
     ];
+    masApps = {
+      "DaVinci Resolve" = 571213070;
+    };
     # Keep brews for services (redis/puma-dev), version managers
     # (rbenv/nodenv), and mac-specific bits; plain CLI tools live in
     # modules/home/packages/default.nix as nix packages instead.
