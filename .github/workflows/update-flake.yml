@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   update:
@@ -26,10 +27,13 @@ jobs:
           nix flake update
 
       # Never push a lock that doesn't evaluate — every machine's auto-upgrade
-      # would pull it. Do not use --no-build: Stylix/base16 uses import from
-      # derivation and a clean runner must realise that derivation to evaluate.
+      # would pull it. --all-systems is what makes this a real gate: without it
+      # the runner checks only x86_64-linux and silently omits
+      # darwinConfigurations.macos and tom@macos, so a bump that breaks the Mac
+      # sails through. Outputs are evaluated, not built ("build skipped"), so a
+      # linux runner can vet the darwin hosts too.
       - name: Validate
-        run: nix flake check path:.
+        run: nix flake check --all-systems path:.
 
       - name: Commit and push
         run: |
@@ -42,3 +46,27 @@ jobs:
             git commit -m "flake.lock: daily update"
             git push
           fi
+
+      # A failing scheduled run is invisible: this job was red for three days in
+      # August 2026 while nixosConfigurations.nixos could not evaluate, and the
+      # only symptom was that lock bumps quietly stopped arriving. Reuse one
+      # issue instead of filing a fresh one every morning.
+      - name: Report failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: Flake input update is failing
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          existing="$(gh issue list --state open --json number,title \
+            --jq "map(select(.title == \"$TITLE\")) | .[0].number // empty")"
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "Still failing: $RUN_URL"
+            exit 0
+          fi
+          gh issue create --title "$TITLE" --body-file - <<EOF
+          The daily flake input update stopped validating, so nothing is being
+          pushed and every host stays on the last good lock until this passes.
+
+          First failing run: $RUN_URL
+          EOF
