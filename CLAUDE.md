@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-This is Tom Koreny's NixOS/Darwin configuration repository using Nix flakes and Snowfall Lib. It manages system configurations for both NixOS (Linux) and macOS (Darwin) systems.
+This is Tom Koreny's NixOS/Darwin configuration repository using plain Nix flakes. It manages system configurations for both NixOS (Linux) and macOS (Darwin) systems. The directory layout follows Snowfall Lib conventions, but Snowfall Lib itself is not an input and is not used (see Architecture below).
 
 ## Essential Commands
 
