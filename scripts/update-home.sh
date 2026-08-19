@@ -24,6 +24,9 @@ EOF
 
 switch_config=true
 
+# Kept verbatim so the apply phase below can be handed the same invocation.
+original_args=("$@")
+
 while [[ $# -gt 0 ]]; do
 	case "$1" in
 	--no-switch)
@@ -49,13 +52,23 @@ if ! git diff --quiet || ! git diff --cached --quiet || [[ -n "$(git ls-files --
 	exit 1
 fi
 
-starting_revision="$(git rev-parse HEAD)"
+# The pull below can replace this very file. Bash keeps reading from the open
+# file descriptor, which still points at the old inode, so the remainder of the
+# run would come from the previous version of the script — including code that
+# no longer exists in it. Do the pull in one phase, then hand over to the file
+# on disk with exec. UPDATE_HOME_PHASE is internal; it is not a documented flag
+# because nothing outside this script should set it.
+if [[ "${UPDATE_HOME_PHASE:-pull}" == "pull" ]]; then
+	starting_revision="$(git rev-parse HEAD)"
 
-git pull --rebase origin main
+	git pull --rebase origin main
 
-if [[ "$(git rev-parse HEAD)" == "$starting_revision" ]]; then
-	echo "Already on the latest validated configuration."
-	exit 0
+	if [[ "$(git rev-parse HEAD)" == "$starting_revision" ]]; then
+		echo "Already on the latest validated configuration."
+		exit 0
+	fi
+
+	UPDATE_HOME_PHASE=apply exec "$0" ${original_args[@]+"${original_args[@]}"}
 fi
 
 # `nix flake check` is a weaker gate than it looks: it only recurses into the
