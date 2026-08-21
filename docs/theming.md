@@ -86,6 +86,32 @@ built-in theme must disable that option and select **Catppuccin Mocha (Stylix)**
 once. Forcing it would require mutating Element's private browser storage, which
 is intentionally avoided.
 
+## Lemmy
+
+`lemmy.tomkoreny.com` is self-hosted, so it is themed on the server instead of
+in the browser. The theme lives in the homelab repo at
+`apps/services/lemmy/theme/`: SCSS sources, a pinned `build.sh`, and the
+compiled `catppuccin.css` that Flux ships as a ConfigMap mounted at
+`/app/extra_themes` in the `lemmy-ui` container.
+
+Unlike the rest of this repo, that theme is not dark-only. lemmy-ui serves a
+single stylesheet, so the theme carries both flavors and follows the visitor's
+`prefers-color-scheme`: Catppuccin Latte in light mode, Catppuccin Mocha on the
+shared true black in dark mode.
+
+The theme is a full Bootstrap 5 compile, so it cannot import from this repo. It
+duplicates exactly two values from `lib/common/default.nix`,
+`stylix.background` and `stylix.accent`; the rest is the upstream Catppuccin
+palette. Light mode uses the same accent hue darkened 30% (`#176fb3`), because
+`#219fff` only reaches 2.5:1 on Latte's background. After changing either shared
+color here, update `apps/services/lemmy/theme/_palette.catppuccin.scss` and
+rerun `apps/services/lemmy/theme/build.sh` in that repo.
+
+Because the instance serves the theme itself, `lemmy.tomkoreny.com` needs no
+Stylus userstyle and is excluded from Dark Reader. The instance-wide default is
+the admin setting `local_site.default_theme`; an account which explicitly picked
+another theme keeps it until it selects **catppuccin** in its user settings.
+
 ## Applying a change
 
 After changing a shared color or font:

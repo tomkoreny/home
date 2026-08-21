@@ -13,6 +13,9 @@ let
   sansSerifFont = sharedFonts.sansSerif.name;
   monospaceFont = sharedFonts.monospace.name;
   nextcloudHost = "nextcloud.home.tomkoreny.com";
+  # Themed server-side by the homelab repo (apps/services/lemmy/theme), so Dark
+  # Reader must leave it alone; see docs/theming.md.
+  lemmyHost = "lemmy.tomkoreny.com";
 
   externalExtensions = [
     {
@@ -281,6 +284,7 @@ let
       "youtube.com"
       "notion.so"
       nextcloudHost
+      lemmyHost
       "dash.home.tomkoreny.com"
       "teams.cloud.microsoft"
     ];
@@ -367,7 +371,11 @@ in
 
       GitHub and YouTube use the official Catppuccin userstyles. Notion and
       `${nextcloudHost}` use community Catppuccin styles because they are not in
-      the official Catppuccin userstyles collection.
+      the official Catppuccin userstyles collection. `${lemmyHost}` needs no
+      userstyle: the instance itself serves a Catppuccin theme which follows the
+      system light or dark preference, so Dark Reader is disabled there. Select
+      **catppuccin** in its user settings if the account overrides the instance
+      default theme.
     '';
   }
   // lib.optionalAttrs pkgs.stdenv.isLinux (externalExtensionFiles "net.imput.helium");
