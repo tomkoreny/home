@@ -49,6 +49,23 @@ in
     run ${lib.getExe herdrPackage} integration install omp
   '';
 
+  # Herdr follows the host terminal's light/dark appearance when `auto_switch`
+  # is on, and ships both Catppuccin flavors, so its chrome tracks Ghostty
+  # instead of staying dark on a Latte background.
+  #
+  # The config file cannot be a read-only store symlink: Herdr writes it itself
+  # (onboarding sets `onboarding`, `herdr config reset-keys` rewrites the whole
+  # file). This reconciles only the [theme] keys in place and leaves the rest of
+  # the file untouched.
+  #
+  # `[theme.custom]` is deliberately not used: its overrides apply on top of
+  # whichever flavor is active, so the shared accent could only be correct in one
+  # of the two modes. Each flavor keeps its own Catppuccin blue.
+  home.activation.herdrTheme = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    run ${pkgs.python3}/bin/python3 ${./herdr-theme.py} \
+      "''${XDG_CONFIG_HOME:-$HOME/.config}/herdr/config.toml"
+  '';
+
   programs.tmux = {
     enable = true;
     sensibleOnTop = true;
