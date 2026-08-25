@@ -178,6 +178,20 @@ in
   };
 
   services = {
+    # Bonjour-compatible discovery for LAN devices and nixos.local.
+    avahi = {
+      enable = true;
+      nssmdns4 = true;
+      openFirewall = true;
+      publish = {
+        enable = true;
+        addresses = true;
+        workstation = true;
+      };
+      # OpenSSH is enabled below; advertise only that intentional service.
+      extraServiceFiles.ssh = "${pkgs.avahi}/etc/avahi/services/ssh.service";
+    };
+
     # Local caching resolver forwarding all queries to the upstream resolver
     dnsmasq = {
       enable = true;
