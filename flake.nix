@@ -5,7 +5,7 @@
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     herdr = {
-      url = "github:herdrdev/herdr/v0.8.0";
+      url = "github:herdrdev/herdr/v0.8.2";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # Hyprland deliberately does NOT follow our nixpkgs: upstream recommends
