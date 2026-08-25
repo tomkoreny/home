@@ -30,6 +30,39 @@ rec {
     upstreamDns = "1.1.1.1";
   };
 
+  # Split-tunnel WireGuard link to the internal network.
+  #
+  # Only the two internal prefixes below are pushed through the tunnel, so the
+  # link can stay up permanently without hijacking the default route: general
+  # internet traffic keeps using the local uplink.
+  #
+  # Each host needs its OWN keypair and tunnel address. WireGuard tracks one
+  # endpoint per peer, so two machines sharing an identity make the server flip
+  # the endpoint back and forth on every handshake and neither stays reachable.
+  wireguard = {
+    interface = "wg0";
+    listenPort = 51820;
+
+    server = {
+      publicKey = "r6AaGc3TW7JdpToewFbjhVjfQbXrFaVhKLAmOhpFajk=";
+      endpoint = "176.97.247.247:13279";
+      # Internal-only prefixes: the tunnel subnet plus the one reachable host.
+      allowedIPs = [
+        "192.168.22.106/32"
+        "10.71.71.0/24"
+      ];
+    };
+
+    # Tunnel addresses, one per host; the matching public keys are configured
+    # server-side as separate peers.
+    #   macos: dSrABixgeKzUBYfPtuioOsMO385m+5VUlrWb4h5CU3I=
+    #   nixos: MLXa03vU+pZoKgpfiaClWGqSXNh0OJr625D0GPFFaxI=
+    addresses = {
+      macos = "10.71.71.2/32";
+      nixos = "10.71.71.3/32";
+    };
+  };
+
   # Docker daemon configuration
   docker = {
     # Insecure registries (internal harbor, etc.)
@@ -56,6 +89,12 @@ rec {
     # Single source of truth for theme colors; see docs/theming.md.
     background = "#000000";
     accent = "#219fff";
+    # Light-mode counterpart of the accent, for the few surfaces that follow the
+    # system appearance instead of being dark-only (Catppuccin Latte flavors).
+    # Same hue, darkened 30% (`accent` mixed 70% with black): `accent` scores
+    # 7.5:1 on the true-black background but only 2.5:1 on Latte's base, while
+    # this reaches 4.7:1. See docs/theming.md.
+    accentLight = "#176fb3";
 
     # Core theme settings (shared across all platforms)
     # Takes no `pkgs`: the scheme is a repo-local file, so evaluating a

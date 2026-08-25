@@ -36,6 +36,9 @@ in
     # Local I2P proxies and a stable, sops-backed Yggdrasil identity.
     privacy-networks.enable = true;
 
+    # Always-on split-tunnel WireGuard link (10.71.71.3, internal routes only).
+    wireguard.enable = true;
+
     # OpenClaw node - connects to gateway via Traefik
     # Same as Mac: clawdbot.home.tomkoreny.com:443 with TLS (defaults)
     clawdbot-node = {

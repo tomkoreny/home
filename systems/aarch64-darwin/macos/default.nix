@@ -49,6 +49,8 @@ in
   tomkoreny.darwin.auto-upgrade.enable = true;
   # FortiVPN tunnel + its sops secret
   tomkoreny.darwin.vpn.enable = true;
+  # Always-on split-tunnel WireGuard link (10.71.71.2, internal routes only).
+  tomkoreny.darwin.wireguard.enable = true;
   # Local I2P proxies and a stable, sops-backed Yggdrasil identity.
   tomkoreny.darwin.privacy-networks.enable = true;
   # Avoid collisions with pre-existing manual backups like ~/.ssh/config.bak.
