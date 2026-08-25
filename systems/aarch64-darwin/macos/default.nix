@@ -157,14 +157,25 @@ in
   # The platform the configuration will be used on.
   nixpkgs.hostPlatform = "aarch64-darwin";
 
+  # Reverse the mouse wheel but not the trackpad: macOS has a single
+  # `com.apple.swipescrolldirection` for both, so per-device inversion needs an
+  # event tap. ReverseMouse/ReverseTrackpad in CustomUserPreferences above do
+  # exactly that, leaving the trackpad on natural scrolling.
+  #
+  # Launch the LSUIElement binary directly rather than shelling out to `open`.
+  # The `open` form exited 1 at login and, with RunAtLoad as the only trigger,
+  # was never retried, so the tap stayed dead for the whole session (`launchctl
+  # print`: runs = 1, last exit code = 1). Why `open` failed was never pinned
+  # down; launching the binary directly removes it from the path entirely and
+  # lets KeepAlive restart the app if the tap dies.
+  #
+  # The tap also needs Accessibility + Input Monitoring, which is TCC state:
+  # not declarable without a PPPC profile, so it is granted by hand once.
   launchd.user.agents.scroll-reverser.serviceConfig = {
-    ProgramArguments = [
-      "/usr/bin/open"
-      "-gj"
-      "/Applications/Scroll Reverser.app"
-    ];
+    ProgramArguments = [ "/Applications/Scroll Reverser.app/Contents/MacOS/Scroll Reverser" ];
     ProcessType = "Interactive";
     RunAtLoad = true;
+    KeepAlive = true;
   };
 
   launchd.user.envVariables = {
