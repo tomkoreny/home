@@ -10,6 +10,7 @@ let
   sharedFonts = common.stylix.fonts pkgs inputs;
   backgroundColor = common.stylix.background;
   accentColor = common.stylix.accent;
+  accentLightColor = common.stylix.accentLight;
   sansSerifFont = sharedFonts.sansSerif.name;
   monospaceFont = sharedFonts.monospace.name;
   nextcloudHost = "nextcloud.home.tomkoreny.com";
@@ -86,6 +87,7 @@ let
 
         background = "${backgroundColor}"
         accent = "${accentColor}"
+        accent_light = "${accentLightColor}"
         with open("${catppuccinStylusExport}") as source:
             export = json.load(source)
 
@@ -205,6 +207,165 @@ let
                 "description": "Catppuccin theme for Nextcloud 32+",
                 "author": "byted",
                 "homepageURL": "https://github.com/byted/catppuccin-nextcloud",
+                "vars": {},
+            },
+        })
+
+        # Microsoft Teams 2 renders with Fluent UI v9, whose design tokens are
+        # CSS custom properties on the `.fui-FluentProvider` wrapper - not on
+        # `:root` or `body`. Every portal root (menus, dialogs, flyouts) carries
+        # the same class, so one selector covers the whole surface. Fluent
+        # injects its own token rule at runtime with the same 0-1-0 specificity,
+        # hence `!important`.
+        #
+        # The blocks key on Teams' own `<html>` theme class instead of
+        # `prefers-color-scheme`, so the palette stays in lockstep with the base
+        # theme Teams picked (icon fills, shadows, illustrations). Set
+        # Appearance -> Follow OS theme once in Teams and it tracks the system,
+        # which makes this follow the system too.
+        #
+        # `--colorNeutralBackgroundAlpha*` matter as much as the solid
+        # backgrounds: the app bar, chat list and title bar paint with those, so
+        # skipping them leaves half the chrome stock grey.
+        teams_flavors = [
+            {
+                "html_classes": ("theme-defaultV2", "theme-tfl-default"),
+                # Catppuccin Latte, with the shared accent darkened for a light
+                # background (see lib/common/default.nix).
+                "tokens": {
+                    "--colorNeutralBackground1": "#eff1f5",
+                    "--colorNeutralBackground1Hover": "#e6e9ef",
+                    "--colorNeutralBackground1Pressed": "#dce0e8",
+                    "--colorNeutralBackground1Selected": "#e6e9ef",
+                    "--colorNeutralBackground2": "#e6e9ef",
+                    "--colorNeutralBackground3": "#dce0e8",
+                    "--colorNeutralBackground4": "#ccd0da",
+                    "--colorNeutralBackground5": "#bcc0cc",
+                    "--colorNeutralBackground6": "#acb0be",
+                    "--colorNeutralBackgroundStatic": "#dce0e8",
+                    "--colorNeutralBackgroundInverted": "#4c4f69",
+                    "--colorNeutralBackgroundAlpha": "rgba(230, 233, 239, 0.92)",
+                    "--colorNeutralBackgroundAlpha2": "rgba(220, 224, 232, 0.92)",
+                    "--colorSubtleBackgroundHover": "#dce0e8",
+                    "--colorSubtleBackgroundPressed": "#ccd0da",
+                    "--colorSubtleBackgroundSelected": "#dce0e8",
+                    "--colorTransparentBackgroundHover": "#e6e9ef",
+                    "--colorTransparentBackgroundPressed": "#dce0e8",
+                    "--colorNeutralForeground1": "#4c4f69",
+                    "--colorNeutralForeground2": "#5c5f77",
+                    "--colorNeutralForeground3": "#6c6f85",
+                    "--colorNeutralForeground4": "#8c8fa1",
+                    "--colorNeutralForegroundOnBrand": "#eff1f5",
+                    "--colorNeutralStroke1": "#bcc0cc",
+                    "--colorNeutralStroke2": "#ccd0da",
+                    "--colorNeutralStroke3": "#e6e9ef",
+                    "--colorBrandBackground": accent_light,
+                    "--colorBrandBackgroundHover": accent_light,
+                    "--colorBrandBackground2": "rgba(23, 111, 179, 0.14)",
+                    "--colorBrandForeground1": accent_light,
+                    "--colorBrandForeground2": accent_light,
+                    "--colorBrandForegroundLink": accent_light,
+                    "--colorBrandStroke1": accent_light,
+                    "--colorBrandStroke2": "rgba(23, 111, 179, 0.4)",
+                    "--colorCompoundBrandBackground": accent_light,
+                    "--colorCompoundBrandForeground1": accent_light,
+                    "--colorCompoundBrandStroke": accent_light,
+                },
+                "legacy": {
+                    "--themeBackgroundColor": "#eff1f5",
+                    "--themeTitleBarBackgroundColor": "#e6e9ef",
+                    "--themeTitleBarColor": "#4c4f69",
+                    "--themeLoadingScreenColor": "#eff1f5",
+                },
+            },
+            {
+                "html_classes": ("theme-darkV2", "theme-tfl-dark"),
+                # Catppuccin Mocha on the shared true-black background.
+                "tokens": {
+                    "--colorNeutralBackground1": background,
+                    "--colorNeutralBackground1Hover": "#11111b",
+                    "--colorNeutralBackground1Pressed": "#181825",
+                    "--colorNeutralBackground1Selected": "#11111b",
+                    "--colorNeutralBackground2": "#11111b",
+                    "--colorNeutralBackground3": "#181825",
+                    "--colorNeutralBackground4": "#313244",
+                    "--colorNeutralBackground5": "#45475a",
+                    "--colorNeutralBackground6": "#585b70",
+                    "--colorNeutralBackgroundStatic": "#181825",
+                    "--colorNeutralBackgroundInverted": "#cdd6f4",
+                    "--colorNeutralBackgroundAlpha": "rgba(17, 17, 27, 0.92)",
+                    "--colorNeutralBackgroundAlpha2": "rgba(24, 24, 37, 0.92)",
+                    "--colorSubtleBackgroundHover": "#181825",
+                    "--colorSubtleBackgroundPressed": "#313244",
+                    "--colorSubtleBackgroundSelected": "#181825",
+                    "--colorTransparentBackgroundHover": "#11111b",
+                    "--colorTransparentBackgroundPressed": "#181825",
+                    "--colorNeutralForeground1": "#cdd6f4",
+                    "--colorNeutralForeground2": "#bac2de",
+                    "--colorNeutralForeground3": "#a6adc8",
+                    "--colorNeutralForeground4": "#7f849c",
+                    "--colorNeutralForegroundOnBrand": "#11111b",
+                    "--colorNeutralStroke1": "#45475a",
+                    "--colorNeutralStroke2": "#313244",
+                    "--colorNeutralStroke3": "#181825",
+                    "--colorBrandBackground": accent,
+                    "--colorBrandBackgroundHover": accent,
+                    "--colorBrandBackground2": "rgba(33, 159, 255, 0.18)",
+                    "--colorBrandForeground1": accent,
+                    "--colorBrandForeground2": accent,
+                    "--colorBrandForegroundLink": accent,
+                    "--colorBrandStroke1": accent,
+                    "--colorBrandStroke2": "rgba(33, 159, 255, 0.4)",
+                    "--colorCompoundBrandBackground": accent,
+                    "--colorCompoundBrandForeground1": accent,
+                    "--colorCompoundBrandStroke": accent,
+                },
+                "legacy": {
+                    "--themeBackgroundColor": background,
+                    "--themeTitleBarBackgroundColor": "#11111b",
+                    "--themeTitleBarColor": "#cdd6f4",
+                    "--themeLoadingScreenColor": background,
+                },
+            },
+        ]
+
+        teams_blocks = []
+        for flavor in teams_flavors:
+            for selector_suffix, declarations in (
+                (" .fui-FluentProvider", flavor["tokens"]),
+                ("", flavor["legacy"]),
+            ):
+                selectors = ",\n".join(
+                    f"html.{name}{selector_suffix}" for name in flavor["html_classes"]
+                )
+                body = "\n".join(
+                    f"    {token}: {value} !important;"
+                    for token, value in declarations.items()
+                )
+                teams_blocks.append(f"{selectors} {{\n{body}\n}}")
+
+        teams_rules = "\n\n".join(teams_blocks)
+        teams_source = f"""/* ==UserStyle==
+        @name           Teams Catppuccin
+        @namespace      tomkoreny.com/stylix
+        @version        1.0.0
+        @description    Catppuccin theme for Microsoft Teams, following the Teams light/dark base
+        @author         Tom Koreny
+        ==/UserStyle== */
+        @-moz-document domain("teams.cloud.microsoft"), domain("teams.microsoft.com") {{
+        {teams_rules}
+        }}
+        """
+        selected.append({
+            "name": "Teams Catppuccin",
+            "enabled": True,
+            "sourceCode": teams_source,
+            "usercssData": {
+                "name": "Teams Catppuccin",
+                "namespace": "tomkoreny.com/stylix",
+                "version": "1.0.0",
+                "description": "Catppuccin theme for Microsoft Teams",
+                "author": "Tom Koreny",
                 "vars": {},
             },
         })
@@ -368,6 +529,10 @@ in
          `~/.config/helium/dark-reader-settings.json`.
       3. Select each site's native dark appearance so its Catppuccin dark flavor is used:
          GitHub **Dark default**, YouTube **Dark theme**, and Notion **Dark**.
+      4. In Teams, set **Settings → Appearance → Follow OS theme** once. The
+         `Teams Catppuccin` style keys off the theme class Teams applies, so it then
+         follows the system appearance: Latte in light mode, Mocha in dark mode.
+         Only the browser client is themed; the desktop app cannot be.
 
       GitHub and YouTube use the official Catppuccin userstyles. Notion and
       `${nextcloudHost}` use community Catppuccin styles because they are not in
@@ -375,7 +540,8 @@ in
       userstyle: the instance itself serves a Catppuccin theme which follows the
       system light or dark preference, so Dark Reader is disabled there. Select
       **catppuccin** in its user settings if the account overrides the instance
-      default theme.
+      default theme. The Teams style is written in this repo; no Catppuccin
+      userstyle exists for the current Teams client.
     '';
   }
   // lib.optionalAttrs pkgs.stdenv.isLinux (externalExtensionFiles "net.imput.helium");
