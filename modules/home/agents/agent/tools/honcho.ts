@@ -92,12 +92,14 @@ const factory: CustomToolFactory = (pi) => [
 			limit: pi.zod.number().int().min(1).max(100).optional().describe("Max results (default 10)"),
 		}),
 		async execute(_id, params, _onUpdate, _ctx, signal) {
-			const page = await api<{ items?: Array<{ content: string; peer_id?: string; created_at?: string }> }>(
+			type Hit = { content: string; peer_id?: string; created_at?: string };
+			// 3.0.6 returns a bare array; tolerate a paginated {items} shape too.
+			const page = await api<Hit[] | { items?: Hit[] }>(
 				"/search",
 				{ query: params.query, limit: params.limit ?? 10 },
 				signal,
 			);
-			const items = page.items ?? [];
+			const items = Array.isArray(page) ? page : (page.items ?? []);
 			if (items.length === 0) return { ...text("No results."), details: { count: 0 } };
 			const lines = items.map((m) => `- [${m.peer_id ?? "?"} ${m.created_at ?? ""}] ${m.content}`);
 			return { ...text(lines.join("\n")), details: { count: items.length } };
