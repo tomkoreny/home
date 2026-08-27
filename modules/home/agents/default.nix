@@ -161,6 +161,9 @@ in
       advisor.enabled = true;
 
       symbolPreset = "nerd";
+      # Editor + status line layout; default `box` draws a rounded frame
+      # around the input. Other values: claude, pi.
+      composer.shape = "borderless";
       theme = {
         dark = "titanium";
         # Generated below. The name carries the `-stylix` suffix because
@@ -198,6 +201,12 @@ in
       ".omp/agent/skills/diagnose/SKILL.md".source = ./agent/skills/diagnose/SKILL.md;
       ".omp/agent/skills/verify-claim/SKILL.md".source = ./agent/skills/verify-claim/SKILL.md;
       ".omp/agent/skills/grill/SKILL.md".source = ./agent/skills/grill/SKILL.md;
+
+      # Shared-memory bridge: read/write the homelab Honcho instance the
+      # hermes-agent uses (workspace `hermes`, agent peer `omp`), over the
+      # VPN-only ingress honcho.home.tomkoreny.com. See the file header and
+      # homelab-services apps/services/honcho/README.md.
+      ".omp/agent/tools/honcho.ts".source = ./agent/tools/honcho.ts;
 
       # Light-slot theme; see the comment above the definition.
       ".omp/agent/themes/${ompLatteTheme.name}.json".text = builtins.toJSON ompLatteTheme;
