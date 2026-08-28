@@ -178,6 +178,24 @@ in
     KeepAlive = true;
   };
 
+  # Start Helium at login with the switch that suppresses Chromium's
+  # "'…' started debugging this browser" infobar, raised whenever the OMP
+  # Browser Relay extension attaches via the chrome.debugger API. Helium on
+  # macOS has no chromium-flags.conf (Linux launcher feature), so the switch
+  # must be on the command line; a Dock launch of an already-running instance
+  # hands off to it and keeps the flag. Binary launched directly for the same
+  # reason as scroll-reverser above. No KeepAlive: quitting the browser should
+  # not resurrect it. Caveat: if Helium fully quits, the next cold Dock launch
+  # is flagless until the following login.
+  launchd.user.agents.helium.serviceConfig = {
+    ProgramArguments = [
+      "/Applications/Helium.app/Contents/MacOS/Helium"
+      "--silent-debugger-extension-api"
+    ];
+    ProcessType = "Interactive";
+    RunAtLoad = true;
+  };
+
   launchd.user.envVariables = {
     DEVELOPER_DIR = "/Applications/Xcode.app/Contents/Developer";
     # Keep this the MacOSX SDK (same as environment.variables below): anything
