@@ -21,7 +21,7 @@ in
         name = common.user.fullName;
       };
       credential.helper =
-        if pkgs.stdenv.isDarwin then
+        if pkgs.stdenv.hostPlatform.isDarwin then
           "osxkeychain"
         else
           [

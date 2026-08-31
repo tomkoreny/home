@@ -20,7 +20,7 @@ in
   # `custom/polytiramisu` setup that rendered notifications inline in the bar.
   # Colors, fonts and opacity are themed automatically by Stylix
   # (stylix targets.mako), so only layout is configured here.
-  config = lib.mkIf pkgs.stdenv.isLinux {
+  config = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
     services.mako = {
       enable = true;
       settings = {

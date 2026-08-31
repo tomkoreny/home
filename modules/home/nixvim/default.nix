@@ -115,6 +115,10 @@
           lualine = {
             enable = true;
             # theme = "catppuccin";
+            integrations.breadcrumbs = {
+              nvim-navic.enable = true;
+              navbuddy.enable = true;
+            };
           };
         };
 
@@ -216,10 +220,6 @@
           colorizer.enable = true;
           modes-nvim.enable = false; # the theme looks terrible with catppuccin
           illuminate.enable = true;
-          breadcrumbs = {
-            enable = true;
-            navbuddy.enable = true;
-          };
           smartcolumn = {
             enable = true;
             setupOpts.custom_colorcolumn = {

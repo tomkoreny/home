@@ -220,11 +220,11 @@ in
 {
   # Element Desktop loads config.json from a platform-specific per-user path.
   # The config provides and defaults to the generated Catppuccin/Stylix theme.
-  home.file = lib.mkIf pkgs.stdenv.isDarwin {
+  home.file = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
     "Library/Application Support/Element/config.json".source = elementConfig;
   };
 
-  xdg.configFile = lib.mkIf pkgs.stdenv.isLinux {
+  xdg.configFile = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
     "Element/config.json".source = elementConfig;
   };
 }

@@ -17,7 +17,7 @@
     pkgs.k9s
     pkgs.nodejs_22
     pkgs.node-gyp
-    (if pkgs.stdenv.isDarwin then pkgs.ghostty-bin else pkgs.ghostty)
+    (if pkgs.stdenv.hostPlatform.isDarwin then pkgs.ghostty-bin else pkgs.ghostty)
     pkgs.glab
 
     pkgs.php
@@ -61,11 +61,11 @@
     pkgs.cloudflared
     pkgs.argocd
   ]
-  ++ lib.optionals pkgs.stdenv.isDarwin [
+  ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
     # Clipboard image provider used by img-clip.nvim/PiPasteImage.
     pkgs.pngpaste
   ]
-  ++ lib.optionals (!pkgs.stdenv.isDarwin) [
+  ++ lib.optionals (!pkgs.stdenv.hostPlatform.isDarwin) [
     pkgs.kicad
     pkgs.zed-editor
   ];

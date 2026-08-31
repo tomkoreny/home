@@ -494,18 +494,18 @@ let
   };
 in
 {
-  home.packages = lib.optionals pkgs.stdenv.isLinux [
+  home.packages = lib.optionals pkgs.stdenv.hostPlatform.isLinux [
     helium-browser
   ];
 
-  home.sessionVariables = lib.mkIf pkgs.stdenv.isLinux {
+  home.sessionVariables = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
     BROWSER = "helium-browser";
   };
 
   # Helium has no Home Manager module, but supports Chromium's external-extension
   # manifests. Install Dark Reader as a fallback and Stylus for site-specific
   # Catppuccin userstyles on both platforms.
-  home.file = lib.mkIf pkgs.stdenv.isDarwin (
+  home.file = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin (
     externalExtensionFiles "Library/Application Support/net.imput.helium"
   );
   xdg.configFile = {
@@ -544,12 +544,12 @@ in
       userstyle exists for the current Teams client.
     '';
   }
-  // lib.optionalAttrs pkgs.stdenv.isLinux (externalExtensionFiles "net.imput.helium");
+  // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux (externalExtensionFiles "net.imput.helium");
 
   # The AppImage wrapper ships no desktop entry, so provide one — without it
   # the mimeApps defaults below point at a .desktop file that doesn't exist
   # and xdg-open/portal default-browser resolution fails.
-  xdg.desktopEntries.helium-browser = lib.mkIf pkgs.stdenv.isLinux {
+  xdg.desktopEntries.helium-browser = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
     name = "Helium";
     genericName = "Web Browser";
     exec = "helium-browser %U";
@@ -569,7 +569,7 @@ in
     ];
   };
 
-  xdg.mimeApps = lib.mkIf pkgs.stdenv.isLinux {
+  xdg.mimeApps = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
     enable = true;
     defaultApplications = {
       "text/html" = [ "helium-browser.desktop" ];

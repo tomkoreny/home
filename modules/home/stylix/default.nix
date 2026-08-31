@@ -24,7 +24,7 @@ in
           sizes = common.stylix.fontSizes;
         };
       }
-      // lib.optionalAttrs pkgs.stdenv.isLinux {
+      // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
         cursor = common.stylix.cursor pkgs;
         targets.waybar.font = "sansSerif";
       };
@@ -39,7 +39,7 @@ in
       # Stylix scales the terminal size by 4/3 on macOS (13 -> 17.333…), a float
       # Nix stringifies with six decimals, which no longer round-trips and warns
       # on every evaluation. Override with a flat integer.
-      settings.font-size = lib.mkIf pkgs.stdenv.isDarwin (lib.mkForce 16);
+      settings.font-size = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin (lib.mkForce 16);
 
       # Ghostty is the one surface that can follow the system appearance on its
       # own: it accepts a `light:`/`dark:` theme pair and re-resolves it live

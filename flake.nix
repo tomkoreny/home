@@ -1,12 +1,19 @@
 {
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    # First rust-overlay revision using the non-deprecated hostPlatform checks.
+    # Herdr, OMP, and Lanzaboote otherwise emit stdenv.is* warnings.
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay/892c035d7c2ff75acd5da10424a47ab454e1f3dc";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     herdr = {
       url = "github:herdrdev/herdr/v0.8.2";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.rust-overlay.follows = "rust-overlay";
     };
     # Hyprland deliberately does NOT follow our nixpkgs: upstream recommends
     # keeping its dependency pins so the Hyprland Cachix cache hits. Both seats
@@ -23,7 +30,10 @@
     # Newer 18.0.11 snapshots reference @bgotink/kdl without adding it to the
     # bun2nix dependency set, which makes sandboxed builds attempt npm DNS.
     # Keep the last reproducible revision until upstream's Nix package catches up.
-    omp.url = "github:can1357/oh-my-pi/51f03804476c3fd3c15748ae07e4849d1efc883b";
+    omp = {
+      url = "github:can1357/oh-my-pi/51f03804476c3fd3c15748ae07e4849d1efc883b";
+      inputs.rust-overlay.follows = "rust-overlay";
+    };
     pi2-nvim = {
       url = "github:zgs225/pi2.nvim";
       flake = false;
@@ -33,6 +43,7 @@
 
       # Optional but recommended to limit the size of your system closure.
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.rust-overlay.follows = "rust-overlay";
     };
     sops-nix = {
       url = "github:Mic92/sops-nix";
