@@ -85,6 +85,25 @@
       flake = false;
     };
 
+    # Browser-enabled Jellyfin MPV Shim pre-release and the dependency versions
+    # it requires. Nixpkgs still packages the older cast-only 2.10.0 release.
+    jellyfin-mpv-shim-src = {
+      url = "github:jellyfin/jellyfin-mpv-shim/v3.0.0pre14";
+      flake = false;
+    };
+    jellyfin-apiclient-python-src = {
+      url = "github:jellyfin/jellyfin-apiclient-python/v1.18.0";
+      flake = false;
+    };
+    python-mpv-jsonipc-src = {
+      url = "github:iwalton3/python-mpv-jsonipc/v1.3.0";
+      flake = false;
+    };
+    jellyfin-default-shader-pack-src = {
+      url = "github:iwalton3/default-shader-pack/v3.0.0";
+      flake = false;
+    };
+
     # San Francisco Fonts | Apple Fonts
     apple-fonts.url = "github:Lyndeno/apple-fonts.nix";
     apple-fonts.inputs.nixpkgs.follows = "nixpkgs";

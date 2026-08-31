@@ -6,6 +6,20 @@
 }:
 let
   cfg = config.tomkoreny.waybar;
+
+  # Hyprland's Lua configuration API changed socket dispatches from the old
+  # `workspace 2` syntax to dispatcher objects. Waybar 0.15 still emits the
+  # old command when a workspace button is clicked, so teach its numeric
+  # workspace handler the equivalent Lua dispatcher syntax.
+  waybar = pkgs.waybar.overrideAttrs (old: {
+    postPatch = (old.postPatch or "") + ''
+      substituteInPlace src/modules/hyprland/workspace.cpp \
+        --replace-fail \
+          'm_ipc.getSocket1Reply("dispatch workspace " + std::to_string(id()));' \
+          'm_ipc.getSocket1Reply("dispatch hl.dsp.focus({ workspace = " + std::to_string(id()) + " })");'
+    '';
+  });
+
   base = {
     height = 30;
     spacing = 4;
@@ -26,6 +40,8 @@ let
     ];
     "hyprland/workspaces" = {
       format = "<sub>{icon}</sub>{windows}";
+      "sort-by" = "number";
+      "move-to-monitor" = false;
       "format-window-separator" = "";
       "window-rewrite-default" = "";
       "window-rewrite" = {
@@ -127,6 +143,7 @@ in
   config = lib.mkIf (pkgs.stdenv.hostPlatform.isLinux && cfg.outputs != [ ]) {
     programs.waybar = {
       enable = true;
+      package = waybar;
       settings = map (output: base // { inherit output; }) cfg.outputs;
       # Run the bar as a supervised user service instead of a bare
       # `exec-once`. Waybar 0.15.0's pulseaudio module recurses forever inside

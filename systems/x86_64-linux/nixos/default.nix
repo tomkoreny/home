@@ -408,6 +408,12 @@ in
     ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="046d", ATTR{idProduct}=="08e5", ATTR{power/autosuspend}="-1", ATTR{power/control}="on"
   '';
 
+  # Driverless queue discovery contacts the printer while this oneshot starts.
+  # Keep rebuilds successful when the printer is powered off or unreachable;
+  # CUPS retains the previously configured queue and the service retries at the
+  # next boot or configuration activation.
+  systemd.services.ensure-printers.serviceConfig.SuccessExitStatus = "1";
+
   hardware = {
     printers = {
       ensurePrinters = [

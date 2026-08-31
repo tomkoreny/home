@@ -276,6 +276,26 @@
                   bin = "${inputs.omp.packages.${pkgs.stdenv.hostPlatform.system}.omp}/bin/omp",
                 },
                 agent_dir = vim.fn.expand("~/.omp/agent"),
+                -- pi2.nvim suppresses its completion notification while the prompt
+                -- is focused. Emit it from the RPC event instead so every run is
+                -- visible, including runs where we wait in the prompt.
+                attention = {
+                  notify_on_completion = false,
+                },
+                rpc = {
+                  map_event = function(event)
+                    if event.type == "agent_end" then
+                      vim.schedule(function()
+                        vim.notify(
+                          "π │ Agent finished - waiting for your input",
+                          vim.log.levels.INFO,
+                          { title = "π", timeout = 5000 }
+                        )
+                      end)
+                    end
+                    return event
+                  end,
+                },
               })
 
               vim.keymap.set({ "n", "v" }, "<Leader>pp", function() vim.cmd("Pi layout=side") end, { desc = "Pi side" })

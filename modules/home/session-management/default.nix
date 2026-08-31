@@ -45,8 +45,13 @@ in
 
   # OMP has no reliable screen fallback in Herdr; its lifecycle extension is
   # authoritative for working/idle state and must track the Herdr package.
-  home.activation.herdrOmpIntegration = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    run ${lib.getExe herdrPackage} integration install omp
+  # The OMP agent directory is populated by Home Manager's linkGeneration
+  # phase. On a fresh host it does not exist at writeBoundary yet, and Herdr
+  # deliberately refuses to create an unknown agent directory.
+  home.activation.herdrOmpIntegration = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+    if [[ -d "$HOME/.omp/agent" ]]; then
+      run ${lib.getExe herdrPackage} integration install omp
+    fi
   '';
 
   # Herdr follows the host terminal's light/dark appearance when `auto_switch`

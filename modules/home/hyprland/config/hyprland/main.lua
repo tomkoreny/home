@@ -17,9 +17,7 @@ hl.env("XCURSOR_SIZE", "32")
 
 -- Autostart only on compositor startup, not on config reload.
 hl.on("hyprland.start", function()
-    hl.exec_cmd("systemctl --user start --no-block waybar.service")
-    hl.exec_cmd("uwsm app -- hyprpaper")
-    hl.exec_cmd("uwsm app -- hypridle")
+    hl.exec_cmd("systemctl --user start --no-block waybar.service jellyfin-mpv-shim.service")
     hl.exec_cmd("uwsm app -- teams-for-linux --minimized")
     hl.exec_cmd("uwsm app -- discord --start-minimized")
     hl.exec_cmd("uwsm app -- element-desktop --hidden")
@@ -27,16 +25,28 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("wl-paste --type image --watch cliphist store")
 end)
 
--- Monitors
-hl.monitor({ output = "", disabled = true })
+-- Monitors: portrait ViewSonics flank the landscape Alienware in an H.
+-- Their rotations put each panel's lower lip on the outside edge. Scale 1.25
+-- on the 27-inch side panels gives approximately the same physical UI size as
+-- 1.666667 on the higher-density 32-inch 4K panel.
+-- Keep unrecognized outputs usable as a safe fallback.
+hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })
 
--- QD-OLED, 4K240, HDR. Keep VRR to fullscreen game/video content to avoid
--- OLED gamma flicker on the desktop. SDR brightness/saturation were tuned by
--- eye for the panel's HDR container.
+-- Left portrait ViewSonic (lip facing left).
+hl.monitor({
+    output = "HDMI-A-2",
+    mode = "highres",
+    position = "0x0",
+    scale = 1.25,
+    transform = 1,
+})
+
+-- Centre QD-OLED, 4K240, HDR. Its logical 2304x1296 area is vertically
+-- centred against the side panels' logical 1152x2048 areas.
 hl.monitor({
     output = "desc:Dell Inc. AW3225QF 6D12YZ3",
     mode = "highres",
-    position = "auto-left",
+    position = "1152x376",
     scale = "1.666667",
     vrr = 3,
     bitdepth = 10,
@@ -45,13 +55,13 @@ hl.monitor({
     sdrsaturation = 0.98,
 })
 
+-- Right portrait ViewSonic (lip facing right).
 hl.monitor({
-    output = "desc:LG Electronics LG ULTRAFINE 302MARZCMQ30",
+    output = "DP-3",
     mode = "highres",
-    position = "auto-right",
-    scale = "1.5",
+    position = "3456x0",
+    scale = 1.25,
     transform = 3,
-    bitdepth = 10,
 })
 
 hl.config({
@@ -206,7 +216,9 @@ hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), locked)
 
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen())
 hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.fullscreen_state({ internal = 3, client = 1 }))
-hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("sleep 1 && hyprctl dispatch dpms off"))
+-- Delay until the lock shortcut's key event has finished, otherwise that same
+-- key press can immediately wake DPMS again.
+hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("sleep 1 && hypr-dpms off"))
 
 -- Window rules
 hl.window_rule({
@@ -243,12 +255,33 @@ for _, class in ipairs({ "(?i)^(discord)$", "(?i)^(teams-for-linux)$", "(?i)^(el
     })
 end
 
--- Stable workspace-to-monitor assignments.
+-- Stable workspace-to-monitor columns. Workspaces advance left-to-right in
+-- rows: 1/2/3, 4/5/6, 7/8/9. Keep 1-9 alive so every assigned workspace is
+-- always visible and clickable in the Waybar on its own monitor.
+local left = "HDMI-A-2"
 local primary = "desc:Dell Inc. AW3225QF 6D12YZ3"
-local secondary = "desc:LG Electronics LG ULTRAFINE 302MARZCMQ30"
-for _, id in ipairs({ 1, 2, 4, 5, 7, 8, 10 }) do
-    hl.workspace_rule({ workspace = tostring(id), monitor = primary, default = id == 1 })
+local right = "DP-3"
+for _, id in ipairs({ 1, 4, 7 }) do
+    hl.workspace_rule({
+        workspace = tostring(id),
+        monitor = left,
+        default = id == 1,
+        persistent = true,
+    })
+end
+for _, id in ipairs({ 2, 5, 8 }) do
+    hl.workspace_rule({
+        workspace = tostring(id),
+        monitor = primary,
+        default = id == 2,
+        persistent = true,
+    })
 end
 for _, id in ipairs({ 3, 6, 9 }) do
-    hl.workspace_rule({ workspace = tostring(id), monitor = secondary, default = id == 3 })
+    hl.workspace_rule({
+        workspace = tostring(id),
+        monitor = right,
+        default = id == 3,
+        persistent = true,
+    })
 end

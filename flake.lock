@@ -1003,6 +1003,57 @@
         "type": "github"
       }
     },
+    "jellyfin-apiclient-python-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1785457671,
+        "narHash": "sha256-5xiKtV/nRvrRXHjLizY7vOV9bamk1elQmPt55QtA8xc=",
+        "owner": "jellyfin",
+        "repo": "jellyfin-apiclient-python",
+        "rev": "d49f372bdfc801f8c2df9546def83c8a60be3bdd",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jellyfin",
+        "ref": "v1.18.0",
+        "repo": "jellyfin-apiclient-python",
+        "type": "github"
+      }
+    },
+    "jellyfin-default-shader-pack-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1784759309,
+        "narHash": "sha256-lHFidCHBduvNBy1HGgqLDqZMJeLv3jfVWQ73Hlev7w8=",
+        "owner": "iwalton3",
+        "repo": "default-shader-pack",
+        "rev": "9ab0195ece699680b422ec5bb2216d45e14c82b1",
+        "type": "github"
+      },
+      "original": {
+        "owner": "iwalton3",
+        "ref": "v3.0.0",
+        "repo": "default-shader-pack",
+        "type": "github"
+      }
+    },
+    "jellyfin-mpv-shim-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1787974844,
+        "narHash": "sha256-XerAY1SXlRGWXjBSyAl8cBadaKs75/ZiAHQWSMPStKs=",
+        "owner": "jellyfin",
+        "repo": "jellyfin-mpv-shim",
+        "rev": "a903c16d9503c28318c8a0d89794111279e68341",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jellyfin",
+        "ref": "v3.0.0pre14",
+        "repo": "jellyfin-mpv-shim",
+        "type": "github"
+      }
+    },
     "lan-mouse": {
       "inputs": {
         "nixpkgs": "nixpkgs_2",
@@ -1467,6 +1518,23 @@
         "type": "github"
       }
     },
+    "python-mpv-jsonipc-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1787026460,
+        "narHash": "sha256-i21Pzaidoi2MLb6Le9pA37IRy804MeC0yVV4KONb3mk=",
+        "owner": "iwalton3",
+        "repo": "python-mpv-jsonipc",
+        "rev": "7ac24dac31cb20771a59f1eb7737069fb8dda55e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "iwalton3",
+        "ref": "v1.3.0",
+        "repo": "python-mpv-jsonipc",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "apple-fonts": "apple-fonts",
@@ -1478,6 +1546,9 @@
         "homebrew-cask": "homebrew-cask",
         "homebrew-core": "homebrew-core",
         "hyprland": "hyprland",
+        "jellyfin-apiclient-python-src": "jellyfin-apiclient-python-src",
+        "jellyfin-default-shader-pack-src": "jellyfin-default-shader-pack-src",
+        "jellyfin-mpv-shim-src": "jellyfin-mpv-shim-src",
         "lan-mouse": "lan-mouse",
         "lanzaboote": "lanzaboote",
         "mac-app-util": "mac-app-util",
@@ -1488,6 +1559,7 @@
         "omp": "omp",
         "pi2-nvim": "pi2-nvim",
         "puma-rails": "puma-rails",
+        "python-mpv-jsonipc-src": "python-mpv-jsonipc-src",
         "sikarugir-tap": "sikarugir-tap",
         "sops-nix": "sops-nix",
         "stylix": "stylix",

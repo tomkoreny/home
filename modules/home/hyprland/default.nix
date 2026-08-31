@@ -12,6 +12,18 @@
   config,
   ...
 }:
+let
+  hyprlandPackage = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
+  hyprDpms = pkgs.writeShellScriptBin "hypr-dpms" ''
+    set -eu
+    case "''${1:-}" in
+      on|off|toggle) action="$1" ;;
+      *) echo "usage: hypr-dpms {on|off|toggle}" >&2; exit 2 ;;
+    esac
+    exec ${hyprlandPackage}/bin/hyprctl dispatch \
+      "hl.dsp.dpms({ action = \"$action\" })"
+  '';
+in
 {
   config = lib.mkIf pkgs.stdenv.isLinux {
     wayland.windowManager.hyprland = {
@@ -23,14 +35,13 @@
       systemd.enable = false;
     };
 
-    # `services.hyprpaper.enable` / `services.hypridle.enable` write the config
-    # files plus systemd units wanted by graphical-session.target — but that
-    # target is never activated here (systemd.enable = false, session is driven
-    # by uwsm), so the units stay dead. Both daemons are actually started by
-    # startup callback in main.lua, which needs the binaries in PATH.
+    # Hyprpaper and Hypridle are managed by their Home Manager user units.
+    # UWSM activates graphical-session.target, so starting them again from the
+    # compositor callback would create duplicate wallpaper and idle daemons.
     home.packages = [
       pkgs.hyprpaper
       pkgs.hypridle
+      hyprDpms
 
       # Programs referenced by binds in main.lua
       pkgs.nautilus # Super+E file manager
@@ -69,12 +80,12 @@
     services.hypridle.enable = true;
     services.hypridle.settings = {
       general = {
-        after_sleep_cmd = "hyprctl dispatch dpms on";
+        after_sleep_cmd = "${hyprDpms}/bin/hypr-dpms on";
         ignore_dbus_inhibit = false;
         # Intentional: no real screen lock. This is a desktop in a physically
         # secure space, so "locking" just turns the displays off rather than
         # running hyprlock. hyprlock is deliberately not installed.
-        lock_cmd = "hyprctl dispatch dpms off";
+        lock_cmd = "${hyprDpms}/bin/hypr-dpms off";
       };
 
       listener = [
@@ -83,8 +94,8 @@
           # them quickly when idle to minimise burn-in. Pairs with the
           # mouse_move_enables_dpms = false misc setting in main.lua.
           timeout = 60;
-          on-timeout = "hyprctl dispatch dpms off";
-          on-resume = "hyprctl dispatch dpms on";
+          on-timeout = "${hyprDpms}/bin/hypr-dpms off";
+          on-resume = "${hyprDpms}/bin/hypr-dpms on";
         }
       ];
     };
