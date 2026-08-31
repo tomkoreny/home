@@ -20,7 +20,10 @@
       url = "github:notashelf/nvf";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    omp.url = "github:can1357/oh-my-pi";
+    # Newer 18.0.11 snapshots reference @bgotink/kdl without adding it to the
+    # bun2nix dependency set, which makes sandboxed builds attempt npm DNS.
+    # Keep the last reproducible revision until upstream's Nix package catches up.
+    omp.url = "github:can1357/oh-my-pi/51f03804476c3fd3c15748ae07e4849d1efc883b";
     pi2-nvim = {
       url = "github:zgs225/pi2.nvim";
       flake = false;
