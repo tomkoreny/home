@@ -18,11 +18,25 @@
 # home-manager.sharedModules, so this one is scoped to tom.
 {
   config,
+  inputs,
   lib,
+  pkgs,
   ...
 }:
 let
   common = import ../../../lib/common { };
+  ompPackage = inputs.omp.packages.${pkgs.stdenv.hostPlatform.system}.omp;
+  ompWithHindsight = pkgs.writeShellScriptBin "omp" ''
+    set -eu
+    token_file=${lib.escapeShellArg config.sops.secrets.hindsight-api-token.path}
+    if [[ ! -r "$token_file" ]]; then
+      echo "omp: Hindsight API token is unavailable at $token_file" >&2
+      exit 1
+    fi
+    export HINDSIGHT_API_TOKEN
+    HINDSIGHT_API_TOKEN="$(${pkgs.coreutils}/bin/cat "$token_file")"
+    exec ${lib.getExe ompPackage} "$@"
+  '';
   accentLight = common.stylix.accentLight;
 
   # OMP picks a theme slot from the terminal background, so the light slot needs
@@ -145,6 +159,19 @@ let
 in
 {
   config = lib.mkIf (config.home.username == "tom") {
+    sops = {
+      defaultSopsFile = ../../../secrets/omp-hindsight.yaml;
+      age.keyFile = "${config.home.homeDirectory}/.config/sops/age/keys.txt";
+      secrets.hindsight-api-token = {
+        key = "hindsight-api-token";
+        mode = "0400";
+      };
+    };
+
+    # Keep the bearer token out of the Nix store and config.yml. The wrapper
+    # reads the sops-nix runtime secret immediately before starting OMP.
+    programs.omp.package = ompWithHindsight;
+
     # Written to ~/.omp/agent/config.yml as a read-only store symlink: OMP's
     # own /settings edits apply for the session but revert on the next rebuild,
     # so change settings here rather than in the TUI.
@@ -165,10 +192,14 @@ in
       # around the input. Other values: claude, pi.
       composer.shape = "borderless";
 
-      # Local long-term memory: SQLite under ~/.omp/agent, on-device
-      # embeddings, per-project scoping. Auto-recalls on the first turn and
-      # retains completed turns; exposes recall/retain/reflect/memory_edit.
-      memory.backend = "mnemopi";
+      # Shared remote memory for Linux and macOS. Project tags use the checkout
+      # basename rather than an absolute-path hash, so both machines recall the
+      # same project bank.
+      memory.backend = "hindsight";
+      hindsight = {
+        apiUrl = "https://hindsight.home.tomkoreny.com";
+        scoping = "per-project-tagged";
+      };
       theme = {
         dark = "titanium";
         # Generated below. The name carries the `-stylix` suffix because

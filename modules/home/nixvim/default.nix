@@ -1,4 +1,4 @@
-{ inputs, pkgs, ... }: {
+{ config, inputs, lib, pkgs, ... }: {
   imports = [
     inputs.nvf.homeManagerModules.default
   ];
@@ -273,7 +273,7 @@
             setup = ''
               require("pi").setup({
                 cli = {
-                  bin = "${inputs.omp.packages.${pkgs.stdenv.hostPlatform.system}.omp}/bin/omp",
+                  bin = "${lib.getExe config.programs.omp.package}",
                 },
                 agent_dir = vim.fn.expand("~/.omp/agent"),
                 -- pi2.nvim suppresses its completion notification while the prompt
