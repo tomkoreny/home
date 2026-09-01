@@ -84,6 +84,11 @@ in
   # Always show notifications on the centre Alienware screen.
   tomkoreny.mako.output = "DP-2";
   tomkoreny.komai.enable = true;
+  tomkoreny.quickshell-osd = {
+    enable = true;
+    output = "DP-2";
+    monitorSerial = "6D12YZ3";
+  };
 
   # Preserve the original artwork on the centre display and use the generated
   # portrait outpaints as seamless extensions on the two side displays.

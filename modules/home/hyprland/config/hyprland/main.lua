@@ -17,7 +17,7 @@ hl.env("XCURSOR_SIZE", "32")
 
 -- Autostart only on compositor startup, not on config reload.
 hl.on("hyprland.start", function()
-    hl.exec_cmd("systemctl --user start --no-block waybar.service jellyfin-mpv-shim.service")
+    hl.exec_cmd("systemctl --user start --no-block waybar.service jellyfin-mpv-shim.service quickshell-osd.service")
     hl.exec_cmd("uwsm app -- teams-for-linux --minimized")
     hl.exec_cmd("uwsm app -- discord --start-minimized")
     hl.exec_cmd("uwsm app -- element-desktop --hidden")
@@ -201,12 +201,12 @@ hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
 
 local repeatLocked = { locked = true, repeating = true }
-hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), repeatLocked)
-hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"), repeatLocked)
-hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), repeatLocked)
+hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("desktop-osd volume-up"), repeatLocked)
+hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("desktop-osd volume-down"), repeatLocked)
+hl.bind("XF86AudioMute", hl.dsp.exec_cmd("desktop-osd volume-mute"), repeatLocked)
 hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), repeatLocked)
-hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl s 10%+"), repeatLocked)
-hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl s 10%-"), repeatLocked)
+hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("desktop-osd brightness-up"), repeatLocked)
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("desktop-osd brightness-down"), repeatLocked)
 
 local locked = { locked = true }
 hl.bind("XF86AudioNext", hl.dsp.exec_cmd("playerctl next"), locked)
