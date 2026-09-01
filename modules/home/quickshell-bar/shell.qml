@@ -55,11 +55,18 @@ ShellRoot {
             id: bar
 
             required property var modelData
+            readonly property var displayMonitor: Hyprland.monitors.values.find(
+                monitor => monitor.name === modelData.name
+            ) ?? null
+            readonly property var displayWorkspace: displayMonitor
+                ? displayMonitor.activeWorkspace : null
+            readonly property bool singleWindowMode: displayWorkspace !== null
+                && displayWorkspace.toplevels.values.length === 1
             readonly property var displayWindow: root.windowForScreen(modelData.name)
             readonly property bool primary: modelData.name === "@primaryOutput@"
 
             screen: modelData
-            color: "transparent"
+            color: singleWindowMode ? "#000000" : "transparent"
             implicitHeight: 36
             exclusiveZone: 36
             aboveWindows: true
@@ -95,8 +102,8 @@ ShellRoot {
                 width: workspaceRow.implicitWidth + 10
                 height: 30
                 radius: 15
-                color: "@surface@"
-                border.width: 1
+                color: bar.singleWindowMode ? "transparent" : "@surface@"
+                border.width: bar.singleWindowMode ? 0 : 1
                 border.color: "@border@"
 
                 Row {
@@ -160,15 +167,18 @@ ShellRoot {
 
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: 3
-                width: Math.min(520, titleText.implicitWidth + 34)
+                width: bar.singleWindowMode
+                    ? titleRow.implicitWidth
+                    : Math.min(520, titleText.implicitWidth + 34)
                 height: 30
                 radius: 15
                 visible: bar.displayWindow !== null && titleText.text !== ""
-                color: "@surface@"
-                border.width: 1
+                color: bar.singleWindowMode ? "transparent" : "@surface@"
+                border.width: bar.singleWindowMode ? 0 : 1
                 border.color: "@border@"
 
                 Row {
+                    id: titleRow
                     anchors.centerIn: parent
                     spacing: 8
 
@@ -202,8 +212,8 @@ ShellRoot {
                 height: 30
                 radius: 15
                 visible: bar.primary
-                color: "@surface@"
-                border.width: 1
+                color: bar.singleWindowMode ? "transparent" : "@surface@"
+                border.width: bar.singleWindowMode ? 0 : 1
                 border.color: "@border@"
 
                 Row {
