@@ -44,22 +44,44 @@ let
         qs -c tom-osd ipc call osd showVolume "$value" "$muted" >/dev/null 2>&1 || true
       }
 
+      read_brightness() {
+        local line
+        line="$(ddcutil --sn "$serial" getvcp 10 --brief 2>/dev/null)" || return 1
+        read -r _ _ _ brightness_current brightness_maximum <<< "$line"
+        [[ "$brightness_current" =~ ^[0-9]+$ && "$brightness_maximum" =~ ^[0-9]+$ ]] || return 1
+        (( brightness_maximum > 0 ))
+      }
+
       show_brightness() {
-        local line current maximum
-        line="$(ddcutil --sn "$serial" getvcp 10 --brief 2>/dev/null)" || return 0
-        read -r _ _ _ current maximum <<< "$line"
-        [[ "$current" =~ ^[0-9]+$ && "$maximum" =~ ^[0-9]+$ ]] || return 0
-        (( maximum > 0 )) || return 0
-        qs -c tom-osd ipc call osd showBrightness "$((current * 100 / maximum))" >/dev/null 2>&1 || true
+        read_brightness || return 0
+        qs -c tom-osd ipc call osd showBrightness "$((brightness_current * 100 / brightness_maximum))" >/dev/null 2>&1 || true
       }
 
       adjust_brightness() {
         local operator="$1"
         local lock="''${XDG_RUNTIME_DIR:-/tmp}/tom-osd-brightness.lock"
+        local expected
         exec 9>"$lock"
-        flock -n 9 || return 0
-        ddcutil --sn "$serial" setvcp 10 "$operator" 10 --noverify >/dev/null 2>&1
-        show_brightness
+        flock -n 9 || return 1
+
+        read_brightness || return 1
+        if [[ "$operator" == + ]]; then
+          expected=$((brightness_current + 10))
+          (( expected > brightness_maximum )) && expected=$brightness_maximum
+        else
+          expected=$((brightness_current - 10))
+          (( expected < 0 )) && expected=0
+        fi
+
+        ddcutil --sn "$serial" setvcp 10 "$expected" --noverify >/dev/null 2>&1 || return 1
+        read_brightness || return 1
+        if (( brightness_current != expected )); then
+          ddcutil --sn "$serial" setvcp 10 "$expected" --noverify >/dev/null 2>&1 || return 1
+          read_brightness || return 1
+        fi
+
+        qs -c tom-osd ipc call osd showBrightness "$((brightness_current * 100 / brightness_maximum))" >/dev/null 2>&1 || true
+        (( brightness_current == expected ))
       }
 
       case "''${1:-}" in
