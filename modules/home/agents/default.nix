@@ -192,9 +192,9 @@ in
       # around the input. Other values: claude, pi.
       composer.shape = "borderless";
 
-      # Shared remote memory for Linux and macOS. Project tags use the checkout
-      # basename rather than an absolute-path hash, so both machines recall the
-      # same project bank.
+      # Shared remote memory for Linux and macOS. Tagged scoping isolates
+      # unrelated repositories by default; this repo's .omp/config.yml selects
+      # a dedicated bank because its checkout basename differs between hosts.
       memory.backend = "hindsight";
       hindsight = {
         apiUrl = "https://hindsight.home.tomkoreny.com";

@@ -1,0 +1,6 @@
+# Both machines use this repository under different checkout basenames. A
+# dedicated global-scoped bank keeps their history unified without exposing
+# memories from unrelated repositories.
+hindsight:
+  bankId: tomkoreny-home
+  scoping: global
