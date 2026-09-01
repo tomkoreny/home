@@ -12,6 +12,8 @@ in
 
   home.username = "tom";
   home.homeDirectory = "/Users/tom";
+
+  tomkoreny.komai.enable = true;
   home.packages = [
     pkgs.raycast
   ];
