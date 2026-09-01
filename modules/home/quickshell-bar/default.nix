@@ -10,20 +10,36 @@ let
   common = import ../../../lib/common { };
   fontFamily = (common.stylix.fonts pkgs inputs).sansSerif.name;
 
-  shell = pkgs.replaceVars ./shell.qml {
+  themeVars = {
     inherit fontFamily;
-    outputs = builtins.toJSON cfg.outputs;
-    primaryOutput = cfg.primaryOutput;
     accent = common.stylix.accent;
     accentSurface = "#33219fff";
     border = "#66219fff";
+    cardSurface = "#f21e1e2e";
     muted = "#f38ba8";
     surface = "#f2181825";
     text = "#cdd6f4";
     subdued = "#a6adc8";
-    pavucontrol = lib.getExe pkgs.pavucontrol;
-    qs = "${pkgs.quickshell}/bin/qs";
   };
+  shell = pkgs.replaceVars ./shell.qml (
+    (builtins.removeAttrs themeVars [ "cardSurface" ])
+    // {
+      outputs = builtins.toJSON cfg.outputs;
+      primaryOutput = cfg.primaryOutput;
+      pavucontrol = lib.getExe pkgs.pavucontrol;
+      qs = "${pkgs.quickshell}/bin/qs";
+    }
+  );
+  notificationCard = pkgs.replaceVars ./NotificationCard.qml themeVars;
+  notifications = pkgs.replaceVars ./Notifications.qml (
+    (builtins.removeAttrs themeVars [
+      "cardSurface"
+      "muted"
+    ])
+    // {
+      primaryOutput = cfg.primaryOutput;
+    }
+  );
 in
 {
   options.tomkoreny.quickshell-bar = {
@@ -60,7 +76,11 @@ in
 
     home.packages = [ pkgs.quickshell ];
 
-    xdg.configFile."quickshell/tom-bar/shell.qml".source = shell;
+    xdg.configFile = {
+      "quickshell/tom-bar/shell.qml".source = shell;
+      "quickshell/tom-bar/NotificationCard.qml".source = notificationCard;
+      "quickshell/tom-bar/Notifications.qml".source = notifications;
+    };
 
     systemd.user.services.quickshell-bar = {
       Unit.Description = "Quickshell desktop bar";

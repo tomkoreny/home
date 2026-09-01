@@ -16,11 +16,10 @@ in
     };
   };
 
-  # Pretty notification popups. Replaces the old tiramisu -> Waybar
-  # `custom/polytiramisu` setup that rendered notifications inline in the bar.
-  # Colors, fonts and opacity are themed automatically by Stylix
-  # (stylix targets.mako), so only layout is configured here.
-  config = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
+  # Keep Mako for Linux profiles that still use Waybar. The Quickshell bar
+  # owns the notification DBus service when enabled, so both daemons must not
+  # start in the same session.
+  config = lib.mkIf (pkgs.stdenv.hostPlatform.isLinux && !config.tomkoreny.quickshell-bar.enable) {
     services.mako = {
       enable = true;
       settings = {

@@ -75,7 +75,7 @@ hl.config({
         layout = "dwindle",
     },
     decoration = {
-        rounding = 0,
+        rounding = 8,
         active_opacity = 1.0,
         inactive_opacity = 1.0,
         shadow = {
@@ -174,6 +174,7 @@ hl.bind(mainMod .. " + U", hl.dsp.exec_cmd("uwsm app -- unifi-cam"))
 hl.bind(mainMod .. " + SHIFT + V", hl.dsp.exec_cmd("cliphist list | wofi --dmenu | cliphist decode | wl-copy"))
 hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("diacritics-fix"))
 hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("desktop-osd session"))
+hl.bind(mainMod .. " + N", hl.dsp.exec_cmd("qs -c tom-bar ipc call notifications toggle"))
 
 hl.bind("Print", hl.dsp.exec_cmd("hyprshot -m region"))
 hl.bind(mainMod .. " + Print", hl.dsp.exec_cmd("hyprshot -m output"))

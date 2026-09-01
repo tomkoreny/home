@@ -85,8 +85,6 @@ in
     primaryOutput = "DP-2";
   };
 
-  # Always show notifications on the centre Alienware screen.
-  tomkoreny.mako.output = "DP-2";
   tomkoreny.komai.enable = true;
   tomkoreny.quickshell-osd = {
     enable = true;

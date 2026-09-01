@@ -27,18 +27,6 @@ ShellRoot {
         return "󰕾";
     }
 
-    function windowForScreen(screenName: string): var {
-        const active = Hyprland.activeToplevel;
-        if (active && active.monitor && active.monitor.name === screenName)
-            return active;
-
-        const monitor = Hyprland.monitors.values.find(candidate => candidate.name === screenName);
-        if (!monitor || !monitor.activeWorkspace)
-            return null;
-
-        return monitor.activeWorkspace.toplevels.values[0] ?? null;
-    }
-
     PwObjectTracker {
         objects: [Pipewire.defaultAudioSink]
     }
@@ -46,6 +34,20 @@ ShellRoot {
     SystemClock {
         id: clock
         precision: SystemClock.Minutes
+    }
+
+    Notifications {
+        id: notifications
+    }
+
+    IpcHandler {
+        target: "notifications"
+
+        function toggle(): bool {
+            notifications.toggleCenter();
+            return notifications.centerVisible;
+        }
+
     }
 
     Variants {
@@ -62,7 +64,6 @@ ShellRoot {
                 ? displayMonitor.activeWorkspace : null
             readonly property bool singleWindowMode: displayWorkspace !== null
                 && displayWorkspace.toplevels.values.length === 1
-            readonly property var displayWindow: root.windowForScreen(modelData.name)
             readonly property bool primary: modelData.name === "@primaryOutput@"
 
             screen: modelData
@@ -82,15 +83,11 @@ ShellRoot {
             mask: Region {
                 Region {
                     item: workspaceIsland
-                    radius: 15
-                }
-                Region {
-                    item: titleIsland.visible ? titleIsland : null
-                    radius: 15
+                    radius: workspaceIsland.radius
                 }
                 Region {
                     item: statusIsland.visible ? statusIsland : null
-                    radius: 15
+                    radius: statusIsland.radius
                 }
             }
 
@@ -101,7 +98,7 @@ ShellRoot {
                 y: 3
                 width: workspaceRow.implicitWidth + 10
                 height: 30
-                radius: 15
+                radius: bar.singleWindowMode ? 0 : 8
                 color: bar.singleWindowMode ? "transparent" : "@surface@"
                 border.width: bar.singleWindowMode ? 0 : 1
                 border.color: "@border@"
@@ -163,54 +160,13 @@ ShellRoot {
             }
 
             Rectangle {
-                id: titleIsland
-
-                anchors.horizontalCenter: parent.horizontalCenter
-                y: 3
-                width: bar.singleWindowMode
-                    ? titleRow.implicitWidth
-                    : Math.min(520, titleText.implicitWidth + 34)
-                height: 30
-                radius: 15
-                visible: bar.displayWindow !== null && titleText.text !== ""
-                color: bar.singleWindowMode ? "transparent" : "@surface@"
-                border.width: bar.singleWindowMode ? 0 : 1
-                border.color: "@border@"
-
-                Row {
-                    id: titleRow
-                    anchors.centerIn: parent
-                    spacing: 8
-
-                    Rectangle {
-                        width: 6
-                        height: 6
-                        radius: 3
-                        color: "@accent@"
-                    }
-
-                    Text {
-                        id: titleText
-
-                        width: Math.min(470, implicitWidth)
-                        text: bar.displayWindow ? bar.displayWindow.title : ""
-                        color: "@text@"
-                        elide: Text.ElideRight
-                        maximumLineCount: 1
-                        font.family: "@fontFamily@"
-                        font.pixelSize: 12
-                    }
-                }
-            }
-
-            Rectangle {
                 id: statusIsland
 
                 x: parent.width - width - 6
                 y: 3
                 width: statusRow.implicitWidth + 12
                 height: 30
-                radius: 15
+                radius: bar.singleWindowMode ? 0 : 8
                 visible: bar.primary
                 color: bar.singleWindowMode ? "transparent" : "@surface@"
                 border.width: bar.singleWindowMode ? 0 : 1
@@ -587,6 +543,67 @@ ShellRoot {
                             QQC2.ToolTip.visible: containsMouse
                             QQC2.ToolTip.delay: 500
                             QQC2.ToolTip.text: Qt.formatDateTime(clock.date, "dddd, d MMMM yyyy")
+                        }
+                    }
+
+                    Rectangle {
+                        width: 1
+                        height: 16
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: "@border@"
+                    }
+
+                    Item {
+                        id: notificationBell
+
+                        width: 34
+                        height: parent.height
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: notifications.doNotDisturb ? "󰂛" : "󰂚"
+                            color: notifications.doNotDisturb
+                                ? "@muted@"
+                                : notifications.unreadCount > 0 ? "@accent@" : "@text@"
+                            font.family: "@fontFamily@"
+                            font.pixelSize: 15
+                        }
+
+                        Rectangle {
+                            anchors.top: parent.top
+                            anchors.right: parent.right
+                            anchors.topMargin: 1
+                            anchors.rightMargin: 1
+                            visible: notifications.unreadCount > 0
+                            width: Math.max(14, unreadLabel.implicitWidth + 6)
+                            height: 14
+                            radius: 7
+                            color: "@accent@"
+
+                            Text {
+                                id: unreadLabel
+
+                                anchors.centerIn: parent
+                                text: notifications.unreadCount
+                                color: "#11111b"
+                                font.family: "@fontFamily@"
+                                font.pixelSize: 9
+                                font.weight: Font.Bold
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: notifications.toggleCenter()
+
+                            QQC2.ToolTip.visible: containsMouse
+                                && !notifications.centerVisible
+                            QQC2.ToolTip.delay: 500
+                            QQC2.ToolTip.text: notifications.doNotDisturb
+                                ? `Do Not Disturb · ${notifications.unreadCount} unread`
+                                : `${notifications.unreadCount} unread notifications`
                         }
                     }
 
