@@ -12,6 +12,7 @@ let
 
   shell = pkgs.replaceVars ./shell.qml {
     inherit fontFamily;
+    systemctl = "${pkgs.systemd}/bin/systemctl";
     output = cfg.output;
     accent = common.stylix.accent;
     accentSurface = "#33219fff";
@@ -103,8 +104,11 @@ let
         brightness-down)
           adjust_brightness -
           ;;
+        session)
+          qs -c tom-osd ipc call session reveal >/dev/null
+          ;;
         *)
-          echo "usage: desktop-osd {volume-up|volume-down|volume-mute|brightness-up|brightness-down}" >&2
+          echo "usage: desktop-osd {volume-up|volume-down|volume-mute|brightness-up|brightness-down|session}" >&2
           exit 2
           ;;
       esac
@@ -113,7 +117,7 @@ let
 in
 {
   options.tomkoreny.quickshell-osd = {
-    enable = lib.mkEnableOption "the Quickshell volume and brightness OSD";
+    enable = lib.mkEnableOption "Quickshell desktop overlays";
 
     output = lib.mkOption {
       type = lib.types.str;

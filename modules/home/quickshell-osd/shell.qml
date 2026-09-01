@@ -29,6 +29,8 @@ PanelWindow {
     }
 
     function reveal(nextKind: string, nextLevel: real, nextMuted: bool): void {
+        if (sessionPopup.shown)
+            return;
         mediaPopup.shown = false;
         kind = nextKind;
         level = Math.max(0, Math.min(1, nextLevel));
@@ -164,6 +166,8 @@ PanelWindow {
         }
 
         function reveal(): void {
+            if (sessionPopup.shown)
+                return;
             if (!root.mediaPlayer || root.mediaPlayer.trackTitle === "")
                 return;
             root.shown = false;
@@ -353,6 +357,292 @@ PanelWindow {
         }
     }
 
+    PanelWindow {
+        id: sessionPopup
+
+        property bool shown: false
+        property string pendingAction: ""
+
+        function reveal(): void {
+            root.shown = false;
+            mediaPopup.shown = false;
+            pendingAction = "";
+            shown = true;
+            Qt.callLater(() => sleepAction.forceActiveFocus());
+        }
+
+        function close(): void {
+            shown = false;
+            pendingAction = "";
+        }
+
+        function request(action: string): void {
+            if (action === "suspend") {
+                run(action);
+                return;
+            }
+
+            pendingAction = action;
+            Qt.callLater(() => cancelAction.forceActiveFocus());
+        }
+
+        function run(action: string): void {
+            close();
+            sessionCommand.exec(["@systemctl@", action]);
+        }
+
+        component ActionTile: Rectangle {
+            id: tile
+
+            required property string iconText
+            required property string labelText
+            property bool danger: false
+            property color tone: danger ? "@muted@" : "@accent@"
+            signal activated()
+
+            width: 168
+            height: 126
+            radius: 20
+            color: activeFocus || pointer.containsMouse
+                ? (danger ? "@mutedSurface@" : "@accentSurface@")
+                : "@track@"
+            border.width: activeFocus ? 2 : 1
+            border.color: activeFocus || pointer.containsMouse ? tone : "@border@"
+            activeFocusOnTab: true
+
+            Behavior on color {
+                ColorAnimation {
+                    duration: 120
+                }
+            }
+
+            Column {
+                anchors.centerIn: parent
+                spacing: 10
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: tile.iconText
+                    color: tile.tone
+                    font.family: "@fontFamily@"
+                    font.pixelSize: 34
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: tile.labelText
+                    color: "@text@"
+                    font.family: "@fontFamily@"
+                    font.pixelSize: 15
+                    font.weight: Font.DemiBold
+                }
+            }
+
+            Keys.onReturnPressed: activated()
+            Keys.onEnterPressed: activated()
+            Keys.onSpacePressed: activated()
+
+            MouseArea {
+                id: pointer
+
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onEntered: tile.forceActiveFocus()
+                onClicked: tile.activated()
+            }
+        }
+
+        screen: root.targetScreen ?? Quickshell.screens[0]
+        visible: root.targetScreen !== null && (shown || sessionOverlay.opacity > 0.01)
+        color: "transparent"
+        exclusiveZone: 0
+        aboveWindows: true
+
+        anchors.top: true
+        anchors.bottom: true
+        anchors.left: true
+        anchors.right: true
+
+        WlrLayershell.namespace: "tom-session"
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.keyboardFocus: shown
+            ? WlrKeyboardFocus.Exclusive
+            : WlrKeyboardFocus.None
+
+        Rectangle {
+            id: sessionOverlay
+
+            anchors.fill: parent
+            color: "#990b0b12"
+            opacity: sessionPopup.shown ? 1 : 0
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: 160
+                    easing.type: Easing.OutCubic
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: sessionPopup.close()
+            }
+
+            Rectangle {
+                id: sessionCard
+
+                anchors.centerIn: parent
+                width: 600
+                height: 284
+                radius: 28
+                color: "@surface@"
+                border.width: 1
+                border.color: "@border@"
+                scale: sessionPopup.shown ? 1 : 0.96
+
+                Behavior on scale {
+                    NumberAnimation {
+                        duration: 180
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                }
+
+                Column {
+                    anchors.top: parent.top
+                    anchors.topMargin: 28
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 5
+
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: sessionPopup.pendingAction === ""
+                            ? "Session"
+                            : sessionPopup.pendingAction === "reboot"
+                                ? "Reboot this desktop?"
+                                : "Shut down this desktop?"
+                        color: "@text@"
+                        font.family: "@fontFamily@"
+                        font.pixelSize: 24
+                        font.weight: Font.DemiBold
+                    }
+
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: sessionPopup.pendingAction === ""
+                            ? "Choose what this desktop should do."
+                            : "Unsaved work may be lost."
+                        color: "@text@"
+                        opacity: 0.62
+                        font.family: "@fontFamily@"
+                        font.pixelSize: 13
+                    }
+                }
+
+                Row {
+                    anchors.top: parent.top
+                    anchors.topMargin: 112
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 14
+                    visible: sessionPopup.pendingAction === ""
+
+                    ActionTile {
+                        id: sleepAction
+
+                        iconText: "󰒲"
+                        labelText: "Sleep"
+                        onActivated: sessionPopup.request("suspend")
+                        KeyNavigation.left: shutdownAction
+                        KeyNavigation.right: rebootAction
+                    }
+
+                    ActionTile {
+                        id: rebootAction
+
+                        iconText: "󰜉"
+                        labelText: "Reboot"
+                        onActivated: sessionPopup.request("reboot")
+                        KeyNavigation.left: sleepAction
+                        KeyNavigation.right: shutdownAction
+                    }
+
+                    ActionTile {
+                        id: shutdownAction
+
+                        iconText: "󰐥"
+                        labelText: "Shutdown"
+                        danger: true
+                        onActivated: sessionPopup.request("poweroff")
+                        KeyNavigation.left: rebootAction
+                        KeyNavigation.right: sleepAction
+                    }
+                }
+
+                Row {
+                    anchors.top: parent.top
+                    anchors.topMargin: 112
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 14
+                    visible: sessionPopup.pendingAction !== ""
+
+                    ActionTile {
+                        id: cancelAction
+
+                        width: 210
+                        iconText: "󰅖"
+                        labelText: "Cancel"
+                        onActivated: sessionPopup.close()
+                        KeyNavigation.left: confirmAction
+                        KeyNavigation.right: confirmAction
+                    }
+
+                    ActionTile {
+                        id: confirmAction
+
+                        width: 210
+                        iconText: sessionPopup.pendingAction === "reboot" ? "󰜉" : "󰐥"
+                        labelText: sessionPopup.pendingAction === "reboot" ? "Reboot" : "Shutdown"
+                        danger: true
+                        onActivated: sessionPopup.run(sessionPopup.pendingAction)
+                        KeyNavigation.left: cancelAction
+                        KeyNavigation.right: cancelAction
+                    }
+                }
+
+                Text {
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 12
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "ESC TO CLOSE"
+                    color: "@text@"
+                    opacity: 0.36
+                    font.family: "@fontFamily@"
+                    font.pixelSize: 9
+                    font.weight: Font.DemiBold
+                }
+            }
+        }
+
+        Shortcut {
+            sequence: "Esc"
+            enabled: sessionPopup.shown
+            onActivated: sessionPopup.close()
+        }
+
+        Process {
+            id: sessionCommand
+
+            onExited: (exitCode, exitStatus) => {
+                if (exitCode !== 0)
+                    console.warn(`Session action failed with exit code ${exitCode}`);
+            }
+        }
+    }
+
     Timer {
         id: dismiss
         interval: 1500
@@ -389,6 +679,21 @@ PanelWindow {
 
         function reveal(): void {
             mediaPopup.reveal();
+        }
+    }
+
+    IpcHandler {
+        target: "session"
+
+        function reveal(): void {
+            sessionPopup.reveal();
+        }
+
+        function request(action: string): void {
+            if (!sessionPopup.shown)
+                return;
+            if (action === "reboot" || action === "poweroff")
+                sessionPopup.request(action);
         }
     }
 }

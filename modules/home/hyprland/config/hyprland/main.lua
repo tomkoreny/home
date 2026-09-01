@@ -173,6 +173,7 @@ hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("uwsm app -- helium-browser"))
 hl.bind(mainMod .. " + U", hl.dsp.exec_cmd("uwsm app -- unifi-cam"))
 hl.bind(mainMod .. " + SHIFT + V", hl.dsp.exec_cmd("cliphist list | wofi --dmenu | cliphist decode | wl-copy"))
 hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("diacritics-fix"))
+hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("desktop-osd session"))
 
 hl.bind("Print", hl.dsp.exec_cmd("hyprshot -m region"))
 hl.bind(mainMod .. " + Print", hl.dsp.exec_cmd("hyprshot -m output"))
