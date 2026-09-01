@@ -108,8 +108,10 @@ in
   home.username = "tom";
   home.homeDirectory = "/home/tom";
 
-  # Keep enough media queued to ride through multi-second network stalls. This
-  # also captures the existing host-specific HDR/NVDEC settings declaratively.
+  # Captures the host-specific HDR/NVDEC settings declaratively. The cache/
+  # readahead tuning that used to live here was reverted: the stutter it
+  # chased turned out to be corrupt HEVC bitstreams in specific files, not
+  # buffering (see ffmpeg decode-scan, 2026-08-31).
   xdg.configFile."jellyfin-mpv-shim/mpv.conf" = {
     force = true;
     text = ''
@@ -122,11 +124,6 @@ in
 
       # This host has an NVIDIA RTX 2070 SUPER; keep 4K HEVC decoding on NVDEC.
       hwdec=nvdec
-
-      # Buffer through multi-second stalls without constraining normal playback.
-      cache=yes
-      demuxer-max-bytes=1GiB
-      demuxer-readahead-secs=60
     '';
   };
 
