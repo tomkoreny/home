@@ -221,6 +221,15 @@ hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.fullscreen_state({ internal = 3
 hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("sleep 1 && hypr-dpms off"))
 
 -- Window rules
+-- The 1px accent focus border reads as a stray blue line across the top of
+-- the browser when it tiles flush under waybar; drop it for Helium only and
+-- keep the border as the focus cue for everything else.
+hl.window_rule({
+    name = "no-border-helium",
+    match = { class = "helium" },
+    border_size = 0,
+})
+
 hl.window_rule({
     name = "camera-grid",
     match = { title = ".*CameraGrid .*" },
