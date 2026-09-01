@@ -15,8 +15,6 @@ ShellRoot {
     readonly property var audio: audioNode ? audioNode.audio : null
     readonly property bool audioMuted: audio ? audio.muted : false
     readonly property int volumePercent: audio ? Math.round(audio.volume * 100) : 0
-    property string networkKind: "disconnected"
-    property string networkLabel: "Disconnected"
     property bool showDate: false
 
     function audioIcon(): string {
@@ -41,27 +39,6 @@ ShellRoot {
         return monitor.activeWorkspace.toplevels.values[0] ?? null;
     }
 
-    function updateNetwork(status: string): void {
-        const lines = status.trim().split("\n");
-        for (const line of lines) {
-            const fields = line.split(":");
-            if (fields.length < 3 || fields[1] !== "connected")
-                continue;
-            if (fields[0] !== "wifi" && fields[0] !== "ethernet")
-                continue;
-
-            networkKind = fields[0];
-            const connection = fields.slice(2).join(":").replace(/\\:/g, ":");
-            networkLabel = connection === ""
-                ? (networkKind === "wifi" ? "Wi-Fi" : "Ethernet")
-                : connection;
-            return;
-        }
-
-        networkKind = "disconnected";
-        networkLabel = "Disconnected";
-    }
-
     PwObjectTracker {
         objects: [Pipewire.defaultAudioSink]
     }
@@ -70,26 +47,6 @@ ShellRoot {
         id: clock
         precision: SystemClock.Minutes
     }
-
-    Process {
-        id: networkProbe
-        command: ["@nmcli@", "-t", "-f", "TYPE,STATE,CONNECTION", "device", "status"]
-        stdout: StdioCollector {
-            onStreamFinished: root.updateNetwork(text)
-        }
-    }
-
-    Timer {
-        interval: 5000
-        repeat: true
-        running: true
-        onTriggered: {
-            if (!networkProbe.running)
-                networkProbe.running = true;
-        }
-    }
-
-    Component.onCompleted: networkProbe.running = true
 
     Variants {
         model: Quickshell.screens.filter(screen => root.outputs.includes(screen.name))
@@ -282,37 +239,6 @@ ShellRoot {
                             QQC2.ToolTip.text: root.audioMuted
                                 ? `Muted · ${root.volumePercent}%`
                                 : `Volume · ${root.volumePercent}%`
-                        }
-                    }
-
-                    Rectangle {
-                        width: 1
-                        height: 16
-                        anchors.verticalCenter: parent.verticalCenter
-                        color: "@border@"
-                    }
-
-                    Item {
-                        width: 28
-                        height: parent.height
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: root.networkKind === "wifi"
-                                ? "󰤨"
-                                : root.networkKind === "ethernet" ? "󰈀" : "󰤭"
-                            color: root.networkKind === "disconnected" ? "@muted@" : "@text@"
-                            font.family: "@fontFamily@"
-                            font.pixelSize: 14
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-
-                            QQC2.ToolTip.visible: containsMouse
-                            QQC2.ToolTip.delay: 500
-                            QQC2.ToolTip.text: root.networkLabel
                         }
                     }
 

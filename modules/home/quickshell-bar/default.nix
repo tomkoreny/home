@@ -21,7 +21,6 @@ let
     surface = "#f2181825";
     text = "#cdd6f4";
     subdued = "#a6adc8";
-    nmcli = "${pkgs.networkmanager}/bin/nmcli";
     pavucontrol = lib.getExe pkgs.pavucontrol;
     qs = "${pkgs.quickshell}/bin/qs";
   };
