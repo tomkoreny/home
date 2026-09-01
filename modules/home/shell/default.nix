@@ -33,12 +33,7 @@
           exec ${lib.getExe pkgs.nh} darwin switch --diff never "$@"
           ;;
         *)
-          # Not nh here: nh wraps its elevated calls as `sudo env ... <cmd>`,
-          # which cannot be matched by the restricted NOPASSWD sudoers rule
-          # (see systems/x86_64-linux/nixos/default.nix). nixos-rebuild is
-          # allowlisted and needs no env wrapper.
-          exec sudo /run/current-system/sw/bin/nixos-rebuild switch \
-            --flake /home/tom/nixos2#nixos "$@"
+          exec ${lib.getExe pkgs.nh} os switch --diff never "$@"
           ;;
       esac
     '')

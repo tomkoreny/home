@@ -320,10 +320,10 @@ in
     };
   };
 
-  # Passwordless sudo only for nixos-rebuild (what `sw` runs) and systemctl;
-  # everything else prompts for a password (wheel default). Note nh cannot be
-  # allowlisted instead: it wraps its elevated calls as `sudo env ... <cmd>`,
-  # and allowlisting `env` would allow everything. This is still
+  # Passwordless sudo only for direct nixos-rebuild and systemctl; everything
+  # else prompts for a password (wheel default). nh wraps its elevated calls as
+  # `sudo env ... <cmd>`, so allowlisting it would require allowlisting `env`
+  # and therefore every command. The direct rebuild permission is already
   # root-equivalent for someone who can author and activate an arbitrary
   # closure, but it stops compromised user processes from running plain
   # `sudo <anything>`.
