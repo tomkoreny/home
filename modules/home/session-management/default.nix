@@ -35,12 +35,85 @@ let
       exec tmux new-session -A -s "$session"
     '';
   };
+  # Herdr focus is session-global: every full client attached to a session
+  # renders the same workspace, so a second Ghostty window running plain
+  # `herdr` only mirrors the first (confirmed for 0.8.2; the changelog calls
+  # per-client independent navigation "not yet" supported). Direct terminal
+  # attach is the only way to view one server-owned pane of the same session
+  # independently; this opens a new Ghostty window doing exactly that. With
+  # no argument it offers a wofi picker over every pane in the session.
+  #
+  # The HERDR_* variables are unset inside the new window so the attach runs
+  # as a fresh client instead of inheriting this pane's nested-launch guard.
+  herdrView = pkgs.writeShellApplication {
+    name = "herdr-view";
+    runtimeInputs = [ pkgs.jq ] ++ lib.optional pkgs.stdenv.hostPlatform.isLinux pkgs.util-linux;
+    text = ''
+      herdr=${lib.getExe herdrPackage}
+
+      panes() {
+        "$herdr" api snapshot | jq -r '
+          .result.snapshot as $s
+          | ($s.workspaces | map({key: .workspace_id, value: .label}) | from_entries) as $ws
+          | $s.panes[]
+          | [.pane_id, ($ws[.workspace_id] // .workspace_id), .agent // "-", .terminal_title_stripped // ""]
+          | @tsv'
+      }
+
+      if [[ $# -eq 0 && -n "''${WAYLAND_DISPLAY:-}" ]] && command -v wofi >/dev/null 2>&1; then
+        choice=$(panes | wofi --dmenu --prompt "herdr pane" || true)
+        [[ -n "$choice" ]] || exit 0
+        set -- "''${choice%%''$'\t'*}"
+      fi
+
+      if [[ $# -eq 0 || "$1" == list ]]; then
+        echo "usage: herdr-view [--takeover] PANE_ID|TERMINAL_ID" >&2
+        echo >&2
+        echo "panes in the default session:" >&2
+        panes >&2
+        exit 2
+      fi
+
+      extra=()
+      if [[ "$1" == --takeover ]]; then
+        extra+=(--takeover)
+        shift
+      fi
+      target="''${1:?usage: herdr-view [--takeover] PANE_ID|TERMINAL_ID}"
+
+      # `agent attach` resolves pane targets like w2:p1; `terminal attach`
+      # takes raw term_* ids. The agent *type* (e.g. "omp") is not a target.
+      subcommand=(agent attach)
+      if [[ "$target" == term_* ]]; then
+        subcommand=(terminal attach)
+      fi
+
+      window=(
+        ghostty -e
+        env -u HERDR_ENV -u HERDR_SOCKET_PATH
+        -u HERDR_WORKSPACE_ID -u HERDR_TAB_ID -u HERDR_PANE_ID
+        "$herdr" "''${subcommand[@]}" "$target" "''${extra[@]}"
+      )
+
+      if command -v uwsm >/dev/null 2>&1 && [[ -n "''${WAYLAND_DISPLAY:-}" ]]; then
+        window=(uwsm app -- "''${window[@]}")
+      fi
+      ${lib.optionalString pkgs.stdenv.hostPlatform.isLinux ''
+        # setsid (pinned util-linux) detaches the window from this pane so the
+        # launcher returns immediately and a closed pane never takes the viewer
+        # down with it. `uwsm app` alone stays foreground until the window closes.
+        exec setsid --fork "''${window[@]}" >/dev/null 2>&1
+      ''}
+      exec "''${window[@]}"
+    '';
+  };
 in
 {
   # Keep tmux and mux installed as a fallback while Herdr is being evaluated.
   home.packages = [
     herdrPackage
     mux
+    herdrView
   ];
 
   # OMP has no reliable screen fallback in Herdr; its lifecycle extension is
@@ -132,7 +205,9 @@ in
   };
 
   # Herdr owns workspaces and process lifetime; Ghostty is only the renderer.
-  # tmux remains available through `mux` during the experiment.
+  # tmux remains available through `mux` during the experiment. Extra windows
+  # onto the same session go through `herdr-view` (see above); plain windows
+  # mirror by design.
   programs.ghostty = {
     enable = true;
     package = null;
