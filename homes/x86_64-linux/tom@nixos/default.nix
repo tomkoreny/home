@@ -75,11 +75,15 @@ in
   # NOTE: all modules under modules/home/ are auto-imported by Snowfall Lib —
   # no explicit imports needed here, just per-host knobs.
 
-  tomkoreny.waybar.outputs = [
-    "HDMI-A-2"
-    "DP-2"
-    "DP-3"
-  ];
+  tomkoreny.quickshell-bar = {
+    enable = true;
+    outputs = [
+      "HDMI-A-2"
+      "DP-2"
+      "DP-3"
+    ];
+    primaryOutput = "DP-2";
+  };
 
   # Always show notifications on the centre Alienware screen.
   tomkoreny.mako.output = "DP-2";

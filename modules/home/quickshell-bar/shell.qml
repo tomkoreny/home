@@ -1,0 +1,458 @@
+//@ pragma UseQApplication
+
+import Quickshell
+import Quickshell.Hyprland
+import Quickshell.Io
+import Quickshell.Services.Pipewire
+import Quickshell.Services.SystemTray
+import Quickshell.Wayland
+import QtQuick
+import QtQuick.Controls as QQC2
+
+ShellRoot {
+    id: root
+
+    readonly property var outputs: @outputs@
+    readonly property var audioNode: Pipewire.defaultAudioSink
+    readonly property var audio: audioNode ? audioNode.audio : null
+    readonly property bool audioMuted: audio ? audio.muted : false
+    readonly property int volumePercent: audio ? Math.round(audio.volume * 100) : 0
+    property string networkKind: "disconnected"
+    property string networkLabel: "Disconnected"
+    property bool showDate: false
+
+    function audioIcon(): string {
+        if (audioMuted)
+            return "󰖁";
+        if (volumePercent < 34)
+            return "󰕿";
+        if (volumePercent < 67)
+            return "󰖀";
+        return "󰕾";
+    }
+
+    function windowForScreen(screenName: string): var {
+        const active = Hyprland.activeToplevel;
+        if (active && active.monitor && active.monitor.name === screenName)
+            return active;
+
+        const monitor = Hyprland.monitors.values.find(candidate => candidate.name === screenName);
+        if (!monitor || !monitor.activeWorkspace)
+            return null;
+
+        return monitor.activeWorkspace.toplevels.values[0] ?? null;
+    }
+
+    function updateNetwork(status: string): void {
+        const lines = status.trim().split("\n");
+        for (const line of lines) {
+            const fields = line.split(":");
+            if (fields.length < 3 || fields[1] !== "connected")
+                continue;
+            if (fields[0] !== "wifi" && fields[0] !== "ethernet")
+                continue;
+
+            networkKind = fields[0];
+            const connection = fields.slice(2).join(":").replace(/\\:/g, ":");
+            networkLabel = connection === ""
+                ? (networkKind === "wifi" ? "Wi-Fi" : "Ethernet")
+                : connection;
+            return;
+        }
+
+        networkKind = "disconnected";
+        networkLabel = "Disconnected";
+    }
+
+    PwObjectTracker {
+        objects: [Pipewire.defaultAudioSink]
+    }
+
+    SystemClock {
+        id: clock
+        precision: SystemClock.Minutes
+    }
+
+    Process {
+        id: networkProbe
+        command: ["@nmcli@", "-t", "-f", "TYPE,STATE,CONNECTION", "device", "status"]
+        stdout: StdioCollector {
+            onStreamFinished: root.updateNetwork(text)
+        }
+    }
+
+    Timer {
+        interval: 5000
+        repeat: true
+        running: true
+        onTriggered: {
+            if (!networkProbe.running)
+                networkProbe.running = true;
+        }
+    }
+
+    Component.onCompleted: networkProbe.running = true
+
+    Variants {
+        model: Quickshell.screens.filter(screen => root.outputs.includes(screen.name))
+
+        PanelWindow {
+            id: bar
+
+            required property var modelData
+            readonly property var displayWindow: root.windowForScreen(modelData.name)
+            readonly property bool primary: modelData.name === "@primaryOutput@"
+
+            screen: modelData
+            color: "transparent"
+            implicitHeight: 36
+            exclusiveZone: 36
+            aboveWindows: true
+
+            anchors.top: true
+            anchors.left: true
+            anchors.right: true
+
+            WlrLayershell.namespace: `tom-bar-${modelData.name}`
+            WlrLayershell.layer: WlrLayer.Top
+            WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+
+            mask: Region {
+                Region {
+                    item: workspaceIsland
+                    radius: 15
+                }
+                Region {
+                    item: titleIsland.visible ? titleIsland : null
+                    radius: 15
+                }
+                Region {
+                    item: statusIsland.visible ? statusIsland : null
+                    radius: 15
+                }
+            }
+
+            Rectangle {
+                id: workspaceIsland
+
+                x: 6
+                y: 3
+                width: workspaceRow.implicitWidth + 10
+                height: 30
+                radius: 15
+                color: "@surface@"
+                border.width: 1
+                border.color: "@border@"
+
+                Row {
+                    id: workspaceRow
+
+                    anchors.centerIn: parent
+                    spacing: 2
+
+                    Repeater {
+                        model: Hyprland.workspaces
+
+                        Rectangle {
+                            id: workspaceButton
+
+                            required property var modelData
+                            readonly property bool onThisMonitor: modelData.id > 0
+                                && modelData.monitor !== null
+                                && modelData.monitor.name === bar.modelData.name
+
+                            visible: onThisMonitor
+                            width: visible ? 26 : 0
+                            height: 26
+                            radius: 13
+                            color: modelData.active ? "@accentSurface@" : "transparent"
+                            border.width: modelData.active ? 1 : 0
+                            border.color: "@accent@"
+
+                            Behavior on color {
+                                ColorAnimation {
+                                    duration: 120
+                                }
+                            }
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: workspaceButton.modelData.id
+                                color: workspaceButton.modelData.active ? "@accent@" : "@subdued@"
+                                font.family: "@fontFamily@"
+                                font.pixelSize: 12
+                                font.weight: workspaceButton.modelData.active ? Font.DemiBold : Font.Normal
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                enabled: workspaceButton.onThisMonitor
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: workspaceButton.modelData.activate()
+
+                                QQC2.ToolTip.visible: containsMouse
+                                QQC2.ToolTip.delay: 500
+                                QQC2.ToolTip.text: `Workspace ${workspaceButton.modelData.id}`
+                            }
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                id: titleIsland
+
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: 3
+                width: Math.min(520, titleText.implicitWidth + 34)
+                height: 30
+                radius: 15
+                visible: bar.displayWindow !== null && titleText.text !== ""
+                color: "@surface@"
+                border.width: 1
+                border.color: "@border@"
+
+                Row {
+                    anchors.centerIn: parent
+                    spacing: 8
+
+                    Rectangle {
+                        width: 6
+                        height: 6
+                        radius: 3
+                        color: "@accent@"
+                    }
+
+                    Text {
+                        id: titleText
+
+                        width: Math.min(470, implicitWidth)
+                        text: bar.displayWindow ? bar.displayWindow.title : ""
+                        color: "@text@"
+                        elide: Text.ElideRight
+                        maximumLineCount: 1
+                        font.family: "@fontFamily@"
+                        font.pixelSize: 12
+                    }
+                }
+            }
+
+            Rectangle {
+                id: statusIsland
+
+                x: parent.width - width - 6
+                y: 3
+                width: statusRow.implicitWidth + 12
+                height: 30
+                radius: 15
+                visible: bar.primary
+                color: "@surface@"
+                border.width: 1
+                border.color: "@border@"
+
+                Row {
+                    id: statusRow
+
+                    anchors.centerIn: parent
+                    height: 26
+                    spacing: 3
+
+                    Item {
+                        width: audioText.implicitWidth + 12
+                        height: parent.height
+
+                        Text {
+                            id: audioText
+
+                            anchors.centerIn: parent
+                            text: `${root.audioIcon()}  ${root.volumePercent}%`
+                            color: root.audioMuted ? "@muted@" : "@text@"
+                            font.family: "@fontFamily@"
+                            font.pixelSize: 12
+                            font.weight: Font.DemiBold
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: Quickshell.execDetached(["@pavucontrol@"]) 
+
+                            QQC2.ToolTip.visible: containsMouse
+                            QQC2.ToolTip.delay: 500
+                            QQC2.ToolTip.text: root.audioMuted
+                                ? `Muted · ${root.volumePercent}%`
+                                : `Volume · ${root.volumePercent}%`
+                        }
+                    }
+
+                    Rectangle {
+                        width: 1
+                        height: 16
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: "@border@"
+                    }
+
+                    Item {
+                        width: 28
+                        height: parent.height
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: root.networkKind === "wifi"
+                                ? "󰤨"
+                                : root.networkKind === "ethernet" ? "󰈀" : "󰤭"
+                            color: root.networkKind === "disconnected" ? "@muted@" : "@text@"
+                            font.family: "@fontFamily@"
+                            font.pixelSize: 14
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+
+                            QQC2.ToolTip.visible: containsMouse
+                            QQC2.ToolTip.delay: 500
+                            QQC2.ToolTip.text: root.networkLabel
+                        }
+                    }
+
+                    Rectangle {
+                        width: 1
+                        height: 16
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: trayRow.visible
+                        color: "@border@"
+                    }
+
+                    Row {
+                        id: trayRow
+
+                        height: parent.height
+                        spacing: 2
+                        visible: SystemTray.items.values.length > 0
+
+                        Repeater {
+                            model: SystemTray.items
+
+                            Item {
+                                id: trayHost
+
+                                required property var modelData
+                                width: 24
+                                height: parent.height
+
+                                function showMenu(): void {
+                                    const point = mapToItem(null, 0, height);
+                                    modelData.display(bar, Math.round(point.x), Math.round(point.y));
+                                }
+
+                                Image {
+                                    anchors.centerIn: parent
+                                    width: 17
+                                    height: 17
+                                    source: trayHost.modelData.icon
+                                    sourceSize.width: 17
+                                    sourceSize.height: 17
+                                    fillMode: Image.PreserveAspectFit
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: mouse => {
+                                        if (mouse.button === Qt.MiddleButton) {
+                                            trayHost.modelData.secondaryActivate();
+                                        } else if (mouse.button === Qt.RightButton
+                                                   || trayHost.modelData.onlyMenu) {
+                                            if (trayHost.modelData.hasMenu)
+                                                trayHost.showMenu();
+                                        } else {
+                                            trayHost.modelData.activate();
+                                        }
+                                    }
+
+                                    QQC2.ToolTip.visible: containsMouse
+                                    QQC2.ToolTip.delay: 500
+                                    QQC2.ToolTip.text: trayHost.modelData.tooltipTitle
+                                }
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        width: 1
+                        height: 16
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: "@border@"
+                    }
+
+                    Item {
+                        width: clockText.implicitWidth + 12
+                        height: parent.height
+
+                        Text {
+                            id: clockText
+
+                            anchors.centerIn: parent
+                            text: root.showDate
+                                ? Qt.formatDateTime(clock.date, "yyyy-MM-dd")
+                                : `󰥔  ${Qt.formatDateTime(clock.date, "HH:mm")}`
+                            color: "@text@"
+                            font.family: "@fontFamily@"
+                            font.pixelSize: 12
+                            font.weight: Font.DemiBold
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.showDate = !root.showDate
+
+                            QQC2.ToolTip.visible: containsMouse
+                            QQC2.ToolTip.delay: 500
+                            QQC2.ToolTip.text: Qt.formatDateTime(clock.date, "dddd, d MMMM yyyy")
+                        }
+                    }
+
+                    Rectangle {
+                        width: 1
+                        height: 16
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: "@border@"
+                    }
+
+                    Item {
+                        width: 28
+                        height: parent.height
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "󰐥"
+                            color: "@muted@"
+                            font.family: "@fontFamily@"
+                            font.pixelSize: 14
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: Quickshell.execDetached([
+                                "@qs@", "-c", "tom-osd", "ipc", "call", "session", "reveal"
+                            ])
+
+                            QQC2.ToolTip.visible: containsMouse
+                            QQC2.ToolTip.delay: 500
+                            QQC2.ToolTip.text: "Session"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

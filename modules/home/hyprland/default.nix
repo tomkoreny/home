@@ -14,6 +14,11 @@
 }:
 let
   hyprlandPackage = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
+  desktopBarService =
+    if config.tomkoreny.quickshell-bar.enable then "quickshell-bar.service" else "waybar.service";
+  hyprlandConfig = builtins.replaceStrings [ "@desktopBarService@" ] [ desktopBarService ] (
+    builtins.readFile ./config/hyprland/main.lua
+  );
   hyprDpms = pkgs.writeShellScriptBin "hypr-dpms" ''
     set -eu
     case "''${1:-}" in
@@ -30,7 +35,7 @@ in
       enable = true; # enable Hyprland
       systemd.enableXdgAutostart = true; # enable HyprlandAutostart
       configType = "lua";
-      extraConfig = builtins.readFile ./config/hyprland/main.lua;
+      extraConfig = hyprlandConfig;
       package = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
       systemd.enable = false;
     };

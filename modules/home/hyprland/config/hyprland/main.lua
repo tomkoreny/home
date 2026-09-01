@@ -17,7 +17,7 @@ hl.env("XCURSOR_SIZE", "32")
 
 -- Autostart only on compositor startup, not on config reload.
 hl.on("hyprland.start", function()
-    hl.exec_cmd("systemctl --user start --no-block waybar.service jellyfin-mpv-shim.service quickshell-osd.service")
+    hl.exec_cmd("systemctl --user start --no-block @desktopBarService@ jellyfin-mpv-shim.service quickshell-osd.service")
     hl.exec_cmd("uwsm app -- teams-for-linux --minimized")
     hl.exec_cmd("uwsm app -- discord --start-minimized")
     hl.exec_cmd("uwsm app -- element-desktop --hidden")
@@ -223,7 +223,7 @@ hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("sleep 1 && hypr-dpms off"))
 
 -- Window rules
 -- The 1px accent focus border reads as a stray blue line across the top of
--- the browser when it tiles flush under waybar; drop it for Helium only and
+-- the browser when it tiles flush under the top bar; drop it for Helium only and
 -- keep the border as the focus cue for everything else.
 hl.window_rule({
     name = "no-border-helium",
@@ -267,7 +267,7 @@ end
 
 -- Stable workspace-to-monitor columns. Workspaces advance left-to-right in
 -- rows: 1/2/3, 4/5/6, 7/8/9. Keep 1-9 alive so every assigned workspace is
--- always visible and clickable in the Waybar on its own monitor.
+-- always visible and clickable in the top bar on its own monitor.
 local left = "HDMI-A-2"
 local primary = "desc:Dell Inc. AW3225QF 6D12YZ3"
 local right = "DP-3"
