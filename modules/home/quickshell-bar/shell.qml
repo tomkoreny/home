@@ -410,8 +410,8 @@ ShellRoot {
                                     anchor.rect.y: trayHost.height + 6
                                     anchor.rect.width: 1
                                     anchor.rect.height: 1
-                                    implicitWidth: 250
-                                    implicitHeight: menuColumn.implicitHeight + 12
+                                    implicitWidth: 200
+                                    implicitHeight: menuColumn.implicitHeight + 8
                                     color: "transparent"
                                     grabFocus: true
                                     visible: false
@@ -449,12 +449,14 @@ ShellRoot {
                                             anchors.top: parent.top
                                             anchors.left: parent.left
                                             anchors.right: parent.right
-                                            anchors.margins: 6
+                                            anchors.topMargin: 4
+                                            anchors.leftMargin: 4
+                                            anchors.rightMargin: 4
                                             spacing: 2
 
                                             Item {
                                                 width: menuColumn.width
-                                                height: 31
+                                                height: 29
                                                 visible: trayMenu.menuStack.length > 0
 
                                                 Rectangle {
@@ -465,9 +467,9 @@ ShellRoot {
 
                                                 Text {
                                                     anchors.left: parent.left
-                                                    anchors.leftMargin: 9
+                                                    anchors.leftMargin: 6
                                                     anchors.verticalCenter: parent.verticalCenter
-                                                    width: parent.width - 18
+                                                    width: parent.width - 12
                                                     text: `‹  ${trayMenu.currentMenu.text}`
                                                     color: "@accent@"
                                                     elide: Text.ElideRight
@@ -487,7 +489,7 @@ ShellRoot {
                                             }
 
                                             Rectangle {
-                                                width: menuColumn.width - 12
+                                                width: menuColumn.width - 8
                                                 height: 1
                                                 anchors.horizontalCenter: parent.horizontalCenter
                                                 visible: trayMenu.menuStack.length > 0
@@ -502,14 +504,14 @@ ShellRoot {
 
                                                     required property var modelData
                                                     width: menuColumn.width
-                                                    height: modelData.isSeparator ? 9 : 31
+                                                    height: modelData.isSeparator ? 7 : 29
 
                                                     Rectangle {
                                                         anchors.left: parent.left
                                                         anchors.right: parent.right
                                                         anchors.verticalCenter: parent.verticalCenter
-                                                        anchors.leftMargin: 8
-                                                        anchors.rightMargin: 8
+                                                        anchors.leftMargin: 6
+                                                        anchors.rightMargin: 6
                                                         height: 1
                                                         visible: menuEntry.modelData.isSeparator
                                                         color: "@border@"
@@ -525,13 +527,17 @@ ShellRoot {
 
                                                         Row {
                                                             anchors.fill: parent
-                                                            anchors.leftMargin: 8
-                                                            anchors.rightMargin: 8
-                                                            spacing: 8
+                                                            anchors.leftMargin: 6
+                                                            anchors.rightMargin: 6
+                                                            spacing: 6
 
                                                             Item {
-                                                                width: 18
+                                                                id: leadingIndicator
+
+                                                                width: 16
                                                                 height: parent.height
+                                                                visible: menuEntry.modelData.icon !== ""
+                                                                    || menuEntry.modelData.buttonType !== QsMenuButtonType.None
 
                                                                 Image {
                                                                     anchors.centerIn: parent
@@ -560,7 +566,9 @@ ShellRoot {
                                                             }
 
                                                             Text {
-                                                                width: parent.width - 52
+                                                                width: parent.width
+                                                                    - (leadingIndicator.visible ? leadingIndicator.width + parent.spacing : 0)
+                                                                    - (submenuArrow.visible ? submenuArrow.width + parent.spacing : 0)
                                                                 anchors.verticalCenter: parent.verticalCenter
                                                                 text: menuEntry.modelData.text
                                                                 color: menuEntry.modelData.enabled ? "@text@" : "@subdued@"
@@ -570,9 +578,12 @@ ShellRoot {
                                                             }
 
                                                             Text {
+                                                                id: submenuArrow
+
                                                                 width: 10
                                                                 anchors.verticalCenter: parent.verticalCenter
-                                                                text: menuEntry.modelData.hasChildren ? "›" : ""
+                                                                visible: menuEntry.modelData.hasChildren
+                                                                text: "›"
                                                                 color: "@subdued@"
                                                                 horizontalAlignment: Text.AlignRight
                                                                 font.family: "@fontFamily@"
