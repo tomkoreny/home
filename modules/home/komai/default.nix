@@ -148,8 +148,10 @@ let
 
       # Keep profile switches and generated per-profile launchers on the outer
       # AppImage wrapper instead of trying to execute the inner ELF directly.
+      # The AppImage's OpenGL RHI cannot create a context on NixOS.
       wrapProgram $out/bin/komai \
-        --set KOMAI_EXECUTABLE_PATH $out/bin/komai
+        --set KOMAI_EXECUTABLE_PATH $out/bin/komai \
+        --set QSG_RHI_BACKEND vulkan
     '';
     meta = meta // {
       platforms = [ "x86_64-linux" ];
