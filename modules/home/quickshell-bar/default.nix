@@ -28,6 +28,7 @@ let
       outputs = builtins.toJSON cfg.outputs;
       primaryOutput = cfg.primaryOutput;
       herdr = lib.getExe herdrPackage;
+      hyprctl = lib.getExe' config.wayland.windowManager.hyprland.package "hyprctl";
       herdrView = "${config.home.profileDirectory}/bin/herdr-view";
       pavucontrol = lib.getExe pkgs.pavucontrol;
       qs = "${pkgs.quickshell}/bin/qs";

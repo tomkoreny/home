@@ -13,6 +13,9 @@ Scope {
     readonly property var bannerEntries: entries
         .filter(entry => entry.bannerVisible)
         .slice(0, 5)
+    readonly property bool hasOmpCompletion: entries.some(entry =>
+        entry.notification.summary.toLowerCase() === "omp finished"
+    )
     readonly property var targetScreen: {
         for (let i = 0; i < Quickshell.screens.length; ++i) {
             const candidate = Quickshell.screens[i];

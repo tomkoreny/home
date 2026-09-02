@@ -20,23 +20,35 @@ ShellRoot {
     property int herdrBlocked: 0
     property int herdrIdle: 0
     property string herdrSummary: "Herdr · unavailable"
+    property string foregroundAppId: ""
 
     function refreshHerdr(): void {
-        if (!herdrSnapshot.running)
+        if (activeWindowSnapshot.running || herdrSnapshot.running)
+            return;
+        if (notifications.hasOmpCompletion) {
+            activeWindowSnapshot.running = true;
+        } else {
+            foregroundAppId = "";
             herdrSnapshot.running = true;
+        }
+    }
+
+    function updateForeground(payload: string): void {
+        try {
+            foregroundAppId = JSON.parse(payload).class ?? "";
+        } catch (error) {
+            foregroundAppId = "";
+        }
+        herdrSnapshot.running = true;
     }
 
     function updateHerdr(payload: string): void {
         try {
             const snapshot = JSON.parse(payload).result.snapshot;
             const agents = snapshot.agents ?? [];
-            const activeToplevel = Hyprland.activeToplevel;
-            const activeAppId = activeToplevel?.wayland?.appId
-                ?? activeToplevel?.lastIpcObject?.class
-                ?? "";
             notifications.reconcileHerdr(
                 snapshot,
-                activeAppId === "com.mitchellh.ghostty"
+                foregroundAppId === "com.mitchellh.ghostty"
             );
             herdrWorking = agents.filter(agent => agent.agent_status === "working").length;
             herdrBlocked = agents.filter(agent => agent.agent_status === "blocked").length;
@@ -57,6 +69,14 @@ ShellRoot {
             herdrBlocked = 0;
             herdrIdle = 0;
             herdrSummary = "Herdr · unavailable";
+        }
+    }
+
+    Process {
+        id: activeWindowSnapshot
+        command: ["@hyprctl@", "activewindow", "-j"]
+        stdout: StdioCollector {
+            onStreamFinished: root.updateForeground(this.text)
         }
     }
 
