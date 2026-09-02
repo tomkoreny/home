@@ -30,6 +30,14 @@ ShellRoot {
         try {
             const snapshot = JSON.parse(payload).result.snapshot;
             const agents = snapshot.agents ?? [];
+            const activeToplevel = Hyprland.activeToplevel;
+            const activeAppId = activeToplevel?.wayland?.appId
+                ?? activeToplevel?.lastIpcObject?.class
+                ?? "";
+            notifications.reconcileHerdr(
+                snapshot,
+                activeAppId === "com.mitchellh.ghostty"
+            );
             herdrWorking = agents.filter(agent => agent.agent_status === "working").length;
             herdrBlocked = agents.filter(agent => agent.agent_status === "blocked").length;
             herdrIdle = agents.filter(agent => agent.agent_status === "idle"

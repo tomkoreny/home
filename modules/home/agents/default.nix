@@ -26,6 +26,7 @@
 let
   common = import ../../../lib/common { };
   ompPackage = inputs.omp.packages.${pkgs.stdenv.hostPlatform.system}.omp;
+  hyprctl = lib.getExe' config.wayland.windowManager.hyprland.package "hyprctl";
   ompWithHindsight = pkgs.writeShellScriptBin "omp" ''
     set -eu
     token_file=${lib.escapeShellArg config.sops.secrets.hindsight-api-token.path}
@@ -72,14 +73,64 @@ let
       set -- http://127.0.0.1:9224/
     fi
     printf 'omp-relay-browser: launching dedicated Chromium\n' >&2
-    exec ${lib.getExe pkgs.chromium} \
+    ${lib.getExe pkgs.chromium} \
       --user-data-dir="$profile_dir" \
       --disable-extensions-except=${ompRelayExtension},${bitwardenRelayExtension} \
       --load-extension=${ompRelayExtension},${bitwardenRelayExtension} \
       --no-first-run \
       --no-default-browser-check \
       --class=omp-relay-browser \
-      "$@"
+      "$@" &
+    browser_pid=$!
+
+    cleanup() {
+      ${pkgs.coreutils}/bin/kill "$browser_pid" 2>/dev/null || true
+    }
+    trap cleanup EXIT INT TERM HUP
+
+    address=
+    for _ in $(${pkgs.coreutils}/bin/seq 1 200); do
+      address="$(${hyprctl} -j clients | ${lib.getExe pkgs.jq} -r \
+        --argjson pid "$browser_pid" \
+        '[.[] | select(.pid == $pid and .class == "omp-relay-browser")][0].address // empty')"
+      [[ -n "$address" ]] && break
+      ${pkgs.coreutils}/bin/sleep 0.05
+    done
+
+    if [[ -z "$address" ]]; then
+      printf 'omp-relay-browser: Chromium window did not map within 10 seconds\n' >&2
+      exit 1
+    fi
+
+    read -r x y width height < <(
+      ${hyprctl} -j monitors all | ${lib.getExe pkgs.jq} -r '
+        .[]
+        | select(.name == "HDMI-A-2")
+        | if (.transform % 2) == 1 then
+            [.x, .y, ((.height / .scale) | floor), ((.width / .scale) | floor)]
+          else
+            [.x, .y, ((.width / .scale) | floor), ((.height / .scale) | floor)]
+          end
+        | @tsv
+      '
+    )
+    target_height=$((height / 4))
+    target_y=$((y + height - target_height))
+
+    ${hyprctl} eval \
+      "local w = \"address:$address\"; \
+      hl.dispatch(hl.dsp.window.float({ action = \"on\", window = w })); \
+      hl.dispatch(hl.dsp.window.move({ monitor = \"HDMI-A-2\", follow = false, window = w })); \
+      hl.dispatch(hl.dsp.window.resize({ x = $width, y = $target_height, window = w })); \
+      hl.dispatch(hl.dsp.window.move({ x = $x, y = $target_y, window = w })); \
+      return \"ok\"" >/dev/null
+
+    set +e
+    wait "$browser_pid"
+    status=$?
+    set -e
+    trap - EXIT INT TERM HUP
+    exit "$status"
   '';
   accentLight = common.stylix.accentLight;
 

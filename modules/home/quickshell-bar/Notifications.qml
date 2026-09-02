@@ -22,6 +22,46 @@ Scope {
         return null;
     }
 
+    function herdrContext(agent, snapshot): string {
+        const workspaces = snapshot.workspaces ?? [];
+        const workspace = workspaces.find(candidate =>
+            candidate.workspace_id === agent.workspace_id
+        );
+        if (!workspace)
+            return "";
+
+        let context = `${workspace.label} · ${workspace.number}`;
+        const tabs = (snapshot.tabs ?? []).filter(candidate =>
+            candidate.workspace_id === workspace.workspace_id
+        );
+        if (tabs.length > 1) {
+            const tab = tabs.find(candidate => candidate.tab_id === agent.tab_id);
+            if (tab && tab.label)
+                context += ` · ${tab.label}`;
+        }
+        return context;
+    }
+
+    function reconcileHerdr(snapshot, userViewingHerdr): void {
+        if (!userViewingHerdr)
+            return;
+
+        const focusedAgents = (snapshot.agents ?? []).filter(agent =>
+            agent.agent === "omp" && agent.focused
+        );
+        for (const agent of focusedAgents) {
+            const context = herdrContext(agent, snapshot);
+            if (context === "")
+                continue;
+            for (const entry of entries.slice()) {
+                const notification = entry.notification;
+                if (notification.summary.toLowerCase() === "omp finished"
+                        && notification.body === context)
+                    notification.dismiss();
+            }
+        }
+    }
+
     function isCritical(notification): bool {
         return notification.urgency === NotificationUrgency.Critical;
     }
