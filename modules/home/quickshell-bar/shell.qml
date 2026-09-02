@@ -16,6 +16,57 @@ ShellRoot {
     readonly property bool audioMuted: audio ? audio.muted : false
     readonly property int volumePercent: audio ? Math.round(audio.volume * 100) : 0
     property bool showDate: false
+    property int herdrWorking: 0
+    property int herdrBlocked: 0
+    property int herdrIdle: 0
+    property string herdrSummary: "Herdr · unavailable"
+
+    function refreshHerdr(): void {
+        if (!herdrSnapshot.running)
+            herdrSnapshot.running = true;
+    }
+
+    function updateHerdr(payload: string): void {
+        try {
+            const snapshot = JSON.parse(payload).result.snapshot;
+            const agents = snapshot.agents ?? [];
+            herdrWorking = agents.filter(agent => agent.agent_status === "working").length;
+            herdrBlocked = agents.filter(agent => agent.agent_status === "blocked").length;
+            herdrIdle = agents.filter(agent => agent.agent_status === "idle"
+                || agent.agent_status === "done").length;
+            const parts = [];
+            if (herdrWorking > 0)
+                parts.push(`${herdrWorking} working`);
+            if (herdrBlocked > 0)
+                parts.push(`${herdrBlocked} blocked`);
+            if (herdrIdle > 0)
+                parts.push(`${herdrIdle} idle`);
+            herdrSummary = parts.length > 0
+                ? `Herdr · ${parts.join(" · ")}`
+                : "Herdr · no agents";
+        } catch (error) {
+            herdrWorking = 0;
+            herdrBlocked = 0;
+            herdrIdle = 0;
+            herdrSummary = "Herdr · unavailable";
+        }
+    }
+
+    Process {
+        id: herdrSnapshot
+        command: ["@herdr@", "api", "snapshot"]
+        stdout: StdioCollector {
+            onStreamFinished: root.updateHerdr(this.text)
+        }
+    }
+
+    Timer {
+        interval: 2000
+        repeat: true
+        running: true
+        triggeredOnStart: true
+        onTriggered: root.refreshHerdr()
+    }
 
     function audioIcon(): string {
         if (audioMuted)
@@ -178,6 +229,44 @@ ShellRoot {
                     anchors.centerIn: parent
                     height: 26
                     spacing: 3
+
+                    Item {
+                        width: herdrText.implicitWidth + 12
+                        height: parent.height
+
+                        Text {
+                            id: herdrText
+
+                            anchors.centerIn: parent
+                            text: root.herdrBlocked > 0
+                                ? `π ${root.herdrWorking}  󰅖 ${root.herdrBlocked}`
+                                : `π ${root.herdrWorking}`
+                            color: root.herdrBlocked > 0
+                                ? "@muted@"
+                                : root.herdrWorking > 0 ? "@accent@" : "@subdued@"
+                            font.family: "@fontFamily@"
+                            font.pixelSize: 12
+                            font.weight: Font.DemiBold
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: Quickshell.execDetached(["@herdrView@"])
+
+                            QQC2.ToolTip.visible: containsMouse
+                            QQC2.ToolTip.delay: 500
+                            QQC2.ToolTip.text: root.herdrSummary
+                        }
+                    }
+
+                    Rectangle {
+                        width: 1
+                        height: 16
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: "@border@"
+                    }
 
                     Item {
                         width: audioText.implicitWidth + 12

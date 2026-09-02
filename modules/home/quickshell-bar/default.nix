@@ -9,6 +9,7 @@ let
   cfg = config.tomkoreny.quickshell-bar;
   common = import ../../../lib/common { };
   fontFamily = (common.stylix.fonts pkgs inputs).sansSerif.name;
+  herdrPackage = inputs.herdr.packages.${pkgs.stdenv.hostPlatform.system}.default;
 
   themeVars = {
     inherit fontFamily;
@@ -26,6 +27,8 @@ let
     // {
       outputs = builtins.toJSON cfg.outputs;
       primaryOutput = cfg.primaryOutput;
+      herdr = lib.getExe herdrPackage;
+      herdrView = "${config.home.profileDirectory}/bin/herdr-view";
       pavucontrol = lib.getExe pkgs.pavucontrol;
       qs = "${pkgs.quickshell}/bin/qs";
     }

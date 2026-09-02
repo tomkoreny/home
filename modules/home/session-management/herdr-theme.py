@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Ensure Herdr's [theme] keys in an existing config.toml.
+"""Ensure repo-owned Herdr settings in an existing config.toml.
 
 Herdr owns ~/.config/herdr/config.toml: onboarding writes `onboarding`, and
 `herdr config reset-keys` rewrites the whole file. A read-only store symlink
 would break both, so instead of managing the file this reconciles only the keys
-the theme setup needs, in place, idempotently.
+the desktop setup needs, in place, idempotently.
 
 Keys are written verbatim as TOML lines rather than through a serialiser so the
-rest of the file - comments, ordering, the user's own [ui] settings - is left
+rest of the file - comments, ordering, and user-owned settings - is left
 byte-identical.
 """
 
@@ -20,11 +20,15 @@ from pathlib import Path
 
 # Repo-owned values. Anything else in the file is left alone.
 DESIRED = {
-    "auto_switch": "true",
-    "dark_name": '"catppuccin"',
-    "light_name": '"catppuccin-latte"',
+    "theme": {
+        "auto_switch": "true",
+        "dark_name": '"catppuccin"',
+        "light_name": '"catppuccin-latte"',
+    },
+    "ui.toast": {
+        "delivery": '"system"',
+    },
 }
-SECTION = "theme"
 
 
 def section_bounds(lines: list[str], name: str) -> tuple[int, int] | None:
@@ -42,20 +46,19 @@ def section_bounds(lines: list[str], name: str) -> tuple[int, int] | None:
     return None
 
 
-def apply(text: str) -> str:
-    lines = text.splitlines()
-    bounds = section_bounds(lines, SECTION)
+def apply_section(lines: list[str], name: str, desired: dict[str, str]) -> list[str]:
+    bounds = section_bounds(lines, name)
 
     if bounds is None:
-        block = [f"[{SECTION}]"] + [f"{key} = {value}" for key, value in DESIRED.items()]
+        block = [f"[{name}]"] + [f"{key} = {value}" for key, value in desired.items()]
         if lines and lines[-1].strip():
             lines.append("")
         lines.extend(block)
-        return "\n".join(lines) + "\n"
+        return lines
 
     start, end = bounds
     body = lines[start:end]
-    for key, value in DESIRED.items():
+    for key, value in desired.items():
         pattern = re.compile(rf"^\s*#?\s*{re.escape(key)}\s*=")
         for offset, line in enumerate(body):
             if pattern.match(line):
@@ -69,7 +72,14 @@ def apply(text: str) -> str:
                 tail -= 1
             body.insert(tail, f"{key} = {value}")
 
-    return "\n".join(lines[:start] + body + lines[end:]) + "\n"
+    return lines[:start] + body + lines[end:]
+
+
+def apply(text: str) -> str:
+    lines = text.splitlines()
+    for name, desired in DESIRED.items():
+        lines = apply_section(lines, name, desired)
+    return "\n".join(lines) + "\n"
 
 
 def main() -> int:
@@ -87,15 +97,23 @@ def main() -> int:
         print(f"herdr-theme: refusing to write invalid TOML: {error}", file=sys.stderr)
         return 1
 
-    theme = parsed.get(SECTION, {})
-    expected = {
-        "auto_switch": True,
-        "dark_name": "catppuccin",
-        "light_name": "catppuccin-latte",
+    expected_sections = {
+        "theme": {
+            "auto_switch": True,
+            "dark_name": "catppuccin",
+            "light_name": "catppuccin-latte",
+        },
+        "ui.toast": {
+            "delivery": "system",
+        },
     }
-    if {key: theme.get(key) for key in expected} != expected:
-        print(f"herdr-theme: [theme] did not round-trip: {theme}", file=sys.stderr)
-        return 1
+    for name, expected in expected_sections.items():
+        table = parsed
+        for component in name.split("."):
+            table = table.get(component, {})
+        if {key: table.get(key) for key in expected} != expected:
+            print(f"herdr-theme: [{name}] did not round-trip: {table}", file=sys.stderr)
+            return 1
 
     if updated != original:
         path.parent.mkdir(parents=True, exist_ok=True)

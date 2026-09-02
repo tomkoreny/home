@@ -13,6 +13,78 @@ let
   accentLightColor = common.stylix.accentLight;
   sansSerifFont = sharedFonts.sansSerif.name;
   monospaceFont = sharedFonts.monospace.name;
+  hexDigit =
+    digit:
+    (builtins.getAttr digit {
+      "0" = 0;
+      "1" = 1;
+      "2" = 2;
+      "3" = 3;
+      "4" = 4;
+      "5" = 5;
+      "6" = 6;
+      "7" = 7;
+      "8" = 8;
+      "9" = 9;
+      a = 10;
+      b = 11;
+      c = 12;
+      d = 13;
+      e = 14;
+      f = 15;
+    });
+  hexByte =
+    value: hexDigit (builtins.substring 0 1 value) * 16 + hexDigit (builtins.substring 1 1 value);
+  hexColor =
+    value:
+    let
+      hex = lib.toLower (lib.removePrefix "#" value);
+    in
+    map (offset: hexByte (builtins.substring offset 2 hex)) [
+      0
+      2
+      4
+    ];
+  browserChromeTheme = pkgs.writeTextDir "manifest.json" (
+    builtins.toJSON {
+      manifest_version = 3;
+      name = "Tom OLED Black";
+      version = "1.0";
+      theme.colors = {
+        frame = [
+          0
+          0
+          0
+        ];
+        frame_inactive = [
+          0
+          0
+          0
+        ];
+        toolbar = [
+          0
+          0
+          0
+        ];
+        toolbar_text = hexColor "#cdd6f4";
+        tab_text = hexColor accentColor;
+        tab_background_text = hexColor "#6c7086";
+        bookmark_text = hexColor "#cdd6f4";
+        button_background = [
+          0
+          0
+          0
+        ];
+        toolbar_button_icon = hexColor "#cdd6f4";
+        omnibox_background = [
+          0
+          0
+          0
+        ];
+        omnibox_text = hexColor "#cdd6f4";
+      };
+    }
+  );
   nextcloudHost = "nextcloud.home.tomkoreny.com";
   # Themed server-side by the homelab repo (apps/services/lemmy/theme), so Dark
   # Reader must leave it alone; see docs/theming.md.
@@ -461,7 +533,7 @@ let
   # Not yet in nixpkgs. Using AppImage for Linux, Homebrew cask for macOS.
   # Track upstream: https://github.com/imputnet/helium-linux
   # macOS: managed via Homebrew cask in systems/aarch64-darwin/macos/default.nix
-  helium-browser = pkgs.appimageTools.wrapType2 {
+  heliumAppImage = pkgs.appimageTools.wrapType2 {
     pname = "helium-browser";
     inherit version;
     src = pkgs.fetchurl {
@@ -492,6 +564,9 @@ let
         alsa-lib
       ];
   };
+  helium-browser = pkgs.writeShellScriptBin "helium-browser" ''
+    exec ${lib.getExe heliumAppImage} --load-extension=${browserChromeTheme} "$@"
+  '';
 in
 {
   home.packages = lib.optionals pkgs.stdenv.hostPlatform.isLinux [

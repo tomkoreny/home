@@ -10,9 +10,9 @@
 #   agent/skills/*/SKILL.md workflow protocols the agent pulls in on demand,
 #                           also reachable interactively as /skill:<name>
 #
-# Deliberately NOT managed here, because OMP or its integrations write them:
-# ~/.omp/agent/sessions, the sqlite databases, the credential vault, and
-# extensions/ (herdr reinstalls its own file on every activation).
+# OMP writes session state, SQLite databases, and its credential vault. Herdr
+# manages its own lifecycle extension; custom extensions are declared beside it
+# below rather than modifying Herdr's generated file.
 #
 # Every module under modules/home/ is shared with terka@nixos via
 # home-manager.sharedModules, so this one is scoped to tom.
@@ -35,7 +35,51 @@ let
     fi
     export HINDSIGHT_API_TOKEN
     HINDSIGHT_API_TOKEN="$(${pkgs.coreutils}/bin/cat "$token_file")"
+    ${lib.optionalString pkgs.stdenv.hostPlatform.isLinux ''
+      export PUPPETEER_EXECUTABLE_PATH=${lib.getExe pkgs.chromium}
+    ''}
     exec ${lib.getExe ompPackage} "$@"
+  '';
+  ompRelayExtension = pkgs.runCommand "omp-browser-relay-extension" { } ''
+    export HOME="$TMPDIR"
+    ${lib.getExe ompPackage} browser-relay install --dir "$out"
+  '';
+  bitwardenRelayCrx = pkgs.fetchurl {
+    url = "https://clients2.google.com/service/update2/crx?response=redirect&prodversion=152.0.0.0&acceptformat=crx3&x=id%3Dnngceckbapebfimnlniiiahkandclblb%26uc";
+    hash = "sha256-0aWULZwjTQM4LamSeZMgVQZMquejLMmxV5QMhjFl1Z8=";
+  };
+  bitwardenRelayExtension =
+    pkgs.runCommand "bitwarden-browser-extension-2026.8.0"
+      {
+        nativeBuildInputs = [
+          pkgs.jq
+          pkgs.unzip
+        ];
+      }
+      ''
+        mkdir -p "$out"
+        dd if='${bitwardenRelayCrx}' of="$TMPDIR/bitwarden.zip" bs=1 skip=1322 status=none
+        unzip -q "$TMPDIR/bitwarden.zip" -d "$out"
+        jq --arg key 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmqKbvreshyXRuN2gikeR1idqR6KL0Di89JZcMyD4bjJRZVmQO7aznSGSALIHzSAUGYocUYBNDOP5QAhImxXyQ1qG8+goXs93v9GzrNJETdVuCEhqBggC4/DFabryJZDiKvZ2Jl0DM7MsWdoybZPwrj70V3aJ/nVNOMkf868scNTMliwitCqqjT5baTANsG0DkZWQExD4lSXzSZHH9MEO8q0iZ7RRlNuGRBAkZgNV8FwZRsPKm/rwQ9dy3VpgLcmLp5GiMt+kAEncqKAkuRYnhVXXBsKqIyYTMjHSLkLnpfFySyOPLBdS617i/PGNiP/MT6Xy6z//v5NozUgaAZ4gJQIDAQAB' \
+          '.key = $key' "$out/manifest.json" > "$out/manifest.json.tmp"
+        mv "$out/manifest.json.tmp" "$out/manifest.json"
+      '';
+  ompRelayBrowser = pkgs.writeShellScriptBin "omp-relay-browser" ''
+    set -eu
+    profile_dir="''${XDG_DATA_HOME:-$HOME/.local/share}/omp-relay-chromium"
+    ${pkgs.coreutils}/bin/mkdir -p "$profile_dir"
+    if [[ $# -eq 0 ]]; then
+      set -- http://127.0.0.1:9224/
+    fi
+    printf 'omp-relay-browser: launching dedicated Chromium\n' >&2
+    exec ${lib.getExe pkgs.chromium} \
+      --user-data-dir="$profile_dir" \
+      --disable-extensions-except=${ompRelayExtension},${bitwardenRelayExtension} \
+      --load-extension=${ompRelayExtension},${bitwardenRelayExtension} \
+      --no-first-run \
+      --no-default-browser-check \
+      --class=omp-relay-browser \
+      "$@"
   '';
   accentLight = common.stylix.accentLight;
 
@@ -171,12 +215,19 @@ in
     # Keep the bearer token out of the Nix store and config.yml. The wrapper
     # reads the sops-nix runtime secret immediately before starting OMP.
     programs.omp.package = ompWithHindsight;
+    home.packages = lib.optionals pkgs.stdenv.hostPlatform.isLinux [
+      ompRelayBrowser
+    ];
 
     # Written to ~/.omp/agent/config.yml as a read-only store symlink: OMP's
     # own /settings edits apply for the session but revert on the next rebuild,
     # so change settings here rather than in the TUI.
     programs.omp.settings = {
       providers.webSearchOrder = [ ];
+      completion.notify = "on";
+      browser = {
+        headless = false;
+      };
 
       modelRoles = {
         default = "openai-codex/gpt-5.6-sol";
@@ -219,6 +270,7 @@ in
     # home-manager.backupFileExtension, while an individual file is, so the
     # first switch renames the current copies to *.hm-bak instead of failing.
     home.file = {
+
       ".omp/agent/AGENTS.md".source = ./agent/AGENTS.md;
       ".omp/agent/RULES.md".source = ./agent/RULES.md;
       ".omp/agent/models.yml".source = ./agent/models.yml;

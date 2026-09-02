@@ -7,3 +7,5 @@ Push without asking to my own remotes: `git.tomkoreny.com`, `gitea.home.tomkoren
 Name the target before the first edit of a turn: one line giving the file, the symbol, and the observable behaviour that changes. When my request names a widget, function, device class, or table, quote that name back. A wrong-target edit costs a revert; a one-line restatement costs nothing.
 
 Attach a proof tier to every claim that something works: `ran-it`, `test-passes`, `type-check-only`, or `unverified`. `unverified` is an allowed answer and a useful one. A claim shipped without a tier reads as `unverified`. For the protocol behind the tiers, read `skill://verify-claim`.
+
+Browser automation MUST NEVER attach to, navigate, or operate any Helium tab, profile, or process. Default to OMP's isolated Chromium. On Linux, when relay is needed, start `omp-relay-browser` through the process supervisor and then use `app.relay: true`; this dedicated profile is the only permitted relay target, and the user MUST NOT be asked to start it.

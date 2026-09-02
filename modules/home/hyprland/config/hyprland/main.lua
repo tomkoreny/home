@@ -17,10 +17,9 @@ hl.env("XCURSOR_SIZE", "32")
 
 -- Autostart only on compositor startup, not on config reload.
 hl.on("hyprland.start", function()
-    hl.exec_cmd("systemctl --user start --no-block @desktopBarService@ jellyfin-mpv-shim.service quickshell-osd.service")
+    hl.exec_cmd("systemctl --user start --no-block @desktopBarService@ jellyfin-mpv-shim.service quickshell-idle.service quickshell-osd.service")
     hl.exec_cmd("uwsm app -- teams-for-linux --minimized")
-    hl.exec_cmd("uwsm app -- discord --start-minimized")
-    hl.exec_cmd("uwsm app -- element-desktop --hidden")
+    hl.exec_cmd("uwsm app -- komai -p verification-recovery")
     hl.exec_cmd("wl-paste --type text --watch cliphist store")
     hl.exec_cmd("wl-paste --type image --watch cliphist store")
 end)
@@ -53,6 +52,8 @@ hl.monitor({
     cm = "hdredid",
     sdrbrightness = 1.5,
     sdrsaturation = 0.98,
+    sdr_min_luminance = 0.0,
+    min_luminance = 0.0,
 })
 
 -- Right portrait ViewSonic (lip facing right).
@@ -161,13 +162,15 @@ hl.device({ name = "razer-razer-blackwidow-ultimate-keyboard", kb_layout = "us,c
 
 -- Programs and keybindings
 local mainMod = "SUPER"
+-- Lua config reloads retain old bindings unless the registry is cleared.
+-- Rebuild it from this file so removed shortcuts cannot remain active.
+hl.unbind("all")
 local terminal = "uwsm app -- ghostty"
 local fileManager = "uwsm app -- nautilus"
 local menu = "uwsm app -- $(wofi --show drun --define=drun-print_desktop_file=true)"
 
 hl.bind(mainMod .. " + Q", hl.dsp.exec_cmd(terminal))
 hl.bind(mainMod .. " + C", hl.dsp.window.close())
-hl.bind(mainMod .. " + M", hl.dsp.exit())
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("uwsm app -- helium-browser"))
 hl.bind(mainMod .. " + U", hl.dsp.exec_cmd("uwsm app -- unifi-cam"))
@@ -218,9 +221,7 @@ hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), locked)
 
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen())
 hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.fullscreen_state({ internal = 3, client = 1 }))
--- Delay until the lock shortcut's key event has finished, otherwise that same
--- key press can immediately wake DPMS again.
-hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("sleep 1 && hypr-dpms off"))
+hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("oled-idle blank"))
 
 -- Window rules
 -- The 1px accent focus border reads as a stray blue line across the top of
@@ -258,7 +259,7 @@ hl.window_rule({
     no_focus = true,
 })
 
-for _, class in ipairs({ "(?i)^(discord)$", "(?i)^(teams-for-linux)$", "(?i)^(element)$" }) do
+for _, class in ipairs({ "(?i)^(teams-for-linux)$", "^cc\\.etke\\.komai\\.profile\\..*$" }) do
     hl.window_rule({
         name = "chat-workspace-" .. class,
         match = { class = class },
