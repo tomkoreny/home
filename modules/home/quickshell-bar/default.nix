@@ -10,16 +10,6 @@ let
   common = import ../../../lib/common { };
   fontFamily = (common.stylix.fonts pkgs inputs).sansSerif.name;
   herdrPackage = inputs.herdr.packages.${pkgs.stdenv.hostPlatform.system}.default;
-  providerLogos = {
-    anthropic = pkgs.fetchurl {
-      url = "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.94.0/icons/anthropic.svg";
-      hash = "sha256-6DP9+n5xh6hqBbhwklBnVWpQbc1COQia7XPh5YyTZqM=";
-    };
-    openai = pkgs.fetchurl {
-      url = "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.94.0/icons/openai.svg";
-      hash = "sha256-pZXfa0I5IMZ6f49zwGPkv7ctQVlICXtsrAY6I2a7UYY=";
-    };
-  };
   profileIcon = relative: "${config.home.profileDirectory}/share/icons/hicolor/${relative}";
   dataIcon = relative: "${config.xdg.dataHome}/icons/hicolor/${relative}";
   launcherIconOverrides = builtins.toJSON {
@@ -67,8 +57,6 @@ let
     // {
       outputs = builtins.toJSON cfg.outputs;
       opaqueSurface = "#181825";
-      anthropicLogo = providerLogos.anthropic;
-      openaiLogo = providerLogos.openai;
       primaryOutput = cfg.primaryOutput;
       herdr = lib.getExe herdrPackage;
       hyprctl = lib.getExe' config.wayland.windowManager.hyprland.package "hyprctl";
