@@ -101,6 +101,20 @@ Scope {
         run("list", [view], null);
     }
 
+    function handleViewShortcut(event: var): void {
+        if (!(event.modifiers & Qt.ControlModifier) || backend.running)
+            return;
+        if (event.key === Qt.Key_1)
+            loadView("mine");
+        else if (event.key === Qt.Key_2)
+            loadView("unassigned");
+        else if (event.key === Qt.Key_3)
+            loadView("all");
+        else
+            return;
+        event.accepted = true;
+    }
+
     function replaceItem(item: var): void {
         items = items.map(candidate => candidate.id === item.id ? item : candidate);
     }
@@ -504,6 +518,7 @@ Scope {
                 anchors.fill: parent
                 focus: root.shown
                 Keys.onEscapePressed: root.close()
+                Keys.onPressed: event => root.handleViewShortcut(event)
 
                 Text {
                     anchors.left: parent.left
@@ -751,6 +766,7 @@ Scope {
                         clip: true
                         onTextChanged: root.searchText = text
                         Keys.onEscapePressed: root.close()
+                        Keys.onPressed: event => root.handleViewShortcut(event)
 
                         Text {
                             anchors.fill: parent
