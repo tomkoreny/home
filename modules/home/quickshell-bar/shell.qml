@@ -99,14 +99,29 @@ ShellRoot {
                 if (limits.length === 0)
                     return null;
 
-                let remaining = limits[0].amount.remaining;
-                for (const limit of limits)
-                    remaining = Math.min(remaining, limit.amount.remaining);
+                const windowIds = report.provider === "openai-codex"
+                    ? ["7d"]
+                    : ["5h", "7d"];
+                const barLimits = windowIds.map(windowId => {
+                    const limit = limits.find(candidate =>
+                        candidate.scope
+                        && candidate.scope.windowId === windowId
+                        && !candidate.scope.tier
+                        && !candidate.scope.modelId
+                    ) ?? null;
+                    return {
+                        windowId: windowId,
+                        remaining: limit === null ? null : limit.amount.remaining,
+                        resetsAt: limit === null || !limit.window
+                            ? null
+                            : limit.window.resetsAt ?? null
+                    };
+                });
 
                 return {
                     id: report.provider,
                     label: report.provider === "openai-codex" ? "OpenAI Codex" : "Claude",
-                    remaining: remaining,
+                    barLimits: barLimits,
                     limits: limits
                 };
             }).filter(provider => provider !== null);
@@ -127,20 +142,44 @@ ShellRoot {
         return aiUsageProviders.find(provider => provider.id === providerId) ?? null;
     }
 
-    function aiRemainingText(providerId: string): string {
+    function aiBarLimits(providerId: string): var {
         const provider = aiProvider(providerId);
-        return provider === null ? "--" : `${Math.round(provider.remaining)}%`;
+        if (provider !== null)
+            return provider.barLimits;
+        const windowIds = providerId === "openai-codex" ? ["7d"] : ["5h", "7d"];
+        return windowIds.map(windowId => ({
+            windowId: windowId,
+            remaining: null,
+            resetsAt: null
+        }));
     }
 
-    function aiLimitColor(providerId: string): string {
-        const provider = aiProvider(providerId);
-        if (provider === null)
+    function aiRemainingText(limit: var): string {
+        return typeof limit.remaining === "number"
+            ? `${Math.round(limit.remaining)}%`
+            : "--";
+    }
+
+    function aiRemainingColor(remaining: var): string {
+        if (typeof remaining !== "number")
             return "@subdued@";
-        if (provider.remaining <= 10)
+        if (remaining <= 10)
             return "@muted@";
-        if (provider.remaining <= 25)
+        if (remaining <= 25)
             return "@accent@";
         return "@text@";
+    }
+
+    function aiProviderColor(providerId: string): string {
+        const numericLimits = aiBarLimits(providerId).filter(
+            limit => typeof limit.remaining === "number"
+        );
+        if (numericLimits.length === 0)
+            return "@subdued@";
+        let remaining = numericLimits[0].remaining;
+        for (const limit of numericLimits)
+            remaining = Math.min(remaining, limit.remaining);
+        return aiRemainingColor(remaining);
     }
 
     function relativeDuration(milliseconds: real): string {
@@ -153,6 +192,13 @@ ShellRoot {
         if (hours > 0)
             return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
         return `${minutes}m`;
+    }
+
+    function aiResetText(limit: var): string {
+        if (typeof limit.resetsAt !== "number")
+            return "↻--";
+        const remaining = relativeDuration(limit.resetsAt - clock.date.getTime());
+        return `↻${remaining.replace(/\s/g, "")}`;
     }
 
     function aiUsageTooltip(): string {
@@ -476,6 +522,7 @@ ShellRoot {
                                     id: providerLimit
 
                                     required property var modelData
+                                    anchors.verticalCenter: parent.verticalCenter
 
                                     spacing: 4
 
@@ -499,23 +546,35 @@ ShellRoot {
                                             anchors.fill: providerLogoSource
                                             source: providerLogoSource
                                             colorization: 1
-                                            colorizationColor: root.aiLimitColor(
+                                            colorizationColor: root.aiProviderColor(
                                                 providerLimit.modelData.providerId
                                             )
                                         }
                                     }
 
-                                    Text {
-                                        text: root.aiRemainingText(providerLimit.modelData.providerId)
-                                        color: root.aiLimitColor(providerLimit.modelData.providerId)
-                                        font.family: "@fontFamily@"
-                                        font.pixelSize: 12
-                                        font.weight: Font.DemiBold
+                                    Column {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        spacing: -1
+
+                                        Repeater {
+                                            model: root.aiBarLimits(providerLimit.modelData.providerId)
+
+                                            Text {
+                                                required property var modelData
+
+                                                text: `${modelData.windowId} ${root.aiRemainingText(modelData)} ${root.aiResetText(modelData)}`
+                                                color: root.aiRemainingColor(modelData.remaining)
+                                                font.family: "@fontFamily@"
+                                                font.pixelSize: 9
+                                                font.weight: Font.DemiBold
+                                            }
+                                        }
                                     }
                                 }
                             }
 
                             Text {
+                                anchors.verticalCenter: parent.verticalCenter
                                 visible: root.aiUsageStale
                                 text: "󰅖"
                                 color: "@muted@"
