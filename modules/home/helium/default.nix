@@ -564,8 +564,10 @@ let
         alsa-lib
       ];
   };
+  # Native Wayland applies Hyprland's per-monitor fractional scale. XWayland
+  # stays unscaled by policy and makes Chromium's UI too small on HiDPI outputs.
   helium-browser = pkgs.writeShellScriptBin "helium-browser" ''
-    exec ${lib.getExe heliumAppImage} --load-extension=${browserChromeTheme} "$@"
+    exec ${lib.getExe heliumAppImage} --ozone-platform=wayland --load-extension=${browserChromeTheme} "$@"
   '';
 in
 {
