@@ -75,20 +75,6 @@ let
         "$preferences" > "$preferences.tmp"
       ${pkgs.coreutils}/bin/mv "$preferences.tmp" "$preferences"
     fi
-    read -r x y width height < <(
-      ${hyprctl} -j monitors all | ${lib.getExe pkgs.jq} -r '
-        .[]
-        | select(.name == "HDMI-A-2")
-        | if (.transform % 2) == 1 then
-            [.x, .y, ((.height / .scale) | floor), ((.width / .scale) | floor)]
-          else
-            [.x, .y, ((.width / .scale) | floor), ((.height / .scale) | floor)]
-          end
-        | @tsv
-      '
-    )
-    target_height=$((height / 4))
-    target_y=$((y + height - target_height))
     if [[ $# -eq 0 ]]; then
       set -- http://127.0.0.1:9224/
     fi
@@ -100,8 +86,6 @@ let
       --no-first-run \
       --no-default-browser-check \
       --class=omp-relay-browser \
-      --window-size="$width,$target_height" \
-      --window-position="$x,$target_y" \
       "$@" &
     browser_pid=$!
 
@@ -127,10 +111,8 @@ let
 
     ${hyprctl} eval \
       "local w = \"address:$address\"; \
-      hl.dispatch(hl.dsp.window.float({ action = \"on\", window = w })); \
+      hl.dispatch(hl.dsp.window.float({ action = \"off\", window = w })); \
       hl.dispatch(hl.dsp.window.move({ monitor = \"HDMI-A-2\", follow = false, window = w })); \
-      hl.dispatch(hl.dsp.window.resize({ x = $width, y = $target_height, window = w })); \
-      hl.dispatch(hl.dsp.window.move({ x = $x, y = $target_y, window = w })); \
       return \"ok\"" >/dev/null
 
     set +e
