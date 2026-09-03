@@ -137,6 +137,19 @@ in
   home.username = "tom";
   home.homeDirectory = "/home/tom";
 
+  # Use Evolution's persisted sidebar order instead of alphabetical sorting.
+  dconf.settings."org/gnome/evolution/mail"."sort-accounts-alpha" = false;
+
+  # Evolution identifies sidebar roots by service UID. Put Search Folders
+  # (which contains Unified Inbox) ahead of the four mail accounts.
+  xdg.configFile."evolution/mail/sortorder.ini" = {
+    force = true;
+    text = ''
+      [Accounts]
+      SortOrder=vfolder;3c393ab1b02fc414b3f89b49a89fbbb1e535e416;52c0459ec57947bf9ca217648a517342c34c1c9b;97c93e0cb16ef48dda53d240eb3e094ac78aff08;832122f4a66e8a6eb9ab37e5a51a158065574d90;local;rss;
+    '';
+  };
+
   # Captures the host-specific HDR/NVDEC settings declaratively. The cache/
   # readahead tuning that used to live here was reverted: the stutter it
   # chased turned out to be corrupt HEVC bitstreams in specific files, not
