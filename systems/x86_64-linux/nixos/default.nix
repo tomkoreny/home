@@ -500,6 +500,10 @@ in
     };
   };
   programs = {
+    evolution = {
+      enable = true;
+      plugins = [ pkgs.evolution-ews ];
+    };
     steam = {
       enable = true;
       gamescopeSession.enable = true;
