@@ -5,15 +5,58 @@
 let
   common = import ../../../lib/common { };
   betterbird-unwrapped = pkgs.callPackage ./package.nix { };
+  betterbirdDesktopItem = pkgs.makeDesktopItem {
+    name = "betterbird";
+    desktopName = "Betterbird";
+    genericName = "Email Client";
+    comment = "Read and write e-mails or RSS feeds, or manage tasks on calendars.";
+    exec = "betterbird --name Betterbird %U";
+    icon = "betterbird";
+    startupNotify = true;
+    startupWMClass = "Betterbird";
+    terminal = false;
+    categories = [
+      "Network"
+      "Chat"
+      "Email"
+      "Feed"
+      "GTK"
+      "News"
+    ];
+    keywords = [
+      "mail"
+      "email"
+      "e-mail"
+      "messages"
+      "rss"
+      "calendar"
+      "address book"
+      "addressbook"
+      "chat"
+    ];
+    mimeTypes = [
+      "message/rfc822"
+      "x-scheme-handler/mailto"
+      "text/calendar"
+      "text/x-vcard"
+    ];
+    actions.profile-manager-window = {
+      name = "Profile Manager";
+      exec = "betterbird --ProfileManager";
+    };
+  };
   betterbird =
     if pkgs.stdenv.hostPlatform.isLinux then
-      pkgs.wrapThunderbird betterbird-unwrapped {
+      (pkgs.wrapThunderbird betterbird-unwrapped {
         applicationName = "betterbird";
         pname = "betterbird";
         libName = "betterbird-${betterbird-unwrapped.version}";
         icon = "betterbird";
         wmClass = "Betterbird";
-      }
+      }).overrideAttrs
+        {
+          desktopItem = betterbirdDesktopItem;
+        }
     else
       betterbird-unwrapped;
 
