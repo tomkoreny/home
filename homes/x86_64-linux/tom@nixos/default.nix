@@ -19,8 +19,21 @@ let
     src = inputs.python-mpv-jsonipc-src;
   });
 
-  mpvWithMpris = pkgs.mpv.override {
-    scripts = [ pkgs.mpvScripts.mpris ];
+  jellyfinMpris = pkgs.mpvScripts.mpris.overrideAttrs (old: {
+    postPatch = (old.postPatch or "") + ''
+      # Shim owns its queue outside mpv, whose playlist contains one file.
+      # Forward MPRIS skips to Shim's existing media-key handlers instead.
+      substituteInPlace mpris.c \
+        --replace-fail '{"playlist_next", NULL}' '{"keypress", "NEXT", NULL}' \
+        --replace-fail '{"playlist_prev", NULL}' '{"keypress", "PREV", NULL}' \
+        --replace-fail 'if (ud->playlist_count == 1)
+              return FALSE;' 'if (ud->playlist_count == 1)
+              return TRUE;'
+    '';
+  });
+
+  mpvForJellyfinShim = pkgs.mpv.override {
+    scripts = [ jellyfinMpris ];
   };
 
   jellyfinMpvShim = pkgs.jellyfin-mpv-shim.overridePythonAttrs (old: {
@@ -62,6 +75,8 @@ let
       substituteInPlace jellyfin_mpv_shim/conf.py \
         --replace-fail 'mpv_ext: bool = sys.platform.startswith("darwin")' \
                        'mpv_ext: bool = True' \
+        --replace-fail 'mpv_ext_path: Optional[str] = None' \
+                       'mpv_ext_path: Optional[str] = "${mpvForJellyfinShim}/bin/mpv"' \
         --replace-fail 'theme: str = "default"' \
                        'theme: str = "catppuccin-mocha"' \
         --replace-fail 'ui_scale: Optional[float] = None' \
@@ -206,14 +221,20 @@ in
     }
     + "\n";
 
-  # Existing profiles persist this setting in conf.json, so changing the
-  # package default alone would leave them on the embedded backend. Update the
-  # single key atomically without taking ownership of the app-managed file.
+  # Existing profiles persist these settings in conf.json, so changing the
+  # package defaults alone would leave them on the embedded backend. Update
+  # only those keys atomically without taking ownership of the app-managed file.
   home.activation.enableJellyfinMpvMpris = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     config_file="$HOME/.config/jellyfin-mpv-shim/conf.json"
-    if [ -f "$config_file" ] && [ "$(${pkgs.jq}/bin/jq -r '.mpv_ext // false' "$config_file")" != true ]; then
+    mpv_path="${mpvForJellyfinShim}/bin/mpv"
+    if [ -f "$config_file" ] && {
+      [ "$(${pkgs.jq}/bin/jq -r '.mpv_ext // false' "$config_file")" != true ] ||
+      [ "$(${pkgs.jq}/bin/jq -r '.mpv_ext_path // ""' "$config_file")" != "$mpv_path" ]
+    }; then
       tmp_file="$(${pkgs.coreutils}/bin/mktemp "$config_file.XXXXXX")"
-      if ${pkgs.jq}/bin/jq '.mpv_ext = true' "$config_file" > "$tmp_file"; then
+      if ${pkgs.jq}/bin/jq --arg mpv_path "$mpv_path" \
+        '.mpv_ext = true | .mpv_ext_path = $mpv_path' \
+        "$config_file" > "$tmp_file"; then
         ${pkgs.coreutils}/bin/chmod --reference="$config_file" "$tmp_file"
         ${pkgs.coreutils}/bin/mv "$tmp_file" "$config_file"
       else
@@ -256,7 +277,6 @@ in
     pkgs.seahorse
     pkgs.toybox
     pkgs.element-desktop
-    mpvWithMpris # External Shim backend with global MPRIS media controls
     jellyfinMpvShim # Browser-enabled Jellyfin desktop/cast client backed by mpv
     pkgs.prismlauncher
     pkgs.remmina
