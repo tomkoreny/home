@@ -9,6 +9,7 @@ let
   cfg = config.tomkoreny.quickshell-bar;
   common = import ../../../lib/common { };
   fontFamily = (common.stylix.fonts pkgs inputs).sansSerif.name;
+  notionTodoAssigneeId = "c3045b6d-8e81-4f7a-a5fe-ebf07f041fef";
   herdrPackage = inputs.herdr.packages.${pkgs.stdenv.hostPlatform.system}.default;
   providerLogoSources = {
     anthropic = pkgs.fetchurl {
@@ -160,10 +161,12 @@ let
         [
           "#!/usr/bin/env python3"
           "/run/secrets/notion-todos"
+          "@notion-todos-assignee-id@"
         ]
         [
           "#!${pkgs.python3}/bin/python3"
           config.sops.secrets.notion-todos.path
+          notionTodoAssigneeId
         ]
         (builtins.readFile ./notion-todos.py);
   };

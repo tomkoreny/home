@@ -11,6 +11,7 @@ from pathlib import Path
 API_ROOT = "https://api.notion.com/v1"
 API_VERSION = "2026-03-11"
 SECRET_FILE = Path(os.environ.get("NOTION_TODOS_SECRET", "/run/secrets/notion-todos"))
+ASSIGNEE_ID = "@notion-todos-assignee-id@"
 
 
 def cache_home() -> Path:
@@ -111,13 +112,14 @@ def discover_schema(token: str, database_id: str) -> dict:
 
     title = preferred_property(properties, "title", ("task", "name", "title"))
     due = preferred_property(properties, "date", ("due", "due date", "date", "deadline"))
+    assignee = preferred_property(properties, "people", ("assignee", "assigned to", "person", "people"))
     completion = preferred_property(properties, "status", ("status", "state"))
     if completion is None:
         completion = preferred_property(properties, "checkbox", ("done", "complete", "completed"))
     if completion is None:
         completion = preferred_property(properties, "select", ("status", "state"))
-    if title is None or due is None or completion is None:
-        raise NotionError("Task database needs title, due-date, and status or checkbox properties")
+    if title is None or due is None or completion is None or assignee is None:
+        raise NotionError("Task database needs title, due-date, assignee, and status or checkbox properties")
 
     completion_name, completion_schema = completion
     completion_type = completion_schema["type"]
@@ -156,6 +158,7 @@ def discover_schema(token: str, database_id: str) -> dict:
         "dataSourceId": source_id,
         "title": title[0],
         "due": due[0],
+        "assignee": assignee[0],
         "completion": completion_name,
         "completionType": completion_type,
         "completeOptionIds": complete_option_ids,
@@ -186,7 +189,12 @@ def fetch_tasks() -> dict:
     schema = discover_schema(token, database_id)
     today = date.today().isoformat()
     query = {
-        "filter": {"property": schema["due"], "date": {"on_or_before": today}},
+        "filter": {
+            "and": [
+                {"property": schema["due"], "date": {"on_or_before": today}},
+                {"property": schema["assignee"], "people": {"contains": ASSIGNEE_ID}},
+            ],
+        },
         "sorts": [{"property": schema["due"], "direction": "ascending"}],
         "page_size": 100,
     }
@@ -207,7 +215,10 @@ def fetch_tasks() -> dict:
         title_value = properties.get(schema["title"]) or {}
         due_value = (properties.get(schema["due"]) or {}).get("date")
         completion_value = properties.get(schema["completion"]) or {}
-        if due_value is None or not due_value.get("start"):
+        assignee_value = (properties.get(schema["assignee"]) or {}).get("people") or []
+        if due_value is None or not due_value.get("start") or not any(
+            person.get("id") == ASSIGNEE_ID for person in assignee_value
+        ):
             continue
         completed, restore_value = completion_state(completion_value, schema)
         if completed:
@@ -226,6 +237,7 @@ def fetch_tasks() -> dict:
 
     tasks.sort(key=lambda task: (task["due"], task["title"].casefold()))
     result = {
+        "assigneeId": ASSIGNEE_ID,
         "items": tasks,
         "todayCount": sum(task["due"] == today for task in tasks),
         "overdueCount": sum(task["overdue"] for task in tasks),
@@ -239,11 +251,12 @@ def fetch_tasks() -> dict:
 
 def cached_failure(error: Exception) -> dict:
     cached = read_json(CACHE_FILE, {})
+    matching_cache = cached.get("assigneeId") == ASSIGNEE_ID
     return {
-        "items": cached.get("items") or [],
-        "todayCount": cached.get("todayCount", 0),
-        "overdueCount": cached.get("overdueCount", 0),
-        "updatedAt": cached.get("updatedAt", ""),
+        "items": (cached.get("items") or []) if matching_cache else [],
+        "todayCount": cached.get("todayCount", 0) if matching_cache else 0,
+        "overdueCount": cached.get("overdueCount", 0) if matching_cache else 0,
+        "updatedAt": cached.get("updatedAt", "") if matching_cache else "",
         "stale": True,
         "error": str(error),
     }
