@@ -1435,17 +1435,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1788043540,
-        "narHash": "sha256-zmxc0fhD2P/yuSgenGQv3ad7zdnY6n8rYvya66z1qVQ=",
+        "lastModified": 1788434833,
+        "narHash": "sha256-+jARGRk68MrN/2EoSELK1ae/5BFd8XhO+gCW2qHVNyA=",
         "owner": "can1357",
         "repo": "oh-my-pi",
-        "rev": "51f03804476c3fd3c15748ae07e4849d1efc883b",
+        "rev": "d2d2c17368c5078c33f502476876c77574400675",
         "type": "github"
       },
       "original": {
         "owner": "can1357",
         "repo": "oh-my-pi",
-        "rev": "51f03804476c3fd3c15748ae07e4849d1efc883b",
         "type": "github"
       }
     },
