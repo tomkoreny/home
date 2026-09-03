@@ -83,6 +83,122 @@ let
     "webstorm" = profileIcon "scalable/apps/webstorm.svg";
   };
 
+  launcherClipboard = pkgs.writeShellApplication {
+    name = "launcher-clipboard";
+    runtimeInputs = [
+      pkgs.cliphist
+      pkgs.coreutils
+      pkgs.imagemagick
+      pkgs.jq
+      pkgs.wl-clipboard
+    ];
+    text = ''
+      cache_dir="''${XDG_RUNTIME_DIR:?}/quickshell-clipboard-thumbnails"
+
+      valid_id() {
+        case "$1" in
+          ""|*[!0-9]*) return 1 ;;
+        esac
+      }
+
+      case "''${1:-}" in
+        list)
+          rm -rf -- "$cache_dir"
+          install -d -m 700 "$cache_dir"
+          cliphist list | jq --arg cache "$cache_dir" -Rsc '
+            split("\n")
+            | map(
+                select(length > 0)
+                | capture("^(?<id>[0-9]+)\\t(?<preview>.*)$")
+                | .image = (.preview | startswith("[[ binary data"))
+                | .thumbnail = ($cache + "/" + .id + ".png")
+              )
+          '
+          ;;
+        copy)
+          id="''${2:-}"
+          valid_id "$id"
+          cliphist decode "$id" | wl-copy
+          ;;
+        thumbnail)
+          id="''${2:-}"
+          valid_id "$id"
+          install -d -m 700 "$cache_dir"
+          target="$cache_dir/$id.png"
+          if [[ ! -f "$target" ]]; then
+            temporary="$target.tmp.$$"
+            trap 'rm -f -- "$temporary"' EXIT
+            cliphist decode "$id" \
+              | magick - -auto-orient -thumbnail '192x128>' -strip "png:$temporary"
+            mv -- "$temporary" "$target"
+            trap - EXIT
+          fi
+          printf '%s\n' "$target"
+          ;;
+        *)
+          echo "usage: launcher-clipboard list|copy ID|thumbnail ID" >&2
+          exit 2
+          ;;
+      esac
+    '';
+  };
+
+  launcherAiConfig = pkgs.writeText "launcher-ai-config.yml" ''
+    advisor:
+      enabled: false
+  '';
+
+  launcherAi = pkgs.writeShellApplication {
+    name = "launcher-ai";
+    text = ''
+      state_dir=${lib.escapeShellArg "${config.xdg.stateHome}/quickshell-ai"}
+      omp=${lib.escapeShellArg (lib.getExe config.programs.omp.package)}
+      uwsm=${lib.escapeShellArg (lib.getExe pkgs.uwsm)}
+      ghostty=${lib.escapeShellArg (lib.getExe pkgs.ghostty)}
+      env=${lib.escapeShellArg (lib.getExe' pkgs.coreutils "env")}
+
+      mkdir -p -- "$state_dir"
+      case "''${1:-}" in
+        ask)
+          question="''${2:?question is required}"
+          exec "$omp" \
+            --mode json \
+            --thinking low \
+            --no-tools \
+            --config ${lib.escapeShellArg launcherAiConfig} \
+            --no-rules \
+            --no-skills \
+            --no-extensions \
+            --no-title \
+            --max-time 45 \
+            --session-dir "$state_dir" \
+            --cwd ${lib.escapeShellArg config.home.homeDirectory} \
+            --allow-home \
+            --system-prompt ${lib.escapeShellArg "You are a concise general-purpose assistant. Answer the user's question directly in plain text. Use short paragraphs or bullets when helpful."} \
+            -p -- "$question" </dev/null
+          ;;
+        resume)
+          session="''${2:?session id is required}"
+          exec "$env" \
+            -u HERDR_ENV \
+            -u HERDR_SOCKET_PATH \
+            -u HERDR_WORKSPACE_ID \
+            -u HERDR_TAB_ID \
+            -u HERDR_PANE_ID \
+            "$uwsm" app -- "$ghostty" -e "$omp" \
+              --session-dir "$state_dir" \
+              --cwd ${lib.escapeShellArg config.home.homeDirectory} \
+              --allow-home \
+              --resume "$session"
+          ;;
+        *)
+          echo "usage: launcher-ai ask QUESTION|resume SESSION_ID" >&2
+          exit 2
+          ;;
+      esac
+    '';
+  };
+
   themeVars = {
     inherit fontFamily;
     accent = common.stylix.accent;
@@ -104,7 +220,6 @@ let
       primaryOutput = cfg.primaryOutput;
       herdr = lib.getExe herdrPackage;
       hyprctl = lib.getExe' config.wayland.windowManager.hyprland.package "hyprctl";
-      herdrView = "${config.home.profileDirectory}/bin/herdr-view";
       pavucontrol = lib.getExe pkgs.pavucontrol;
       omp = lib.getExe config.programs.omp.package;
       qs = "${pkgs.quickshell}/bin/qs";
@@ -120,6 +235,13 @@ let
       customIcons = launcherCustomIcons;
     }
   );
+  launcherData = pkgs.replaceVars ./LauncherData.qml {
+    camera = "/run/current-system/sw/bin/unifi-cam";
+    clipboardHelper = lib.getExe launcherClipboard;
+    herdr = lib.getExe herdrPackage;
+    herdrView = "${config.home.profileDirectory}/bin/herdr-view";
+    launcherAi = lib.getExe launcherAi;
+  };
   notificationCard = pkgs.replaceVars ./NotificationCard.qml themeVars;
   notifications = pkgs.replaceVars ./Notifications.qml (
     (builtins.removeAttrs themeVars [
@@ -169,6 +291,7 @@ in
     xdg.configFile = {
       "quickshell/tom-bar/shell.qml".source = shell;
       "quickshell/tom-bar/Launcher.qml".source = launcher;
+      "quickshell/tom-bar/LauncherData.qml".source = launcherData;
       "quickshell/tom-bar/NotificationCard.qml".source = notificationCard;
       "quickshell/tom-bar/Notifications.qml".source = notifications;
     };

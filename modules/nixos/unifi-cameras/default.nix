@@ -129,16 +129,28 @@ let
           end'
     }
 
+    ALL_LABEL="▦  All cameras"
+    if [ "''${1:-}" = "--list" ]; then
+      printf '%s\n' "''${names[@]}"
+      exit 0
+    fi
+
+    choice=""
+    if [ "''${1:-}" = "--all" ]; then
+      choice="$ALL_LABEL"
+      shift
+    fi
+
     # Non-interactive form: `unifi-cam [--slot N] <name>` skips the picker.
-    # --slot is used by the "All cameras" fan-out to tag the window; without it
-    # this is just a handy way to bind one camera directly.
+    # `--list` exposes names without stream URLs; `--all` launches the grid.
+    # --slot tags windows created by the all-cameras fan-out.
     slot=""
     if [ "''${1:-}" = "--slot" ]; then
       slot="''${2:-}"
       shift 2
     fi
 
-    if [ $# -gt 0 ]; then
+    if [ $# -gt 0 ] && [ -z "$choice" ]; then
       want="$*"
       for i in "''${!names[@]}"; do
         if [ "''${names[$i]}" = "$want" ]; then
@@ -149,16 +161,17 @@ let
       exit 1
     fi
 
-    # No icon prefix: the Protect camera names already carry their own emoji,
-    # so a second one just doubles up. The All entry uses ▦ to stand apart.
-    ALL_LABEL="▦  All cameras"
-    choice=$(
-      {
-        printf '%s\n' "''${names[@]}"
-        printf '%s\n' "$ALL_LABEL"
-      } | "$WOFI" --dmenu --prompt "Camera" --insensitive
-    ) || exit 0
-    [ -n "$choice" ] || exit 0
+    if [ -z "$choice" ]; then
+      # No icon prefix: the Protect camera names already carry their own emoji,
+      # so a second one just doubles up. The All entry uses ▦ to stand apart.
+      choice=$(
+        {
+          printf '%s\n' "''${names[@]}"
+          printf '%s\n' "$ALL_LABEL"
+        } | "$WOFI" --dmenu --prompt "Camera" --insensitive
+      ) || exit 0
+      [ -n "$choice" ] || exit 0
+    fi
 
     if [ "$choice" = "$ALL_LABEL" ]; then
       # One mpv window per camera, explicitly positioned into an even grid.
@@ -201,7 +214,7 @@ let
 in
 {
   options.tomkoreny.nixos.unifi-cameras = {
-    enable = lib.mkEnableOption "UniFi Protect camera picker (wofi + mpv)";
+    enable = lib.mkEnableOption "UniFi Protect camera picker (launcher/wofi + mpv)";
 
     user = lib.mkOption {
       type = lib.types.str;

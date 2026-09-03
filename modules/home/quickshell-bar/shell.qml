@@ -317,6 +317,26 @@ ShellRoot {
             launcher.toggle();
             return launcher.visible;
         }
+
+        function ai(): bool {
+            launcher.toggleMode("ai");
+            return launcher.visible;
+        }
+
+        function clipboard(): bool {
+            launcher.toggleMode("clipboard");
+            return launcher.visible;
+        }
+
+        function herdr(): bool {
+            launcher.toggleMode("herdr");
+            return launcher.visible;
+        }
+
+        function cameras(): bool {
+            launcher.toggleMode("cameras");
+            return launcher.visible;
+        }
     }
 
     IpcHandler {
@@ -481,7 +501,7 @@ ShellRoot {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: Quickshell.execDetached(["@herdrView@"])
+                            onClicked: launcher.toggleMode("herdr")
 
                             QQC2.ToolTip.visible: containsMouse
                             QQC2.ToolTip.delay: 500

@@ -10,6 +10,7 @@ Scope {
 
     property bool shown: false
     property var targetScreen: null
+    property string lockedMode: ""
     property alias query: queryInput.text
     property int selectedIndex: 0
     property int providerRevision: 0
@@ -18,22 +19,105 @@ Scope {
     property string providerResult: ""
     property string providerError: ""
     property string providerCopyError: ""
-    readonly property string queryMode: query.startsWith("=")
-        ? "calculator"
-        : normalized(query).startsWith("u ") ? "unit" : "applications"
-    readonly property bool providerMode: queryMode !== "applications"
-    readonly property string providerExpression: providerMode
-        ? query.slice(queryMode === "calculator" ? 1 : 2).trim()
-        : ""
+    property string actionError: ""
+    readonly property string queryMode: lockedMode !== "" ? lockedMode : modeForQuery(query)
+    readonly property string searchText: lockedMode !== "" ? query.trim() : queryWithoutPrefix(query, queryMode)
+    readonly property bool calculationMode: queryMode === "calculator" || queryMode === "unit"
+    readonly property bool aiMode: queryMode === "ai"
+    readonly property bool listMode: queryMode === "applications"
+        || queryMode === "clipboard"
+        || queryMode === "herdr"
+        || queryMode === "cameras"
+    readonly property bool externalListMode: listMode && queryMode !== "applications"
+    readonly property string providerExpression: calculationMode ? searchText : ""
     readonly property bool providerReady: providerResult !== "" && providerError === ""
-    readonly property var results: providerMode ? [] : rankedApplications(query)
-    readonly property int visibleResultCount: providerMode ? 1 : results.length
+    readonly property var results: queryMode === "applications"
+        ? rankedApplications(searchText)
+        : externalListMode ? rankedExternal(providers.itemsForMode(queryMode), searchText) : []
+    readonly property int visibleResultCount: calculationMode || aiMode
+        ? 1
+        : Math.max(1, results.length)
     readonly property bool visible: shown
     readonly property var iconOverrides: @iconOverrides@
     readonly property var customIcons: @customIcons@
 
     function normalized(value: var): string {
         return String(value ?? "").toLowerCase();
+    }
+
+    function modeForQuery(value: string): string {
+        const lower = normalized(value);
+        if (value.startsWith("="))
+            return "calculator";
+        if (lower === "u" || lower.startsWith("u "))
+            return "unit";
+        if (value.startsWith("?"))
+            return "ai";
+        if (lower === "clip" || lower.startsWith("clip "))
+            return "clipboard";
+        if (lower === "h" || lower.startsWith("h "))
+            return "herdr";
+        if (lower === "cam" || lower.startsWith("cam "))
+            return "cameras";
+        return "applications";
+    }
+
+    function queryWithoutPrefix(value: string, mode: string): string {
+        if (mode === "calculator" || mode === "ai")
+            return value.slice(1).trim();
+        if (mode === "unit" || mode === "herdr")
+            return value.slice(value.includes(" ") ? 2 : 1).trim();
+        if (mode === "clipboard")
+            return value.slice(value.length > 4 ? 5 : 4).trim();
+        if (mode === "cameras")
+            return value.slice(value.length > 3 ? 4 : 3).trim();
+        if (value === "@" || value.startsWith("@ "))
+            return value.slice(value.length > 1 ? 2 : 1).trim();
+        return value.trim();
+    }
+
+    function modeIcon(mode: string): string {
+        if (mode === "calculator")
+            return "=";
+        if (mode === "unit")
+            return "↔";
+        if (mode === "ai")
+            return "󰚩";
+        if (mode === "clipboard")
+            return "󰅇";
+        if (mode === "herdr")
+            return "π";
+        if (mode === "cameras")
+            return "󰄀";
+        return "󰍉";
+    }
+
+    function modeTitle(mode: string): string {
+        if (mode === "calculator")
+            return "Calculator";
+        if (mode === "unit")
+            return "Unit conversion";
+        if (mode === "ai")
+            return "AI question";
+        if (mode === "clipboard")
+            return "Clipboard";
+        if (mode === "herdr")
+            return "Herdr panes";
+        if (mode === "cameras")
+            return "Cameras";
+        return "Applications";
+    }
+
+    function placeholderForMode(mode: string): string {
+        if (mode === "ai")
+            return "Ask a question";
+        if (mode === "clipboard")
+            return "Search clipboard history";
+        if (mode === "herdr")
+            return "Search Herdr panes";
+        if (mode === "cameras")
+            return "Search cameras";
+        return "Search applications";
     }
 
     function desktopIconSource(entry: var): string {
@@ -123,11 +207,13 @@ Scope {
         );
     }
 
-    function applicationOrder(left: var, right: var): int {
+    function resultOrder(left: var, right: var): int {
         const scoreDifference = right.score - left.score;
         if (scoreDifference !== 0)
             return scoreDifference;
-        return left.entry.name.localeCompare(right.entry.name);
+        const leftTitle = left.entry ? left.entry.name : left.item.title;
+        const rightTitle = right.entry ? right.entry.name : right.item.title;
+        return leftTitle.localeCompare(rightTitle);
     }
 
     function rankedApplications(text: string): var {
@@ -140,7 +226,45 @@ Scope {
             if (score >= 0)
                 ranked.push({ entry: entry, score: score });
         }
-        ranked.sort(applicationOrder);
+        ranked.sort(resultOrder);
+        if (ranked.length > 10)
+            ranked.length = 10;
+        return ranked;
+    }
+
+    function externalScore(item: var, needle: string): real {
+        if (needle === "")
+            return 0;
+        const title = normalized(item.title);
+        const searchable = normalized(item.search || `${item.title} ${item.description}`);
+        if (title === needle)
+            return 10000;
+        if (title.startsWith(needle))
+            return 8000 - title.length;
+        const titleMatch = title.indexOf(needle);
+        if (titleMatch >= 0)
+            return 6000 - titleMatch;
+        const searchMatch = searchable.indexOf(needle);
+        if (searchMatch >= 0)
+            return 4000 - searchMatch;
+        const fuzzy = fuzzyScore(searchable, needle);
+        return fuzzy < 0 ? -1 : 2000 + fuzzy;
+    }
+
+    function rankedExternal(items: var, text: string): var {
+        const needle = normalized(text).trim();
+        const ranked = [];
+        if (needle === "") {
+            for (let i = 0; i < Math.min(items.length, 10); ++i)
+                ranked.push({ item: items[i], score: 0 });
+            return ranked;
+        }
+        for (const item of items) {
+            const score = externalScore(item, needle);
+            if (score >= 0)
+                ranked.push({ item: item, score: score });
+        }
+        ranked.sort(resultOrder);
         if (ranked.length > 10)
             ranked.length = 10;
         return ranked;
@@ -150,25 +274,28 @@ Scope {
         return String(value ?? "").trim().replace(/\s*\n\s*/g, " ");
     }
 
-    function scheduleProvider(): void {
+    function clearCalculation(): void {
         providerRevision++;
         providerDebounce.stop();
-        providerCopied = false;
+        providerPending = false;
         providerResult = "";
         providerError = "";
         providerCopyError = "";
         if (qalcProcess.running)
             qalcProcess.running = false;
-        if (!providerMode || providerExpression === "") {
-            providerPending = false;
+    }
+
+    function scheduleCalculation(): void {
+        clearCalculation();
+        providerCopied = false;
+        if (!calculationMode || providerExpression === "")
             return;
-        }
         providerPending = true;
         providerDebounce.restart();
     }
 
-    function evaluateProvider(): void {
-        if (!providerMode || providerExpression === "")
+    function evaluateCalculation(): void {
+        if (!calculationMode || providerExpression === "")
             return;
         qalcProcess.activeExpression = providerExpression;
         qalcProcess.activeRevision = providerRevision;
@@ -177,8 +304,8 @@ Scope {
         qalcProcess.running = true;
     }
 
-    function finishProvider(revision: int, expression: string, exitCode: int, output: string, error: string): void {
-        if (revision !== providerRevision || !providerMode || providerExpression !== expression)
+    function finishCalculation(revision: int, expression: string, exitCode: int, output: string, error: string): void {
+        if (revision !== providerRevision || !calculationMode || providerExpression !== expression)
             return;
         providerPending = false;
         const result = cleanProviderOutput(output);
@@ -192,14 +319,22 @@ Scope {
         providerError = failure !== "" ? failure : "Unable to evaluate this expression";
     }
 
-    function copyProviderResult(keepOpen: bool): void {
-        if (!providerReady || clipboardProcess.running)
+    function currentTextResult(): string {
+        if (calculationMode)
+            return providerResult;
+        if (aiMode && providers.aiState === "ready")
+            return providers.aiAnswer;
+        return "";
+    }
+
+    function copyTextResult(text: string, keepOpen: bool): void {
+        if (text === "" || textCopyProcess.running)
             return;
         providerCopied = false;
         providerCopyError = "";
-        clipboardProcess.pendingText = providerResult;
-        clipboardProcess.closeAfterSuccess = !keepOpen;
-        clipboardProcess.running = true;
+        textCopyProcess.pendingText = text;
+        textCopyProcess.closeAfterSuccess = !keepOpen;
+        textCopyProcess.running = true;
     }
 
     function focusedScreen(): var {
@@ -223,17 +358,27 @@ Scope {
     }
 
     function reveal(): void {
+        revealMode("");
+    }
+
+    function revealMode(mode: string): void {
         targetScreen = focusedScreen();
+        lockedMode = mode;
         queryInput.text = "";
         selectedIndex = 0;
+        actionError = "";
         shown = true;
         Qt.callLater(() => queryInput.forceActiveFocus());
     }
 
     function close(): void {
         shown = false;
+        clearCalculation();
+        providers.resetAi();
         queryInput.text = "";
+        lockedMode = "";
         selectedIndex = 0;
+        actionError = "";
     }
 
     function toggle(): void {
@@ -243,14 +388,21 @@ Scope {
             reveal();
     }
 
+    function toggleMode(mode: string): void {
+        if (shown && lockedMode === mode)
+            close();
+        else
+            revealMode(mode);
+    }
+
     function moveSelection(delta: int): void {
-        if (results.length === 0)
+        if (!listMode || results.length === 0)
             return;
         selectedIndex = (selectedIndex + delta + results.length) % results.length;
         resultsList.positionViewAtIndex(selectedIndex, ListView.Contain);
     }
 
-    function launch(entry): void {
+    function launchApplication(entry: var): void {
         if (!entry)
             return;
         const desktopId = entry.id.endsWith(".desktop")
@@ -260,14 +412,98 @@ Scope {
         Quickshell.execDetached(["@uwsm@", "app", "--", desktopId]);
     }
 
-    function launchSelected(): void {
-        if (providerMode) {
-            copyProviderResult(false);
+    function activateSelected(shift: bool, control: bool): void {
+        if (calculationMode) {
+            copyTextResult(providerResult, control);
+            return;
+        }
+        if (aiMode) {
+            if (providers.aiState === "running")
+                return;
+            if (providers.aiState === "ready") {
+                if (shift) {
+                    if (providers.resumeAi())
+                        close();
+                } else {
+                    copyTextResult(providers.aiAnswer, control);
+                }
+                return;
+            }
+            providers.submitAi(searchText);
             return;
         }
         if (selectedIndex < 0 || selectedIndex >= results.length)
             return;
-        launch(results[selectedIndex].entry);
+        if (queryMode === "applications") {
+            launchApplication(results[selectedIndex].entry);
+            return;
+        }
+        const item = results[selectedIndex].item;
+        if (queryMode === "clipboard") {
+            actionError = "";
+            providers.copyClipboard(item);
+        } else if (queryMode === "herdr") {
+            close();
+            providers.openHerdr(item, shift);
+        } else if (queryMode === "cameras") {
+            close();
+            providers.openCamera(item);
+        }
+    }
+
+    function handleEscape(): void {
+        if (aiMode && providers.aiState === "running") {
+            providers.cancelAi();
+            return;
+        }
+        close();
+    }
+
+    function emptyMessage(): string {
+        if (providers.loading)
+            return "Loading…";
+        if (actionError !== "")
+            return actionError;
+        if (providers.loadError !== "")
+            return providers.loadError;
+        if (queryMode === "clipboard")
+            return "No matching clipboard entries";
+        if (queryMode === "herdr")
+            return "No matching Herdr panes";
+        if (queryMode === "cameras")
+            return "No matching cameras";
+        return "No matching applications";
+    }
+
+    function externalGlyph(item: var): string {
+        if (item.kind === "clipboard")
+            return item.image ? "󰋩" : "󰅇";
+        if (item.kind === "camera")
+            return item.all ? "󰕧" : "󰄀";
+        if (item.status === "working")
+            return "󰔟";
+        if (item.status === "blocked")
+            return "󰅖";
+        return "π";
+    }
+
+    onQueryChanged: {
+        selectedIndex = 0;
+        actionError = "";
+        if (calculationMode)
+            scheduleCalculation();
+        else
+            clearCalculation();
+        if (aiMode && providers.aiState !== "running" && providers.aiQuestion !== "" && searchText !== providers.aiQuestion)
+            providers.resetAi();
+        if (listMode)
+            Qt.callLater(() => resultsList.positionViewAtBeginning());
+    }
+
+    onQueryModeChanged: {
+        selectedIndex = 0;
+        if (!aiMode && providers.aiState !== "idle")
+            providers.resetAi();
     }
 
     onResultsChanged: {
@@ -277,11 +513,20 @@ Scope {
             selectedIndex = results.length - 1;
     }
 
+    LauncherData {
+        id: providers
+
+        active: root.shown
+        mode: root.queryMode
+        onClipboardCopied: root.close()
+        onClipboardCopyFailed: message => root.actionError = message
+    }
+
     Timer {
         id: providerDebounce
 
         interval: 140
-        onTriggered: root.evaluateProvider()
+        onTriggered: root.evaluateCalculation()
     }
 
     Timer {
@@ -312,7 +557,7 @@ Scope {
         onExited: (exitCode, exitStatus) => {
             const revision = activeRevision;
             const expression = activeExpression;
-            Qt.callLater(() => root.finishProvider(
+            Qt.callLater(() => root.finishCalculation(
                 revision,
                 expression,
                 exitCode,
@@ -323,7 +568,7 @@ Scope {
     }
 
     Process {
-        id: clipboardProcess
+        id: textCopyProcess
 
         property string pendingText: ""
         property bool closeAfterSuccess: false
@@ -331,7 +576,7 @@ Scope {
         command: ["@wlCopy@", "--", pendingText]
 
         onExited: (exitCode, exitStatus) => {
-            if (pendingText !== root.providerResult)
+            if (pendingText !== root.currentTextResult())
                 return;
             if (exitCode !== 0) {
                 root.providerCopyError = "Could not copy result";
@@ -392,11 +637,16 @@ Scope {
             id: card
 
             anchors.centerIn: parent
-            width: Math.min(640, overlay.width - 48)
-            height: Math.min(
-                122 + Math.max(64, root.visibleResultCount * 57 - 3),
-                overlay.height - 96
-            )
+            width: Math.min(root.aiMode ? 760 : 640, overlay.width - 48)
+            height: root.aiMode
+                ? Math.min(480, overlay.height - 96)
+                : Math.min(
+                    122 + Math.max(
+                        64,
+                        root.visibleResultCount * (root.externalListMode ? 65 : 57) - 3
+                    ),
+                    overlay.height - 96
+                )
 
             Behavior on height {
                 NumberAnimation {
@@ -445,13 +695,11 @@ Scope {
                     anchors.left: parent.left
                     anchors.leftMargin: 16
                     anchors.verticalCenter: parent.verticalCenter
-                    text: root.queryMode === "calculator"
-                        ? "="
-                        : root.queryMode === "unit" ? "↔" : "󰍉"
+                    text: root.modeIcon(root.queryMode)
                     color: "@accent@"
                     font.family: "@fontFamily@"
                     font.pixelSize: 19
-                    font.weight: root.providerMode ? Font.DemiBold : Font.Normal
+                    font.weight: root.queryMode === "applications" ? Font.Normal : Font.DemiBold
                 }
 
                 TextInput {
@@ -469,16 +717,11 @@ Scope {
                     font.pixelSize: 18
                     selectByMouse: true
                     clip: true
-
-                    onTextChanged: {
-                        root.selectedIndex = 0;
-                        root.scheduleProvider();
-                        if (!root.providerMode)
-                            Qt.callLater(() => resultsList.positionViewAtBeginning());
-                    }
+                    readOnly: root.aiMode && providers.aiState === "running"
 
                     Keys.onPressed: event => {
                         const control = (event.modifiers & Qt.ControlModifier) !== 0;
+                        const shift = (event.modifiers & Qt.ShiftModifier) !== 0;
                         if (event.key === Qt.Key_Down || (control && event.key === Qt.Key_N)) {
                             root.moveSelection(1);
                             event.accepted = true;
@@ -486,13 +729,10 @@ Scope {
                             root.moveSelection(-1);
                             event.accepted = true;
                         } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                            if (root.providerMode)
-                                root.copyProviderResult(control);
-                            else
-                                root.launchSelected();
+                            root.activateSelected(shift, control);
                             event.accepted = true;
                         } else if (event.key === Qt.Key_Escape) {
-                            root.close();
+                            root.handleEscape();
                             event.accepted = true;
                         }
                     }
@@ -502,7 +742,7 @@ Scope {
                     anchors.left: queryInput.left
                     anchors.verticalCenter: parent.verticalCenter
                     visible: queryInput.text.length === 0
-                    text: "Search applications"
+                    text: root.placeholderForMode(root.queryMode)
                     color: "@subdued@"
                     font.family: "@fontFamily@"
                     font.pixelSize: 18
@@ -520,6 +760,7 @@ Scope {
                 anchors.right: parent.right
                 anchors.leftMargin: 12
                 anchors.rightMargin: 12
+                visible: root.listMode
                 clip: true
                 spacing: 3
                 model: root.results
@@ -529,14 +770,15 @@ Scope {
 
                     required property var modelData
                     required property int index
+                    readonly property bool application: root.queryMode === "applications"
                     readonly property bool selected: index === root.selectedIndex
-                    readonly property var entry: modelData.entry
-                    readonly property string description: entry.genericName !== ""
-                        ? entry.genericName
-                        : entry.comment
+                    readonly property var item: application ? modelData.entry : modelData.item
+                    readonly property string description: application
+                        ? item.genericName !== "" ? item.genericName : item.comment
+                        : item.description
 
                     width: resultsList.width
-                    height: 54
+                    height: root.externalListMode ? 62 : 54
                     radius: 12
                     color: selected ? "@accentSurface@" : "transparent"
                     border.width: selected ? 1 : 0
@@ -548,8 +790,8 @@ Scope {
                         anchors.left: parent.left
                         anchors.leftMargin: 12
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 34
-                        height: 34
+                        width: !resultRow.application && resultRow.item.image ? 52 : 34
+                        height: !resultRow.application && resultRow.item.image ? 46 : 34
 
                         Rectangle {
                             anchors.fill: parent
@@ -564,7 +806,7 @@ Scope {
 
                             anchors.fill: parent
                             anchors.margins: 7
-                            source: root.customIconSource(resultRow.entry)
+                            source: resultRow.application ? root.customIconSource(resultRow.item) : ""
                             sourceSize.width: 40
                             sourceSize.height: 40
                             fillMode: Image.PreserveAspectFit
@@ -578,14 +820,15 @@ Scope {
 
                             anchors.fill: parent
                             anchors.margins: 7
-                            source: root.desktopIconSource(resultRow.entry)
+                            source: resultRow.application ? root.desktopIconSource(resultRow.item) : ""
                             sourceSize.width: 40
                             sourceSize.height: 40
                             fillMode: Image.PreserveAspectFit
                             asynchronous: true
                             smooth: true
-                            visible: (customIconSource.status === Image.Null
-                                || customIconSource.status === Image.Error)
+                            visible: resultRow.application
+                                && (customIconSource.status === Image.Null
+                                    || customIconSource.status === Image.Error)
                                 && status === Image.Ready
                         }
 
@@ -594,15 +837,32 @@ Scope {
                             source: customIconSource
                             colorization: 1
                             colorizationColor: "@accent@"
-                            visible: customIconSource.status === Image.Ready
+                            visible: resultRow.application && customIconSource.status === Image.Ready
+                        }
+
+                        Image {
+                            id: clipboardThumbnail
+
+                            anchors.fill: parent
+                            anchors.margins: 3
+                            source: !resultRow.application && resultRow.item.image && providers.thumbnailRevision > 0
+                                ? `file://${resultRow.item.thumbnail}?v=${providers.thumbnailRevision}`
+                                : ""
+                            fillMode: Image.PreserveAspectFit
+                            asynchronous: true
+                            cache: false
+                            smooth: true
+                            visible: status === Image.Ready
                         }
 
                         Text {
                             anchors.centerIn: parent
-                            visible: (customIconSource.status === Image.Null
-                                || customIconSource.status === Image.Error)
-                                && applicationIconSource.status !== Image.Ready
-                            text: "󰀻"
+                            visible: resultRow.application
+                                ? (customIconSource.status === Image.Null
+                                    || customIconSource.status === Image.Error)
+                                    && applicationIconSource.status !== Image.Ready
+                                : !resultRow.item.image || clipboardThumbnail.status !== Image.Ready
+                            text: resultRow.application ? "󰀻" : root.externalGlyph(resultRow.item)
                             color: resultRow.selected ? "@accent@" : "@subdued@"
                             font.family: "@fontFamily@"
                             font.pixelSize: 22
@@ -619,7 +879,7 @@ Scope {
 
                         Text {
                             width: parent.width
-                            text: resultRow.entry.name
+                            text: resultRow.item.name ?? resultRow.item.title
                             color: "@text@"
                             elide: Text.ElideRight
                             textFormat: Text.PlainText
@@ -645,13 +905,21 @@ Scope {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onEntered: root.selectedIndex = resultRow.index
-                        onClicked: root.launch(resultRow.entry)
+                        onClicked: mouse => root.activateSelected(
+                            (mouse.modifiers & Qt.ShiftModifier) !== 0,
+                            (mouse.modifiers & Qt.ControlModifier) !== 0
+                        )
+                    }
+
+                    Component.onCompleted: {
+                        if (!application && item.image)
+                            providers.requestThumbnail(item);
                     }
                 }
             }
 
             Rectangle {
-                id: providerRow
+                id: calculationRow
 
                 anchors.top: searchField.bottom
                 anchors.topMargin: 10
@@ -660,14 +928,14 @@ Scope {
                 anchors.leftMargin: 12
                 anchors.rightMargin: 12
                 height: 54
-                visible: root.providerMode
+                visible: root.calculationMode
                 radius: 12
                 color: "@accentSurface@"
                 border.width: 1
                 border.color: "@border@"
 
                 Rectangle {
-                    id: providerIcon
+                    id: calculationIcon
 
                     anchors.left: parent.left
                     anchors.leftMargin: 12
@@ -681,7 +949,7 @@ Scope {
 
                     Text {
                         anchors.centerIn: parent
-                        text: root.queryMode === "calculator" ? "=" : "↔"
+                        text: root.modeIcon(root.queryMode)
                         color: "@accent@"
                         font.family: "@fontFamily@"
                         font.pixelSize: 19
@@ -690,7 +958,7 @@ Scope {
                 }
 
                 Column {
-                    anchors.left: providerIcon.right
+                    anchors.left: calculationIcon.right
                     anchors.leftMargin: 12
                     anchors.right: parent.right
                     anchors.rightMargin: 14
@@ -723,9 +991,7 @@ Scope {
                     Text {
                         width: parent.width
                         visible: text !== ""
-                        text: root.providerError !== ""
-                            ? root.providerError
-                            : root.providerExpression
+                        text: root.providerError !== "" ? root.providerError : root.providerExpression
                         color: "@subdued@"
                         elide: Text.ElideRight
                         textFormat: Text.PlainText
@@ -738,14 +1004,64 @@ Scope {
                     anchors.fill: parent
                     enabled: root.providerReady
                     cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                    onClicked: root.copyProviderResult(false)
+                    onClicked: root.copyTextResult(root.providerResult, false)
+                }
+            }
+
+            Rectangle {
+                id: aiAnswerCard
+
+                anchors.top: searchField.bottom
+                anchors.topMargin: 10
+                anchors.bottom: footer.top
+                anchors.bottomMargin: 8
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.leftMargin: 12
+                anchors.rightMargin: 12
+                visible: root.aiMode
+                radius: 12
+                color: "@accentSurface@"
+                border.width: 1
+                border.color: "@border@"
+
+                Flickable {
+                    id: answerFlick
+
+                    anchors.fill: parent
+                    anchors.margins: 16
+                    clip: true
+                    contentWidth: width
+                    contentHeight: Math.max(height, answerText.implicitHeight)
+                    boundsBehavior: Flickable.StopAtBounds
+
+                    Text {
+                        id: answerText
+
+                        width: answerFlick.width
+                        text: root.providerCopied
+                            ? "Copied to clipboard"
+                            : providers.aiState === "running"
+                                ? "Thinking…"
+                                : providers.aiState === "error"
+                                    ? providers.aiError
+                                    : providers.aiState === "ready"
+                                        ? providers.aiAnswer
+                                        : "Type a question and press Enter"
+                        color: "@text@"
+                        wrapMode: Text.Wrap
+                        textFormat: Text.PlainText
+                        font.family: "@fontFamily@"
+                        font.pixelSize: 15
+                        lineHeight: 1.2
+                    }
                 }
             }
 
             Text {
                 anchors.centerIn: resultsList
-                visible: !root.providerMode && root.results.length === 0
-                text: "No matching applications"
+                visible: root.listMode && root.results.length === 0
+                text: root.emptyMessage()
                 color: "@subdued@"
                 font.family: "@fontFamily@"
                 font.pixelSize: 14
@@ -765,11 +1081,7 @@ Scope {
                 Text {
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
-                    text: root.queryMode === "calculator"
-                        ? "Calculator"
-                        : root.queryMode === "unit"
-                            ? "Unit conversion"
-                            : `${root.results.length} result${root.results.length === 1 ? "" : "s"}`
+                    text: root.modeTitle(root.queryMode)
                     color: "@subdued@"
                     font.family: "@fontFamily@"
                     font.pixelSize: 11
@@ -778,9 +1090,19 @@ Scope {
                 Text {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    text: root.providerMode
-                        ? "Enter copy   Ctrl+Enter copy and keep   Esc close"
-                        : "↑↓ navigate   Enter launch   Esc close"
+                    text: root.aiMode
+                        ? providers.aiState === "running"
+                            ? "Esc cancel"
+                            : providers.aiState === "ready"
+                                ? "Enter copy   Ctrl+Enter keep   Shift+Enter continue"
+                                : "Enter ask   Esc close"
+                        : root.calculationMode
+                            ? "Enter copy   Ctrl+Enter copy and keep   Esc close"
+                            : root.queryMode === "herdr"
+                                ? "↑↓ navigate   Enter view   Shift+Enter take over"
+                                : root.queryMode === "clipboard"
+                                    ? "↑↓ navigate   Enter restore   Esc close"
+                                    : "↑↓ navigate   Enter launch   Esc close"
                     color: "@subdued@"
                     font.family: "@fontFamily@"
                     font.pixelSize: 11
