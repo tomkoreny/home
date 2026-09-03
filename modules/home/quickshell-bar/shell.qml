@@ -21,6 +21,9 @@ ShellRoot {
     property int herdrIdle: 0
     property string herdrSummary: "Herdr · unavailable"
     property string foregroundAppId: ""
+    property var aiUsageProviders: []
+    property bool aiUsageStale: false
+    property real aiUsageUpdatedAt: 0
 
     function refreshHerdr(): void {
         if (activeWindowSnapshot.running || herdrSnapshot.running)
@@ -72,6 +75,109 @@ ShellRoot {
         }
     }
 
+    function refreshAiUsage(force: bool): void {
+        if (aiUsageSnapshot.running || aiUsageInvalidator.running)
+            return;
+        if (force)
+            aiUsageInvalidator.running = true;
+        else
+            aiUsageSnapshot.running = true;
+    }
+
+    function updateAiUsage(payload: string): void {
+        try {
+            const snapshot = JSON.parse(payload);
+            const supportedProviders = ["openai-codex", "anthropic"];
+            const reports = (snapshot.reports ?? []).filter(
+                report => supportedProviders.includes(report.provider)
+            );
+            const providers = reports.map(report => {
+                const limits = (report.limits ?? []).filter(
+                    limit => limit.amount && typeof limit.amount.remaining === "number"
+                );
+                if (limits.length === 0)
+                    return null;
+
+                let remaining = limits[0].amount.remaining;
+                for (const limit of limits)
+                    remaining = Math.min(remaining, limit.amount.remaining);
+
+                return {
+                    id: report.provider,
+                    label: report.provider === "openai-codex" ? "OpenAI Codex" : "Claude",
+                    remaining: remaining,
+                    limits: limits
+                };
+            }).filter(provider => provider !== null);
+
+            if (providers.length === 0)
+                throw new Error("No supported provider limits");
+
+            aiUsageProviders = providers;
+            aiUsageUpdatedAt = snapshot.generatedAt ?? Date.now();
+            aiUsageStale = false;
+        } catch (error) {
+            aiUsageStale = true;
+            console.warn(`Unable to parse AI usage: ${error}`);
+        }
+    }
+
+    function aiProvider(providerId: string): var {
+        return aiUsageProviders.find(provider => provider.id === providerId) ?? null;
+    }
+
+    function aiRemainingText(providerId: string): string {
+        const provider = aiProvider(providerId);
+        return provider === null ? "--" : `${Math.round(provider.remaining)}%`;
+    }
+
+    function aiLimitColor(providerId: string): string {
+        const provider = aiProvider(providerId);
+        if (provider === null)
+            return "@subdued@";
+        if (provider.remaining <= 10)
+            return "@muted@";
+        if (provider.remaining <= 25)
+            return "@accent@";
+        return "@text@";
+    }
+
+    function relativeDuration(milliseconds: real): string {
+        const totalMinutes = Math.max(0, Math.floor(milliseconds / 60000));
+        const days = Math.floor(totalMinutes / 1440);
+        const hours = Math.floor((totalMinutes % 1440) / 60);
+        const minutes = totalMinutes % 60;
+        if (days > 0)
+            return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
+        if (hours > 0)
+            return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+        return `${minutes}m`;
+    }
+
+    function aiUsageTooltip(): string {
+        if (aiUsageProviders.length === 0)
+            return aiUsageStale ? "AI limits · unavailable" : "AI limits · loading";
+
+        const now = clock.date.getTime();
+        const updated = relativeDuration(now - aiUsageUpdatedAt);
+        const lines = [`AI limits · updated ${updated} ago${aiUsageStale ? " · stale" : ""}`];
+        for (const provider of aiUsageProviders) {
+            lines.push(provider.label);
+            for (const limit of provider.limits) {
+                const remaining = `${Math.round(limit.amount.remaining)}%`;
+                if (!limit.window || typeof limit.window.resetsAt !== "number") {
+                    lines.push(`  ${limit.label} · ${remaining} · reset unavailable`);
+                    continue;
+                }
+                const reset = new Date(limit.window.resetsAt);
+                const relative = relativeDuration(limit.window.resetsAt - now);
+                const exact = Qt.formatDateTime(reset, "ddd d MMM HH:mm");
+                lines.push(`  ${limit.label} · ${remaining} · resets in ${relative} (${exact})`);
+            }
+        }
+        return lines.join("\n");
+    }
+
     Process {
         id: activeWindowSnapshot
         command: ["@hyprctl@", "activewindow", "-j"]
@@ -88,12 +194,42 @@ ShellRoot {
         }
     }
 
+    Process {
+        id: aiUsageSnapshot
+        command: ["@omp@", "usage", "--json"]
+        stdout: StdioCollector {
+            onStreamFinished: root.updateAiUsage(this.text)
+        }
+        onExited: (exitCode, exitStatus) => {
+            if (exitCode !== 0)
+                root.aiUsageStale = true;
+        }
+    }
+
+    Process {
+        id: aiUsageInvalidator
+        command: ["@omp@", "usage", "invalidate"]
+        onExited: (exitCode, exitStatus) => {
+            if (exitCode !== 0)
+                root.aiUsageStale = true;
+            aiUsageSnapshot.running = true;
+        }
+    }
+
     Timer {
         interval: 2000
         repeat: true
         running: true
         triggeredOnStart: true
         onTriggered: root.refreshHerdr()
+    }
+
+    Timer {
+        interval: 300000
+        repeat: true
+        running: true
+        triggeredOnStart: true
+        onTriggered: root.refreshAiUsage(false)
     }
 
     function audioIcon(): string {
@@ -299,6 +435,111 @@ ShellRoot {
                             QQC2.ToolTip.visible: containsMouse
                             QQC2.ToolTip.delay: 500
                             QQC2.ToolTip.text: root.herdrSummary
+                        }
+                    }
+
+                    Rectangle {
+                        width: 1
+                        height: 16
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: "@border@"
+                    }
+
+                    Item {
+                        id: aiLimitsHost
+
+                        property bool tooltipVisible: false
+
+                        width: aiLimitsRow.implicitWidth + 12
+                        height: parent.height
+
+                        Row {
+                            id: aiLimitsRow
+
+                            anchors.centerIn: parent
+                            spacing: 8
+
+                            Text {
+                                text: `󰚩 ${root.aiRemainingText("openai-codex")}`
+                                color: root.aiLimitColor("openai-codex")
+                                font.family: "@fontFamily@"
+                                font.pixelSize: 12
+                                font.weight: Font.DemiBold
+                            }
+
+                            Text {
+                                text: `✦ ${root.aiRemainingText("anthropic")}`
+                                color: root.aiLimitColor("anthropic")
+                                font.family: "@fontFamily@"
+                                font.pixelSize: 12
+                                font.weight: Font.DemiBold
+                            }
+
+                            Text {
+                                visible: root.aiUsageStale
+                                text: "󰅖"
+                                color: "@muted@"
+                                font.family: "@fontFamily@"
+                                font.pixelSize: 11
+                            }
+                        }
+
+                        MouseArea {
+                            id: aiLimitsMouse
+
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.refreshAiUsage(true)
+                            onContainsMouseChanged: {
+                                if (containsMouse) {
+                                    aiTooltipDelay.restart();
+                                } else {
+                                    aiTooltipDelay.stop();
+                                    aiLimitsHost.tooltipVisible = false;
+                                }
+                            }
+                        }
+
+                        Timer {
+                            id: aiTooltipDelay
+
+                            interval: 500
+                            onTriggered: {
+                                if (aiLimitsMouse.containsMouse)
+                                    aiLimitsHost.tooltipVisible = true;
+                            }
+                        }
+
+                        PopupWindow {
+                            anchor.item: aiLimitsHost
+                            anchor.rect.x: aiLimitsHost.width - implicitWidth
+                            anchor.rect.y: aiLimitsHost.height + 6
+                            anchor.rect.width: 1
+                            anchor.rect.height: 1
+                            implicitWidth: aiTooltipText.implicitWidth + 20
+                            implicitHeight: aiTooltipText.implicitHeight + 16
+                            color: "@opaqueSurface@"
+                            visible: aiLimitsHost.tooltipVisible
+
+                            Rectangle {
+                                anchors.fill: parent
+                                radius: 8
+                                color: "transparent"
+                                border.width: 1
+                                border.color: "@border@"
+                            }
+
+                            Text {
+                                id: aiTooltipText
+
+                                anchors.centerIn: parent
+                                text: root.aiUsageTooltip()
+                                color: "@text@"
+                                font.family: "@fontFamily@"
+                                font.pixelSize: 12
+                                lineHeight: 1.25
+                            }
                         }
                     }
 

@@ -26,11 +26,13 @@ let
     (builtins.removeAttrs themeVars [ "cardSurface" ])
     // {
       outputs = builtins.toJSON cfg.outputs;
+      opaqueSurface = "#181825";
       primaryOutput = cfg.primaryOutput;
       herdr = lib.getExe herdrPackage;
       hyprctl = lib.getExe' config.wayland.windowManager.hyprland.package "hyprctl";
       herdrView = "${config.home.profileDirectory}/bin/herdr-view";
       pavucontrol = lib.getExe pkgs.pavucontrol;
+      omp = lib.getExe config.programs.omp.package;
       qs = "${pkgs.quickshell}/bin/qs";
     }
   );
