@@ -18,6 +18,8 @@ let
     if config.tomkoreny.quickshell-bar.enable then "quickshell-bar.service" else "waybar.service";
   cameraLauncherCommand = "qs -c tom-bar ipc call launcher cameras";
   clipboardLauncherCommand = "qs -c tom-bar ipc call launcher clipboard";
+  todoManagerCommand = "qs -c tom-bar ipc call todos toggle";
+  todoCaptureCommand = "qs -c tom-bar ipc call todos capture";
   hyprlandConfig =
     builtins.replaceStrings
       [
@@ -206,9 +208,9 @@ in
     ];
 
     xdg.configFile."quickshell/tom-idle/shell.qml".source = idleShell;
-    # Lua config reloads retain existing dispatcher callbacks. Rebind launcher
+    # Lua config reloads retain existing dispatcher callbacks. Rebind Quickshell
     # shortcuts explicitly after Home Manager changes the linked config so the
-    # running compositor does not keep the previous Wofi commands until logout.
+    # running compositor picks up new commands without a logout.
     home.activation.refreshLauncherBindings = lib.mkIf (config.home.username == common.user.name) (
       lib.hm.dag.entryAfter [ "linkGeneration" ] ''
         if [[ -n "''${HYPRLAND_INSTANCE_SIGNATURE:-}" ]] \
@@ -217,6 +219,10 @@ in
           run ${hyprlandPackage}/bin/hyprctl eval ${lib.escapeShellArg ''hl.bind("SUPER + U", hl.dsp.exec_cmd("${cameraLauncherCommand}"))''}
           run ${hyprlandPackage}/bin/hyprctl eval ${lib.escapeShellArg ''hl.unbind("SUPER + SHIFT + V")''}
           run ${hyprlandPackage}/bin/hyprctl eval ${lib.escapeShellArg ''hl.bind("SUPER + SHIFT + V", hl.dsp.exec_cmd("${clipboardLauncherCommand}"))''}
+          run ${hyprlandPackage}/bin/hyprctl eval ${lib.escapeShellArg ''hl.unbind("SUPER + T")''}
+          run ${hyprlandPackage}/bin/hyprctl eval ${lib.escapeShellArg ''hl.bind("SUPER + T", hl.dsp.exec_cmd("${todoManagerCommand}"))''}
+          run ${hyprlandPackage}/bin/hyprctl eval ${lib.escapeShellArg ''hl.unbind("SUPER + SHIFT + T")''}
+          run ${hyprlandPackage}/bin/hyprctl eval ${lib.escapeShellArg ''hl.bind("SUPER + SHIFT + T", hl.dsp.exec_cmd("${todoCaptureCommand}"))''}
         fi
       ''
     );

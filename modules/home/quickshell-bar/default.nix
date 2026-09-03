@@ -292,6 +292,13 @@ let
       primaryOutput = cfg.primaryOutput;
     }
   );
+  todoManager = pkgs.replaceVars ./TodoManager.qml (
+    themeVars
+    // {
+      todoHelper = lib.getExe notionTodoHelper;
+      xdgOpen = lib.getExe' pkgs.xdg-utils "xdg-open";
+    }
+  );
   notificationCard = pkgs.replaceVars ./NotificationCard.qml themeVars;
   notifications = pkgs.replaceVars ./Notifications.qml (
     (builtins.removeAttrs themeVars [
@@ -358,6 +365,7 @@ in
       "quickshell/tom-bar/TimerPopup.qml".source = timerPopup;
       "quickshell/tom-bar/TodoService.qml".source = todoService;
       "quickshell/tom-bar/TodoPanel.qml".source = todoPanel;
+      "quickshell/tom-bar/TodoManager.qml".source = todoManager;
     };
 
     systemd.user.services.quickshell-bar = {

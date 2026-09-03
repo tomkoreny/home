@@ -179,6 +179,8 @@ hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("desktop-osd session"))
 hl.bind(mainMod .. " + N", hl.dsp.exec_cmd("qs -c tom-bar ipc call notifications toggle"))
 hl.bind(mainMod .. " + A", hl.dsp.exec_cmd("qs -c tom-bar ipc call launcher ai"))
 hl.bind(mainMod .. " + H", hl.dsp.exec_cmd("qs -c tom-bar ipc call launcher herdr"))
+hl.bind(mainMod .. " + T", hl.dsp.exec_cmd("qs -c tom-bar ipc call todos toggle"))
+hl.bind(mainMod .. " + SHIFT + T", hl.dsp.exec_cmd("qs -c tom-bar ipc call todos capture"))
 
 hl.bind("Print", hl.dsp.exec_cmd("hyprshot -m region"))
 hl.bind(mainMod .. " + Print", hl.dsp.exec_cmd("hyprshot -m output"))

@@ -317,6 +317,11 @@ ShellRoot {
     TodoPanel {
         service: todos
     }
+    TodoManager {
+        id: todoManager
+
+        widgetService: todos
+    }
     TimerPopup {
         id: timerPopup
 
@@ -367,6 +372,20 @@ ShellRoot {
             return timerPopup.shown;
         }
     }
+    IpcHandler {
+        target: "todos"
+
+        function toggle(): bool {
+            todoManager.toggle();
+            return todoManager.visible;
+        }
+
+        function capture(): bool {
+            todoManager.capture();
+            return todoManager.visible;
+        }
+    }
+
 
 
     IpcHandler {
@@ -771,7 +790,7 @@ ShellRoot {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: todos.refresh()
+                            onClicked: todoManager.toggle()
 
                             QQC2.ToolTip.visible: containsMouse
                             QQC2.ToolTip.delay: 500

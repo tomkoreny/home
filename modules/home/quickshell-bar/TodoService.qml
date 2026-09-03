@@ -4,6 +4,7 @@ import QtQuick
 
 Scope {
     id: root
+    signal tasksChanged()
 
     property var items: []
     property int todayCount: 0
@@ -14,6 +15,8 @@ Scope {
     property string error: ""
     property var undoTask: null
     property var commandQueue: []
+    property var pendingCompletedIds: []
+    property var pendingReopenTasks: []
     readonly property int actionableCount: todayCount + overdueCount
     readonly property bool undoAvailable: undoTask !== null
 
@@ -52,12 +55,14 @@ Scope {
         });
         items = sorted;
         overdueCount = sorted.filter(item => item.overdue).length;
-        todayCount = sorted.length - overdueCount;
+        const today = Qt.formatDateTime(new Date(), "yyyy-MM-dd");
+        todayCount = sorted.filter(item => item.due === today).length;
     }
 
     function completeTask(task: var): void {
         if (!task)
             return;
+        pendingCompletedIds = pendingCompletedIds.concat([task.id]);
         recalculate(items.filter(item => item.id !== task.id));
         undoTask = task;
         undoExpiry.restart();
@@ -68,6 +73,8 @@ Scope {
         const task = undoTask;
         if (!task)
             return;
+        pendingCompletedIds = pendingCompletedIds.filter(id => id !== task.id);
+        pendingReopenTasks = pendingReopenTasks.concat([task]);
         undoExpiry.stop();
         undoTask = null;
         recalculate(items.concat([task]));
@@ -80,9 +87,14 @@ Scope {
     }
 
     function applyList(payload: var): void {
-        items = payload.items ?? [];
-        todayCount = payload.todayCount ?? 0;
-        overdueCount = payload.overdueCount ?? 0;
+        let nextItems = (payload.items ?? []).filter(
+            item => !pendingCompletedIds.includes(item.id)
+        );
+        for (const task of pendingReopenTasks) {
+            if (!nextItems.some(item => item.id === task.id))
+                nextItems.push(task);
+        }
+        recalculate(nextItems);
         updatedAt = payload.updatedAt ?? "";
         stale = Boolean(payload.stale);
         error = String(payload.error ?? "");
@@ -92,6 +104,10 @@ Scope {
     function restoreFailedMutation(action: string, task: var): void {
         if (!task)
             return;
+        if (action === "complete")
+            pendingCompletedIds = pendingCompletedIds.filter(id => id !== task.id);
+        if (action === "undo")
+            pendingReopenTasks = pendingReopenTasks.filter(item => item.id !== task.id);
         if (action === "complete" && !items.some(item => item.id === task.id))
             recalculate(items.concat([task]));
         if (action === "undo")
@@ -114,12 +130,16 @@ Scope {
             if (action === "list") {
                 applyList(payload);
             } else {
-                if (action === "complete" && context)
+                if (action === "complete" && context) {
+                    pendingCompletedIds = pendingCompletedIds.filter(id => id !== context.id);
                     recalculate(items.filter(item => item.id !== context.id));
-                else if (action === "undo" && context
-                         && !items.some(item => item.id === context.id))
-                    recalculate(items.concat([context]));
+                } else if (action === "undo" && context) {
+                    pendingReopenTasks = pendingReopenTasks.filter(item => item.id !== context.id);
+                    if (!items.some(item => item.id === context.id))
+                        recalculate(items.concat([context]));
+                }
                 error = "";
+                tasksChanged();
             }
         } catch (parseError) {
             error = "Could not read Notion response";
