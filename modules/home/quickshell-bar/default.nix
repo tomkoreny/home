@@ -27,6 +27,13 @@ let
     substitute ${providerLogoSources.openai} "$out/openai.svg" \
       --replace-fail currentColor "#ffffff"
   '';
+  launcherCustomIcons = builtins.toJSON {
+    "betterbird" = ./icons/betterbird.svg;
+    "datagrip" = ./icons/datagrip.svg;
+    "discord" = ./icons/discord.svg;
+    "helium-browser" = ./icons/helium.svg;
+    "steam" = ./icons/steam.svg;
+  };
   profileIcon = relative: "${config.home.profileDirectory}/share/icons/hicolor/${relative}";
   dataIcon = relative: "${config.xdg.dataHome}/icons/hicolor/${relative}";
   launcherIconOverrides = builtins.toJSON {
@@ -90,6 +97,7 @@ let
     // {
       uwsm = lib.getExe pkgs.uwsm;
       iconOverrides = launcherIconOverrides;
+      customIcons = launcherCustomIcons;
     }
   );
   notificationCard = pkgs.replaceVars ./NotificationCard.qml themeVars;

@@ -14,6 +14,7 @@ Scope {
     readonly property var results: rankedApplications(query)
     readonly property bool visible: shown
     readonly property var iconOverrides: @iconOverrides@
+    readonly property var customIcons: @customIcons@
 
     function normalized(value: var): string {
         return String(value ?? "").toLowerCase();
@@ -32,6 +33,11 @@ Scope {
         if (icon.includes("://") || icon.startsWith("qrc:"))
             return icon;
         return Quickshell.iconPath(icon, true);
+    }
+
+    function customIconSource(entry: var): string {
+        const icon = customIcons[normalized(entry.id)] ?? "";
+        return icon === "" ? "" : `file://${icon}`;
     }
 
     function fuzzyScore(value: string, needle: string): real {
@@ -399,6 +405,20 @@ Scope {
                         }
 
                         Image {
+                            id: customIconSource
+
+                            anchors.fill: parent
+                            anchors.margins: 7
+                            source: root.customIconSource(resultRow.entry)
+                            sourceSize.width: 40
+                            sourceSize.height: 40
+                            fillMode: Image.PreserveAspectFit
+                            asynchronous: true
+                            smooth: true
+                            visible: false
+                        }
+
+                        Image {
                             id: applicationIconSource
 
                             anchors.fill: parent
@@ -409,20 +429,24 @@ Scope {
                             fillMode: Image.PreserveAspectFit
                             asynchronous: true
                             smooth: true
-                            visible: false
+                            visible: (customIconSource.status === Image.Null
+                                || customIconSource.status === Image.Error)
+                                && status === Image.Ready
                         }
 
                         MultiEffect {
-                            anchors.fill: applicationIconSource
-                            source: applicationIconSource
+                            anchors.fill: customIconSource
+                            source: customIconSource
                             colorization: 1
                             colorizationColor: "@accent@"
-                            visible: applicationIconSource.status === Image.Ready
+                            visible: customIconSource.status === Image.Ready
                         }
 
                         Text {
                             anchors.centerIn: parent
-                            visible: applicationIconSource.status !== Image.Ready
+                            visible: (customIconSource.status === Image.Null
+                                || customIconSource.status === Image.Error)
+                                && applicationIconSource.status !== Image.Ready
                             text: "󰀻"
                             color: resultRow.selected ? "@accent@" : "@subdued@"
                             font.family: "@fontFamily@"
