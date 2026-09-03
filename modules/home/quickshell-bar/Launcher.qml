@@ -91,6 +91,16 @@ Scope {
         return "";
     }
 
+    function desktopIconSource(icon: string): string {
+        if (icon === "")
+            return "";
+        if (icon.startsWith("/"))
+            return `file://${icon}`;
+        if (icon.includes("://") || icon.startsWith("qrc:"))
+            return icon;
+        return Quickshell.iconPath(icon, true);
+    }
+
     function fuzzyScore(value: string, needle: string): real {
         if (needle === "")
             return 0;
@@ -461,8 +471,8 @@ Scope {
                             id: applicationIcon
 
                             anchors.fill: parent
-                            source: resultRow.customIcon === "" && resultRow.entry.icon !== ""
-                                ? Quickshell.iconPath(resultRow.entry.icon, true)
+                            source: resultRow.customIcon === ""
+                                ? root.desktopIconSource(resultRow.entry.icon)
                                 : ""
                             sourceSize.width: 34
                             sourceSize.height: 34
