@@ -6,6 +6,9 @@ Quick reference for the Hyprland desktop tweaks. Changes live in
 
 > Pretty version: open `docs/reference.html` in a browser.
 
+Widget reference:
+[Quickshell bar, launcher, task, notification, and OSD widgets](widgets.md).
+
 ## Keyboard: splitkb Aurora Corne · Miryoku (QWERTY)
 
 The primary keyboard is a **splitkb Aurora Corne** running **Miryoku** in QMK
