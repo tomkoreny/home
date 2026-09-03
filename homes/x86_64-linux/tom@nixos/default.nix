@@ -140,15 +140,31 @@ in
   # Use Evolution's persisted sidebar order instead of alphabetical sorting.
   dconf.settings."org/gnome/evolution/mail"."sort-accounts-alpha" = false;
 
-  # Evolution identifies sidebar roots by service UID. Put Search Folders
-  # (which contains Unified Inbox) ahead of the four mail accounts.
-  xdg.configFile."evolution/mail/sortorder.ini" = {
-    force = true;
-    text = ''
-      [Accounts]
-      SortOrder=vfolder;3c393ab1b02fc414b3f89b49a89fbbb1e535e416;52c0459ec57947bf9ca217648a517342c34c1c9b;97c93e0cb16ef48dda53d240eb3e094ac78aff08;832122f4a66e8a6eb9ab37e5a51a158065574d90;local;rss;
-    '';
-  };
+  # Seed Evolution's writable sort-order state once. Evolution rewrites this
+  # file itself, so it must not be a Home Manager store symlink.
+  home.activation.seedEvolutionMailSortOrder = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+    config_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/evolution/mail"
+    sort_order="$config_dir/sortorder.ini"
+
+    if [ -L "$sort_order" ]; then
+      link_target="$(${pkgs.coreutils}/bin/readlink "$sort_order")"
+      case "$link_target" in
+        /nix/store/*) ${pkgs.coreutils}/bin/rm "$sort_order" ;;
+      esac
+    fi
+
+    if [ ! -e "$sort_order" ]; then
+      ${pkgs.coreutils}/bin/mkdir -p "$config_dir"
+      tmp_file="$(${pkgs.coreutils}/bin/mktemp "$sort_order.XXXXXX")"
+      ${pkgs.coreutils}/bin/printf '%s\n' \
+        '[Accounts]' \
+        'SortOrder=vfolder;3c393ab1b02fc414b3f89b49a89fbbb1e535e416;52c0459ec57947bf9ca217648a517342c34c1c9b;97c93e0cb16ef48dda53d240eb3e094ac78aff08;832122f4a66e8a6eb9ab37e5a51a158065574d90;local;rss;' \
+        > "$tmp_file"
+      ${pkgs.coreutils}/bin/chmod 600 "$tmp_file"
+      ${pkgs.coreutils}/bin/mv "$tmp_file" "$sort_order"
+    fi
+    ${pkgs.coreutils}/bin/chmod 600 "$sort_order"
+  '';
 
   # Captures the host-specific HDR/NVDEC settings declaratively. The cache/
   # readahead tuning that used to live here was reverted: the stutter it
