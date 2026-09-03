@@ -23,7 +23,7 @@ PanelWindow {
     readonly property var mediaPlayer: {
         const players = Mpris.players.values;
         const mpvPlayer = players.find(player =>
-            player.dbusName.startsWith("org.mpris.MediaPlayer2.mpv")
+            player.dbusName.startsWith("org.mpris.MediaPlayer2.mpv.JellyfinMPVShim")
                 && (player.isPlaying || player.trackTitle !== ""));
         return mpvPlayer
             ?? players.find(player => player.isPlaying)

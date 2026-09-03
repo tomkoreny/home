@@ -144,6 +144,9 @@ in
   xdg.configFile."jellyfin-mpv-shim/mpv.conf" = {
     force = true;
     text = ''
+      # Give Shim a distinct MPRIS bus name; standalone mpv remains separate.
+      audio-client-name=JellyfinMPVShim
+
       # Native HDR path verified on the Alienware AW3225QF under Hyprland/Wayland.
       vo=gpu-next
       gpu-api=vulkan

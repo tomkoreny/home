@@ -132,6 +132,20 @@ let
       esac
     '';
   };
+  mediaControl = pkgs.writeShellApplication {
+    name = "media-control";
+    runtimeInputs = [ pkgs.playerctl ];
+    text = ''
+      shim="mpv.JellyfinMPVShim"
+      status="$(playerctl --player="$shim" status 2>/dev/null || true)"
+
+      if [[ "$status" == Playing || "$status" == Paused ]]; then
+        exec playerctl --player="$shim" "$@"
+      fi
+
+      exec playerctl --ignore-player="$shim" "$@"
+    '';
+  };
   idleShell = pkgs.replaceVars ./idle.qml {
     inherit fontFamily;
     oledIdle = lib.getExe oledIdle;
@@ -156,6 +170,7 @@ in
       pkgs.hypridle
       pkgs.quickshell
       oledIdle
+      mediaControl
 
       # Programs referenced by binds in main.lua
       pkgs.nautilus # Super+E file manager
