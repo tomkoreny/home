@@ -29,10 +29,28 @@ let
   '';
   launcherCustomIcons = builtins.toJSON {
     "betterbird" = ./icons/betterbird.svg;
+    "com.mitchellh.ghostty" = ./icons/ghostty.svg;
+    "counter-strike 2" = ./icons/counter-strike.svg;
     "datagrip" = ./icons/datagrip.svg;
+    "de.feschber.lanmouse" = ./icons/lan-mouse.svg;
+    "dev.zed.zed" = ./icons/zed.svg;
     "discord" = ./icons/discord.svg;
+    "element-desktop" = ./icons/element.svg;
     "helium-browser" = ./icons/helium.svg;
+    "htop" = ./icons/htop.svg;
+    "io.github.benjamimgois.goverlay" = ./icons/goverlay.svg;
+    "jellyfin-mpv-shim" = ./icons/jellyfin.svg;
+    "nvim" = ./icons/neovim.svg;
+    "org.gnome.nautilus" = ./icons/files.svg;
+    "org.kicad.kicad" = ./icons/kicad.svg;
+    "org.openrgb.openrgb" = ./icons/openrgb.svg;
+    "org.prismlauncher.prismlauncher" = ./icons/prismlauncher.svg;
+    "org.remmina.remmina" = ./icons/remmina.svg;
+    "pycharm" = ./icons/pycharm.svg;
+    "slack" = ./icons/slack.svg;
     "steam" = ./icons/steam.svg;
+    "teams-for-linux" = ./icons/teams.svg;
+    "webstorm" = ./icons/webstorm.svg;
   };
   profileIcon = relative: "${config.home.profileDirectory}/share/icons/hicolor/${relative}";
   dataIcon = relative: "${config.xdg.dataHome}/icons/hicolor/${relative}";
