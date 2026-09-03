@@ -112,7 +112,7 @@ let
     ${hyprctl} eval \
       "local w = \"address:$address\"; \
       hl.dispatch(hl.dsp.window.float({ action = \"off\", window = w })); \
-      hl.dispatch(hl.dsp.window.move({ monitor = \"HDMI-A-2\", follow = false, window = w })); \
+      hl.dispatch(hl.dsp.window.move({ workspace = 7, follow = false, window = w })); \
       return \"ok\"" >/dev/null
 
     set +e
