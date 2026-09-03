@@ -194,11 +194,15 @@ ShellRoot {
         return `${minutes}m`;
     }
 
+    function aiWindowIcon(windowId: string): string {
+        return windowId === "5h" ? "󰔛" : "󰃭";
+    }
+
     function aiResetText(limit: var): string {
         if (typeof limit.resetsAt !== "number")
-            return "↻--";
+            return "--";
         const remaining = relativeDuration(limit.resetsAt - clock.date.getTime());
-        return `↻${remaining.replace(/\s/g, "")}`;
+        return remaining.replace(/\s/g, "");
     }
 
     function aiUsageTooltip(): string {
@@ -562,7 +566,7 @@ ShellRoot {
                                             Text {
                                                 required property var modelData
 
-                                                text: `${modelData.windowId} ${root.aiRemainingText(modelData)} ${root.aiResetText(modelData)}`
+                                                text: `${root.aiWindowIcon(modelData.windowId)} ${root.aiRemainingText(modelData)} ${root.aiResetText(modelData)}`
                                                 color: root.aiRemainingColor(modelData.remaining)
                                                 font.family: "@fontFamily@"
                                                 font.pixelSize: 9
