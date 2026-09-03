@@ -16,7 +16,7 @@ ShellRoot {
     readonly property var audio: audioNode ? audioNode.audio : null
     readonly property bool audioMuted: audio ? audio.muted : false
     readonly property int volumePercent: audio ? Math.round(audio.volume * 100) : 0
-    property bool showDate: false
+    property bool showSeconds: false
     property int herdrWorking: 0
     property int herdrBlocked: 0
     property int herdrIdle: 0
@@ -299,7 +299,7 @@ ShellRoot {
 
     SystemClock {
         id: clock
-        precision: SystemClock.Minutes
+        precision: root.showSeconds ? SystemClock.Seconds : SystemClock.Minutes
     }
 
     Notifications {
@@ -992,27 +992,40 @@ ShellRoot {
                     }
 
                     Item {
-                        width: clockText.implicitWidth + 12
+                        width: clockRows.implicitWidth + 12
                         height: parent.height
 
-                        Text {
-                            id: clockText
+                        Column {
+                            id: clockRows
 
                             anchors.centerIn: parent
-                            text: root.showDate
-                                ? Qt.formatDateTime(clock.date, "yyyy-MM-dd")
-                                : `󰥔  ${Qt.formatDateTime(clock.date, "HH:mm")}`
-                            color: "@text@"
-                            font.family: "@fontFamily@"
-                            font.pixelSize: 12
-                            font.weight: Font.DemiBold
+                            spacing: -1
+
+                            Text {
+                                text: `󰥔 ${Qt.formatDateTime(
+                                    clock.date,
+                                    root.showSeconds ? "HH:mm:ss" : "HH:mm"
+                                )}`
+                                color: "@text@"
+                                font.family: "@fontFamily@"
+                                font.pixelSize: 9
+                                font.weight: Font.DemiBold
+                            }
+
+                            Text {
+                                text: `󰃭 ${Qt.formatDateTime(clock.date, "ddd d MMM")}`
+                                color: "@text@"
+                                font.family: "@fontFamily@"
+                                font.pixelSize: 9
+                                font.weight: Font.DemiBold
+                            }
                         }
 
                         MouseArea {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: root.showDate = !root.showDate
+                            onClicked: root.showSeconds = !root.showSeconds
 
                             QQC2.ToolTip.visible: containsMouse
                             QQC2.ToolTip.delay: 500
