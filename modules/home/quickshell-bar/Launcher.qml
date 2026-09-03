@@ -17,6 +17,80 @@ Scope {
         return String(value ?? "").toLowerCase();
     }
 
+    function localIcon(entry: var): string {
+        const id = normalized(entry.id);
+        const name = normalized(entry.name);
+
+        switch (id) {
+        case "betterbird":
+            return "󰇮";
+        case "datagrip":
+            return "󰆼";
+        case "discord":
+        case "element-desktop":
+        case "slack":
+        case "teams-for-linux":
+            return "󰭹";
+        case "org.gnome.nautilus":
+            return "󰉋";
+        case "com.mitchellh.ghostty":
+        case "xterm":
+            return "󰆍";
+        case "helium-browser":
+            return "󰖟";
+        case "htop":
+            return "󰓅";
+        case "jellyfin-mpv-shim":
+        case "mpv":
+            return "󰐊";
+        case "kvantummanager":
+        case "qt5ct":
+        case "qt6ct":
+            return "󰏘";
+        case "de.feschber.lanmouse":
+            return "󰍽";
+        case "cups":
+            return "󰐪";
+        case "multiviewer":
+        case "qv4l2":
+        case "qvidcap":
+            return "󰄀";
+        case "nixos-manual":
+            return "󰂺";
+        case "nvidia-settings":
+            return "󰢮";
+        case "org.openrgb.openrgb":
+            return "󰌵";
+        case "org.gnome.seahorse.application":
+            return "󰌆";
+        case "org.remmina.remmina":
+            return "󰍹";
+        case "uuctl":
+            return "󰕓";
+        }
+
+        if (id.startsWith("org.kicad.") || name.startsWith("kicad"))
+            return "󰌪";
+        if (id.startsWith("cc.etke.komai"))
+            return "󰭹";
+        if (id.startsWith("prusa"))
+            return "󰐫";
+        if (id.includes("goverlay")
+                || id === "steam"
+                || id.includes("counter-strike")
+                || id.includes("prismlauncher")
+                || id === "protontricks")
+            return "󰊴";
+        if (id === "nvim"
+                || id === "pycharm"
+                || id === "webstorm"
+                || id === "dev.zed.zed"
+                || id === "jetbrains-gateway"
+                || id.startsWith("jetbrains-"))
+            return "󰅩";
+        return "";
+    }
+
     function fuzzyScore(value: string, needle: string): real {
         if (needle === "")
             return 0;
@@ -184,7 +258,7 @@ Scope {
         screen: root.targetScreen ?? Quickshell.screens[0]
         visible: root.targetScreen !== null && (root.shown || shade.opacity > 0.01)
         color: "transparent"
-        exclusiveZone: 0
+        exclusionMode: ExclusionMode.Ignore
         aboveWindows: true
 
         anchors.top: true
@@ -353,6 +427,7 @@ Scope {
                     required property int index
                     readonly property bool selected: index === root.selectedIndex
                     readonly property var entry: modelData.entry
+                    readonly property string customIcon: root.localIcon(entry)
                     readonly property string description: entry.genericName !== ""
                         ? entry.genericName
                         : entry.comment
@@ -364,35 +439,59 @@ Scope {
                     border.width: selected ? 1 : 0
                     border.color: "@border@"
 
-                    Image {
-                        id: applicationIcon
+                    Item {
+                        id: iconSlot
 
                         anchors.left: parent.left
                         anchors.leftMargin: 12
                         anchors.verticalCenter: parent.verticalCenter
                         width: 34
                         height: 34
-                        source: resultRow.entry.icon !== ""
-                            ? Quickshell.iconPath(resultRow.entry.icon, true)
-                            : ""
-                        sourceSize.width: 34
-                        sourceSize.height: 34
-                        fillMode: Image.PreserveAspectFit
-                        smooth: true
-                        visible: status === Image.Ready
-                    }
 
-                    Text {
-                        anchors.centerIn: applicationIcon
-                        visible: !applicationIcon.visible
-                        text: "󰀻"
-                        color: resultRow.selected ? "@accent@" : "@subdued@"
-                        font.family: "@fontFamily@"
-                        font.pixelSize: 22
+                        Rectangle {
+                            anchors.fill: parent
+                            visible: resultRow.customIcon !== ""
+                            radius: 9
+                            color: "transparent"
+                            border.width: 1
+                            border.color: resultRow.selected ? "@accent@" : "@border@"
+                        }
+
+                        Image {
+                            id: applicationIcon
+
+                            anchors.fill: parent
+                            source: resultRow.customIcon === "" && resultRow.entry.icon !== ""
+                                ? Quickshell.iconPath(resultRow.entry.icon, true)
+                                : ""
+                            sourceSize.width: 34
+                            sourceSize.height: 34
+                            fillMode: Image.PreserveAspectFit
+                            smooth: true
+                            visible: resultRow.customIcon === "" && status === Image.Ready
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            visible: resultRow.customIcon !== ""
+                            text: resultRow.customIcon
+                            color: "@accent@"
+                            font.family: "@fontFamily@"
+                            font.pixelSize: 20
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            visible: resultRow.customIcon === "" && !applicationIcon.visible
+                            text: "󰀻"
+                            color: resultRow.selected ? "@accent@" : "@subdued@"
+                            font.family: "@fontFamily@"
+                            font.pixelSize: 22
+                        }
                     }
 
                     Column {
-                        anchors.left: applicationIcon.right
+                        anchors.left: iconSlot.right
                         anchors.leftMargin: 12
                         anchors.right: parent.right
                         anchors.rightMargin: 14
