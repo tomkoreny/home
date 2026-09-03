@@ -19,6 +19,10 @@ let
     src = inputs.python-mpv-jsonipc-src;
   });
 
+  mpvWithMpris = pkgs.mpv.override {
+    scripts = [ pkgs.mpvScripts.mpris ];
+  };
+
   jellyfinMpvShim = pkgs.jellyfin-mpv-shim.overridePythonAttrs (old: {
     version = "3.0.0pre14";
     src = inputs.jellyfin-mpv-shim-src;
@@ -52,9 +56,12 @@ let
         --replace-fail '"DejaVuSans-Bold.ttf",' \
                        '"${pkgs.dejavu_fonts}/share/fonts/truetype/DejaVuSans-Bold.ttf",'
 
-      # New profiles should select the system-matched theme by default. The
-      # theme itself is installed below through Home Manager.
+      # MPRIS requires the C plugin in a standalone mpv process; it cannot
+      # register from Shim's embedded libmpv backend. Use the external backend
+      # for new profiles so global media controls can see playback.
       substituteInPlace jellyfin_mpv_shim/conf.py \
+        --replace-fail 'mpv_ext: bool = sys.platform.startswith("darwin")' \
+                       'mpv_ext: bool = True' \
         --replace-fail 'theme: str = "default"' \
                        'theme: str = "catppuccin-mocha"' \
         --replace-fail 'ui_scale: Optional[float] = None' \
@@ -199,6 +206,23 @@ in
     }
     + "\n";
 
+  # Existing profiles persist this setting in conf.json, so changing the
+  # package default alone would leave them on the embedded backend. Update the
+  # single key atomically without taking ownership of the app-managed file.
+  home.activation.enableJellyfinMpvMpris = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    config_file="$HOME/.config/jellyfin-mpv-shim/conf.json"
+    if [ -f "$config_file" ] && [ "$(${pkgs.jq}/bin/jq -r '.mpv_ext // false' "$config_file")" != true ]; then
+      tmp_file="$(${pkgs.coreutils}/bin/mktemp "$config_file.XXXXXX")"
+      if ${pkgs.jq}/bin/jq '.mpv_ext = true' "$config_file" > "$tmp_file"; then
+        ${pkgs.coreutils}/bin/chmod --reference="$config_file" "$tmp_file"
+        ${pkgs.coreutils}/bin/mv "$tmp_file" "$config_file"
+      else
+        ${pkgs.coreutils}/bin/rm -f "$tmp_file"
+        exit 1
+      fi
+    fi
+  '';
+
   # Hyprland starts this unit after its Wayland/systemd environment is ready.
   systemd.user.services.jellyfin-mpv-shim = {
     Unit = {
@@ -232,6 +256,7 @@ in
     pkgs.seahorse
     pkgs.toybox
     pkgs.element-desktop
+    mpvWithMpris # External Shim backend with global MPRIS media controls
     jellyfinMpvShim # Browser-enabled Jellyfin desktop/cast client backed by mpv
     pkgs.prismlauncher
     pkgs.remmina

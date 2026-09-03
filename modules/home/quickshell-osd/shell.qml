@@ -22,7 +22,11 @@ PanelWindow {
     }
     readonly property var mediaPlayer: {
         const players = Mpris.players.values;
-        return players.find(player => player.isPlaying)
+        const mpvPlayer = players.find(player =>
+            player.dbusName.startsWith("org.mpris.MediaPlayer2.mpv")
+                && (player.isPlaying || player.trackTitle !== ""));
+        return mpvPlayer
+            ?? players.find(player => player.isPlaying)
             ?? players.find(player => player.trackTitle !== "")
             ?? players[0]
             ?? null;
