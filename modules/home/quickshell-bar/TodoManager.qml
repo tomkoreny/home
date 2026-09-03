@@ -101,20 +101,6 @@ Scope {
         run("list", [view], null);
     }
 
-    function handleViewShortcut(event: var): void {
-        if (!(event.modifiers & Qt.ControlModifier) || backend.running)
-            return;
-        if (event.key === Qt.Key_1)
-            loadView("mine");
-        else if (event.key === Qt.Key_2)
-            loadView("unassigned");
-        else if (event.key === Qt.Key_3)
-            loadView("all");
-        else
-            return;
-        event.accepted = true;
-    }
-
     function replaceItem(item: var): void {
         items = items.map(candidate => candidate.id === item.id ? item : candidate);
     }
@@ -124,8 +110,14 @@ Scope {
             items = items.concat([item]);
     }
 
+    function taskData(task: var): var {
+        const value = Object.assign({}, task);
+        delete value.kind;
+        return value;
+    }
+
     function optimisticUpdate(task: var, field: string, value: string): void {
-        const updated = Object.assign({}, task);
+        const updated = taskData(task);
         if (field === "title")
             updated.title = value;
         else if (field === "due") {
@@ -151,7 +143,7 @@ Scope {
             error = "Task title is required";
             return;
         }
-        const original = Object.assign({}, task);
+        const original = taskData(task);
         optimisticUpdate(task, field, normalized);
         if (!run("update", [task.id, field, normalized], {
             kind: "update",
@@ -163,8 +155,10 @@ Scope {
     function completeTask(task: var): void {
         if (!task || backend.running)
             return;
+        const original = taskData(task);
+        editingId = "";
         items = items.filter(candidate => candidate.id !== task.id);
-        const completed = Object.assign({}, task, {
+        const completed = Object.assign({}, original, {
             completedDate: todayString()
         });
         completedItems = [completed].concat(
@@ -172,29 +166,31 @@ Scope {
         );
         run("complete", [task.id], {
             kind: "complete",
-            original: task
+            original: original
         });
     }
 
     function reopenTask(task: var): void {
         if (!task || backend.running)
             return;
+        const original = taskData(task);
         completedItems = completedItems.filter(candidate => candidate.id !== task.id);
         if (activeView === "mine")
-            appendItem(task);
+            appendItem(original);
         run("reopen", [task.id], {
             kind: "reopen",
-            original: task
+            original: original
         });
     }
 
     function assignToMe(task: var): void {
         if (!task || backend.running)
             return;
+        const original = taskData(task);
         items = items.filter(candidate => candidate.id !== task.id);
         run("assign", [task.id], {
             kind: "assign",
-            original: task
+            original: original
         });
     }
 
@@ -338,7 +334,7 @@ Scope {
                 count: values.length
             });
             for (const task of values)
-                rows.push(Object.assign({kind: "task"}, task));
+                rows.push(Object.assign({}, task, {kind: "task"}));
         };
         if (activeView === "mine") {
             const today = todayString();
@@ -352,7 +348,7 @@ Scope {
                 });
                 if (completedExpanded) {
                     for (const task of completed)
-                        rows.push(Object.assign({kind: "completed"}, task));
+                        rows.push(Object.assign({}, task, {kind: "completed"}));
                 }
             }
             addSection("Overdue", visible.filter(task => task.due !== "" && task.due < today));
@@ -518,7 +514,6 @@ Scope {
                 anchors.fill: parent
                 focus: root.shown
                 Keys.onEscapePressed: root.close()
-                Keys.onPressed: event => root.handleViewShortcut(event)
 
                 Text {
                     anchors.left: parent.left
@@ -766,7 +761,6 @@ Scope {
                         clip: true
                         onTextChanged: root.searchText = text
                         Keys.onEscapePressed: root.close()
-                        Keys.onPressed: event => root.handleViewShortcut(event)
 
                         Text {
                             anchors.fill: parent
@@ -851,7 +845,7 @@ Scope {
                                 cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                                 onClicked: row.completed
                                     ? root.reopenTask(row.modelData)
-                                    : root.cycleStatus(row.modelData)
+                                    : root.completeTask(row.modelData)
                             }
                         }
 
