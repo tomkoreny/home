@@ -83,8 +83,18 @@ in
   ];
 
   boot = {
-    # Bootloader.
-    plymouth.enable = true;
+    # Keep the normal boot path graphical; errors still surface on the console.
+    consoleLogLevel = 3;
+    initrd.verbose = false;
+    plymouth = {
+      enable = true;
+      theme = lib.mkForce "rings";
+      themePackages = [
+        (pkgs.adi1090x-plymouth-themes.override {
+          selected_themes = [ "rings" ];
+        })
+      ];
+    };
     loader = {
       systemd-boot.enable = lib.mkForce false;
       systemd-boot.configurationLimit = 5;
@@ -107,11 +117,11 @@ in
       };
     };
     kernelParams = [
-      # "quiet"
-      # "loglevel=3"
-      # "splash"
-      # "plymouth.ignore-serial-consoles"
-      # "nvidia-drm.modeset=1"
+      "quiet"
+      "rd.systemd.show_status=auto"
+      "systemd.show_status=auto"
+      "rd.udev.log_level=3"
+      "udev.log_level=3"
       # THESE 2 LINES ARE FIX FOR SHITTY NETWORK CARD, thanks intel
       "pcie_port_pm=off"
       "pcie_aspm.policy=performance"

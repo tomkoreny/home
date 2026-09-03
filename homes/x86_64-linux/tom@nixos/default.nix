@@ -207,7 +207,7 @@ in
       After = [ "graphical-session.target" ];
     };
     Service = {
-      ExecStart = "${jellyfinMpvShim}/bin/jellyfin-mpv-shim --gui --no-minimized";
+      ExecStart = "${jellyfinMpvShim}/bin/jellyfin-mpv-shim --gui --minimized";
       Restart = "on-failure";
       RestartSec = 3;
     };
