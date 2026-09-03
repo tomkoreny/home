@@ -24,7 +24,7 @@ PanelWindow {
         const players = Mpris.players.values;
         const mpvPlayer = players.find(player =>
             player.dbusName.startsWith("org.mpris.MediaPlayer2.mpv.JellyfinMPVShim")
-                && (player.isPlaying || player.trackTitle !== ""));
+                && player.playbackState !== MprisPlaybackState.Stopped);
         return mpvPlayer
             ?? players.find(player => player.isPlaying)
             ?? players.find(player => player.trackTitle !== "")
