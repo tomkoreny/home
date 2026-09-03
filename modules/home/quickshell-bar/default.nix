@@ -10,6 +10,46 @@ let
   common = import ../../../lib/common { };
   fontFamily = (common.stylix.fonts pkgs inputs).sansSerif.name;
   herdrPackage = inputs.herdr.packages.${pkgs.stdenv.hostPlatform.system}.default;
+  providerLogos = {
+    anthropic = pkgs.fetchurl {
+      url = "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.94.0/icons/anthropic.svg";
+      hash = "sha256-6DP9+n5xh6hqBbhwklBnVWpQbc1COQia7XPh5YyTZqM=";
+    };
+    openai = pkgs.fetchurl {
+      url = "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.94.0/icons/openai.svg";
+      hash = "sha256-pZXfa0I5IMZ6f49zwGPkv7ctQVlICXtsrAY6I2a7UYY=";
+    };
+  };
+  profileIcon = relative: "${config.home.profileDirectory}/share/icons/hicolor/${relative}";
+  dataIcon = relative: "${config.xdg.dataHome}/icons/hicolor/${relative}";
+  launcherIconOverrides = builtins.toJSON {
+    "betterbird" = profileIcon "128x128/apps/betterbird.png";
+    "datagrip" = profileIcon "scalable/apps/datagrip.svg";
+    "de.feschber.lanmouse" = profileIcon "scalable/apps/de.feschber.LanMouse.svg";
+    "dev.zed.zed" = profileIcon "512x512/apps/zed.png";
+    "discord" = profileIcon "256x256/apps/discord.png";
+    "com.mitchellh.ghostty" = profileIcon "512x512/apps/com.mitchellh.ghostty.png";
+    "element-desktop" = profileIcon "512x512/apps/element.png";
+    "jellyfin-mpv-shim" = profileIcon "256x256/apps/jellyfin-mpv-shim.png";
+    "helium-browser" = dataIcon "256x256/apps/helium.png";
+    "kvantummanager" =
+      "${pkgs.kdePackages.qtstyleplugin-kvantum}/share/icons/hicolor/scalable/apps/kvantum.svg";
+    "nvim" = profileIcon "128x128/apps/nvim.png";
+    "org.gnome.nautilus" = profileIcon "scalable/apps/org.gnome.Nautilus.svg";
+    "org.gnome.seahorse.application" = profileIcon "scalable/apps/org.gnome.seahorse.Application.svg";
+    "org.kicad.bitmap2component" = profileIcon "scalable/apps/bitmap2component.svg";
+    "org.kicad.eeschema" = profileIcon "scalable/apps/eeschema.svg";
+    "org.kicad.gerbview" = profileIcon "scalable/apps/gerbview.svg";
+    "org.kicad.kicad" = profileIcon "128x128/apps/kicad.png";
+    "org.kicad.pcbcalculator" = profileIcon "scalable/apps/pcbcalculator.svg";
+    "org.kicad.pcbnew" = profileIcon "scalable/apps/pcbnew.svg";
+    "org.prismlauncher.prismlauncher" = profileIcon "scalable/apps/org.prismlauncher.PrismLauncher.svg";
+    "org.remmina.remmina" = profileIcon "scalable/apps/org.remmina.Remmina.svg";
+    "pycharm" = profileIcon "scalable/apps/pycharm.svg";
+    "slack" = profileIcon "512x512/apps/slack.png";
+    "teams-for-linux" = profileIcon "512x512/apps/teams-for-linux.png";
+    "webstorm" = profileIcon "scalable/apps/webstorm.svg";
+  };
 
   themeVars = {
     inherit fontFamily;
@@ -27,6 +67,8 @@ let
     // {
       outputs = builtins.toJSON cfg.outputs;
       opaqueSurface = "#181825";
+      anthropicLogo = providerLogos.anthropic;
+      openaiLogo = providerLogos.openai;
       primaryOutput = cfg.primaryOutput;
       herdr = lib.getExe herdrPackage;
       hyprctl = lib.getExe' config.wayland.windowManager.hyprland.package "hyprctl";
@@ -40,6 +82,7 @@ let
     (builtins.removeAttrs themeVars [ "muted" ])
     // {
       uwsm = lib.getExe pkgs.uwsm;
+      iconOverrides = launcherIconOverrides;
     }
   );
   notificationCard = pkgs.replaceVars ./NotificationCard.qml themeVars;

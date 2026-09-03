@@ -533,13 +533,19 @@ let
   # Not yet in nixpkgs. Using AppImage for Linux, Homebrew cask for macOS.
   # Track upstream: https://github.com/imputnet/helium-linux
   # macOS: managed via Homebrew cask in systems/aarch64-darwin/macos/default.nix
+  heliumSrc = pkgs.fetchurl {
+    url = "https://github.com/imputnet/helium-linux/releases/download/${version}/helium-${version}-x86_64.AppImage";
+    hash = "sha256-jFSLLDsHB/NiJqFmn8S+JpdM8iCy3Zgyq+8l4RkBecM=";
+  };
+  heliumContents = pkgs.appimageTools.extract {
+    pname = "helium-browser";
+    inherit version;
+    src = heliumSrc;
+  };
   heliumAppImage = pkgs.appimageTools.wrapType2 {
     pname = "helium-browser";
     inherit version;
-    src = pkgs.fetchurl {
-      url = "https://github.com/imputnet/helium-linux/releases/download/${version}/helium-${version}-x86_64.AppImage";
-      hash = "sha256-jFSLLDsHB/NiJqFmn8S+JpdM8iCy3Zgyq+8l4RkBecM=";
-    };
+    src = heliumSrc;
     extraPkgs =
       pkgs: with pkgs; [
         nss
@@ -623,6 +629,12 @@ in
   }
   // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux (externalExtensionFiles "net.imput.helium");
 
+  xdg.dataFile."icons/hicolor/256x256/apps/helium.png" =
+    lib.mkIf pkgs.stdenv.hostPlatform.isLinux
+      {
+        source = "${heliumContents}/usr/share/icons/hicolor/256x256/apps/helium.png";
+      };
+
   # The AppImage wrapper ships no desktop entry, so provide one — without it
   # the mimeApps defaults below point at a .desktop file that doesn't exist
   # and xdg-open/portal default-browser resolution fails.
@@ -631,7 +643,7 @@ in
     genericName = "Web Browser";
     exec = "helium-browser %U";
     terminal = false;
-    icon = "web-browser";
+    icon = "helium";
     categories = [
       "Network"
       "WebBrowser"

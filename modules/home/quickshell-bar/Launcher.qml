@@ -2,6 +2,7 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Wayland
 import QtQuick
+import QtQuick.Effects
 
 Scope {
     id: root
@@ -12,86 +13,18 @@ Scope {
     property int selectedIndex: 0
     readonly property var results: rankedApplications(query)
     readonly property bool visible: shown
+    readonly property var iconOverrides: @iconOverrides@
 
     function normalized(value: var): string {
         return String(value ?? "").toLowerCase();
     }
 
-    function localIcon(entry: var): string {
-        const id = normalized(entry.id);
-        const name = normalized(entry.name);
+    function desktopIconSource(entry: var): string {
+        const override = iconOverrides[normalized(entry.id)] ?? "";
+        if (override !== "")
+            return `file://${override}`;
 
-        switch (id) {
-        case "betterbird":
-            return "󰇮";
-        case "datagrip":
-            return "󰆼";
-        case "discord":
-        case "element-desktop":
-        case "slack":
-        case "teams-for-linux":
-            return "󰭹";
-        case "org.gnome.nautilus":
-            return "󰉋";
-        case "com.mitchellh.ghostty":
-        case "xterm":
-            return "󰆍";
-        case "helium-browser":
-            return "󰖟";
-        case "htop":
-            return "󰓅";
-        case "jellyfin-mpv-shim":
-        case "mpv":
-            return "󰐊";
-        case "kvantummanager":
-        case "qt5ct":
-        case "qt6ct":
-            return "󰏘";
-        case "de.feschber.lanmouse":
-            return "󰍽";
-        case "cups":
-            return "󰐪";
-        case "multiviewer":
-        case "qv4l2":
-        case "qvidcap":
-            return "󰄀";
-        case "nixos-manual":
-            return "󰂺";
-        case "nvidia-settings":
-            return "󰢮";
-        case "org.openrgb.openrgb":
-            return "󰌵";
-        case "org.gnome.seahorse.application":
-            return "󰌆";
-        case "org.remmina.remmina":
-            return "󰍹";
-        case "uuctl":
-            return "󰕓";
-        }
-
-        if (id.startsWith("org.kicad.") || name.startsWith("kicad"))
-            return "󰌪";
-        if (id.startsWith("cc.etke.komai"))
-            return "󰭹";
-        if (id.startsWith("prusa"))
-            return "󰐫";
-        if (id.includes("goverlay")
-                || id === "steam"
-                || id.includes("counter-strike")
-                || id.includes("prismlauncher")
-                || id === "protontricks")
-            return "󰊴";
-        if (id === "nvim"
-                || id === "pycharm"
-                || id === "webstorm"
-                || id === "dev.zed.zed"
-                || id === "jetbrains-gateway"
-                || id.startsWith("jetbrains-"))
-            return "󰅩";
-        return "";
-    }
-
-    function desktopIconSource(icon: string): string {
+        const icon = entry.icon;
         if (icon === "")
             return "";
         if (icon.startsWith("/"))
@@ -437,7 +370,6 @@ Scope {
                     required property int index
                     readonly property bool selected: index === root.selectedIndex
                     readonly property var entry: modelData.entry
-                    readonly property string customIcon: root.localIcon(entry)
                     readonly property string description: entry.genericName !== ""
                         ? entry.genericName
                         : entry.comment
@@ -460,7 +392,6 @@ Scope {
 
                         Rectangle {
                             anchors.fill: parent
-                            visible: resultRow.customIcon !== ""
                             radius: 9
                             color: "transparent"
                             border.width: 1
@@ -468,31 +399,30 @@ Scope {
                         }
 
                         Image {
-                            id: applicationIcon
+                            id: applicationIconSource
 
                             anchors.fill: parent
-                            source: resultRow.customIcon === ""
-                                ? root.desktopIconSource(resultRow.entry.icon)
-                                : ""
-                            sourceSize.width: 34
-                            sourceSize.height: 34
+                            anchors.margins: 7
+                            source: root.desktopIconSource(resultRow.entry)
+                            sourceSize.width: 40
+                            sourceSize.height: 40
                             fillMode: Image.PreserveAspectFit
+                            asynchronous: true
                             smooth: true
-                            visible: resultRow.customIcon === "" && status === Image.Ready
+                            visible: false
+                        }
+
+                        MultiEffect {
+                            anchors.fill: applicationIconSource
+                            source: applicationIconSource
+                            colorization: 1
+                            colorizationColor: "@accent@"
+                            visible: applicationIconSource.status === Image.Ready
                         }
 
                         Text {
                             anchors.centerIn: parent
-                            visible: resultRow.customIcon !== ""
-                            text: resultRow.customIcon
-                            color: "@accent@"
-                            font.family: "@fontFamily@"
-                            font.pixelSize: 20
-                        }
-
-                        Text {
-                            anchors.centerIn: parent
-                            visible: resultRow.customIcon === "" && !applicationIcon.visible
+                            visible: applicationIconSource.status !== Image.Ready
                             text: "󰀻"
                             color: resultRow.selected ? "@accent@" : "@subdued@"
                             font.family: "@fontFamily@"
