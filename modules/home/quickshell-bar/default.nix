@@ -34,6 +34,12 @@ let
       qs = "${pkgs.quickshell}/bin/qs";
     }
   );
+  launcher = pkgs.replaceVars ./Launcher.qml (
+    (builtins.removeAttrs themeVars [ "muted" ])
+    // {
+      uwsm = lib.getExe pkgs.uwsm;
+    }
+  );
   notificationCard = pkgs.replaceVars ./NotificationCard.qml themeVars;
   notifications = pkgs.replaceVars ./Notifications.qml (
     (builtins.removeAttrs themeVars [
@@ -82,6 +88,7 @@ in
 
     xdg.configFile = {
       "quickshell/tom-bar/shell.qml".source = shell;
+      "quickshell/tom-bar/Launcher.qml".source = launcher;
       "quickshell/tom-bar/NotificationCard.qml".source = notificationCard;
       "quickshell/tom-bar/Notifications.qml".source = notifications;
     };

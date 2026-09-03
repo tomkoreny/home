@@ -119,6 +119,19 @@ ShellRoot {
         id: notifications
     }
 
+    Launcher {
+        id: launcher
+    }
+
+    IpcHandler {
+        target: "launcher"
+
+        function toggle(): bool {
+            launcher.toggle();
+            return launcher.visible;
+        }
+    }
+
     IpcHandler {
         target: "notifications"
 

@@ -167,7 +167,6 @@ local mainMod = "SUPER"
 hl.unbind("all")
 local terminal = "uwsm app -- ghostty"
 local fileManager = "uwsm app -- nautilus"
-local menu = "uwsm app -- $(wofi --show drun --define=drun-print_desktop_file=true)"
 
 hl.bind(mainMod .. " + Q", hl.dsp.exec_cmd(terminal))
 hl.bind(mainMod .. " + C", hl.dsp.window.close())
@@ -183,7 +182,7 @@ hl.bind("Print", hl.dsp.exec_cmd("hyprshot -m region"))
 hl.bind(mainMod .. " + Print", hl.dsp.exec_cmd("hyprshot -m output"))
 hl.bind(mainMod .. " + SHIFT + Print", hl.dsp.exec_cmd("hyprshot -m window"))
 hl.bind(mainMod .. " + V", hl.dsp.window.float())
-hl.bind(mainMod .. " + R", hl.dsp.exec_cmd(menu))
+hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("qs -c tom-bar ipc call launcher toggle"))
 hl.bind(mainMod .. " + P", hl.dsp.window.pseudo())
 hl.bind(mainMod .. " + J", hl.dsp.layout("togglesplit"))
 

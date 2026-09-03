@@ -247,6 +247,6 @@ in
   home.stateVersion = "24.05";
   home.sessionVariables.NIXOS_OZONE_WL = "1";
   programs = {
-    wofi.enable = true; # required for the default Hyprland config
+    wofi.enable = true; # Clipboard and Herdr pane pickers still use Wofi.
   };
 }
