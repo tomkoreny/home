@@ -10,6 +10,23 @@ let
   common = import ../../../lib/common { };
   fontFamily = (common.stylix.fonts pkgs inputs).sansSerif.name;
   herdrPackage = inputs.herdr.packages.${pkgs.stdenv.hostPlatform.system}.default;
+  providerLogoSources = {
+    anthropic = pkgs.fetchurl {
+      url = "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.94.0/icons/anthropic.svg";
+      hash = "sha256-6DP9+n5xh6hqBbhwklBnVWpQbc1COQia7XPh5YyTZqM=";
+    };
+    openai = pkgs.fetchurl {
+      url = "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.94.0/icons/openai.svg";
+      hash = "sha256-pZXfa0I5IMZ6f49zwGPkv7ctQVlICXtsrAY6I2a7UYY=";
+    };
+  };
+  providerLogos = pkgs.runCommand "quickshell-provider-logos" { } ''
+    mkdir -p "$out"
+    substitute ${providerLogoSources.anthropic} "$out/anthropic.svg" \
+      --replace-fail currentColor "#ffffff"
+    substitute ${providerLogoSources.openai} "$out/openai.svg" \
+      --replace-fail currentColor "#ffffff"
+  '';
   profileIcon = relative: "${config.home.profileDirectory}/share/icons/hicolor/${relative}";
   dataIcon = relative: "${config.xdg.dataHome}/icons/hicolor/${relative}";
   launcherIconOverrides = builtins.toJSON {
@@ -57,6 +74,8 @@ let
     // {
       outputs = builtins.toJSON cfg.outputs;
       opaqueSurface = "#181825";
+      anthropicLogo = "${providerLogos}/anthropic.svg";
+      openaiLogo = "${providerLogos}/openai.svg";
       primaryOutput = cfg.primaryOutput;
       herdr = lib.getExe herdrPackage;
       hyprctl = lib.getExe' config.wayland.windowManager.hyprland.package "hyprctl";

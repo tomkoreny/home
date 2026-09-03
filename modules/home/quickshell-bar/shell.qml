@@ -5,6 +5,7 @@ import Quickshell.Services.Pipewire
 import Quickshell.Services.SystemTray
 import Quickshell.Wayland
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Controls as QQC2
 
 ShellRoot {
@@ -459,20 +460,59 @@ ShellRoot {
                             anchors.centerIn: parent
                             spacing: 8
 
-                            Text {
-                                text: `󰚩 ${root.aiRemainingText("openai-codex")}`
-                                color: root.aiLimitColor("openai-codex")
-                                font.family: "@fontFamily@"
-                                font.pixelSize: 12
-                                font.weight: Font.DemiBold
-                            }
+                            Repeater {
+                                model: [
+                                    {
+                                        providerId: "openai-codex",
+                                        logo: "@openaiLogo@"
+                                    },
+                                    {
+                                        providerId: "anthropic",
+                                        logo: "@anthropicLogo@"
+                                    }
+                                ]
 
-                            Text {
-                                text: `✦ ${root.aiRemainingText("anthropic")}`
-                                color: root.aiLimitColor("anthropic")
-                                font.family: "@fontFamily@"
-                                font.pixelSize: 12
-                                font.weight: Font.DemiBold
+                                Row {
+                                    id: providerLimit
+
+                                    required property var modelData
+
+                                    spacing: 4
+
+                                    Item {
+                                        width: 14
+                                        height: 14
+                                        anchors.verticalCenter: parent.verticalCenter
+
+                                        Image {
+                                            id: providerLogoSource
+
+                                            anchors.fill: parent
+                                            source: providerLimit.modelData.logo
+                                            sourceSize.width: 14
+                                            sourceSize.height: 14
+                                            fillMode: Image.PreserveAspectFit
+                                            visible: false
+                                        }
+
+                                        MultiEffect {
+                                            anchors.fill: providerLogoSource
+                                            source: providerLogoSource
+                                            colorization: 1
+                                            colorizationColor: root.aiLimitColor(
+                                                providerLimit.modelData.providerId
+                                            )
+                                        }
+                                    }
+
+                                    Text {
+                                        text: root.aiRemainingText(providerLimit.modelData.providerId)
+                                        color: root.aiLimitColor(providerLimit.modelData.providerId)
+                                        font.family: "@fontFamily@"
+                                        font.pixelSize: 12
+                                        font.weight: Font.DemiBold
+                                    }
+                                }
                             }
 
                             Text {
