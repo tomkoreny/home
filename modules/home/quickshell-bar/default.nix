@@ -358,7 +358,11 @@ in
     };
 
     systemd.user.services.quickshell-bar = {
-      Unit.Description = "Quickshell desktop bar";
+      Unit = {
+        Description = "Quickshell desktop bar";
+        Wants = [ "sops-nix.service" ];
+        After = [ "sops-nix.service" ];
+      };
       Service = {
         ExecStart = "${pkgs.quickshell}/bin/qs -c tom-bar";
         Restart = "on-failure";
