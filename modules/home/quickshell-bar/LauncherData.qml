@@ -118,23 +118,28 @@ Scope {
     }
 
     function parseCameras(payload: string): void {
-        const names = payload.split("\n").map(value => value.trim()).filter(value => value !== "");
-        cameraItems = [{
-            kind: "camera",
-            id: "__all__",
-            title: "All cameras",
-            description: "Open an automatically arranged camera grid",
-            all: true,
-            search: "all cameras grid"
-        }].concat(names.map(name => ({
-            kind: "camera",
-            id: name,
-            title: name,
-            description: "Open live camera stream",
-            all: false,
-            search: name
-        })));
-        loadError = names.length === 0 ? "No cameras available" : "";
+        try {
+            const cameras = JSON.parse(payload);
+            cameraItems = [{
+                kind: "camera",
+                id: "__all__",
+                title: "All cameras",
+                description: "Open an automatically arranged camera grid",
+                all: true,
+                search: "all cameras grid"
+            }].concat(cameras.map(camera => ({
+                kind: "camera",
+                id: String(camera.id),
+                title: String(camera.name),
+                description: "Open live camera stream",
+                all: false,
+                search: String(camera.name)
+            })));
+            loadError = cameras.length === 0 ? "No connected cameras" : "";
+        } catch (error) {
+            cameraItems = [];
+            loadError = "Could not read cameras from Protect";
+        }
         loading = false;
     }
 
@@ -315,7 +320,7 @@ Scope {
         onExited: (exitCode, exitStatus) => {
             if (exitCode !== 0) {
                 root.loading = false;
-                root.loadError = "Could not read camera names";
+                root.loadError = "Could not read cameras from Protect";
             }
         }
     }

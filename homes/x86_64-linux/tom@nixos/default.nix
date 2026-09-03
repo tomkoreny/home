@@ -247,6 +247,6 @@ in
   home.stateVersion = "24.05";
   home.sessionVariables.NIXOS_OZONE_WL = "1";
   programs = {
-    wofi.enable = true; # Clipboard and Herdr pane pickers still use Wofi.
+    wofi.enable = true; # Retained for the standalone Herdr pane fallback.
   };
 }

@@ -50,9 +50,9 @@ in
     # Hardware specifics (PCI/USB paths) live in the module's option defaults.
     multiseat.enable = true;
 
-    # Super+U picker for UniFi Protect streams. Protect's Enhanced profile is
-    # H.265 and Helium ships no HEVC decoder, so play them in mpv instead of
-    # downgrading the cameras to H.264. Camera list: secrets/unifi/cameras.conf.
+    # Super+U opens connected Protect cameras in the Quickshell launcher.
+    # Protect's Enhanced H.265 streams play in mpv because Helium has no HEVC
+    # decoder. Inventory and stream URLs come from the local Integration API.
     unifi-cameras.enable = true;
   };
 

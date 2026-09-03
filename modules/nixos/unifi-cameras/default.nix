@@ -1,4 +1,4 @@
-# Wofi picker that opens UniFi Protect camera streams in mpv.
+# Launcher backend that discovers UniFi Protect cameras and opens streams in mpv.
 #
 # Why this exists: UniFi Protect's "Enhanced" recording profile is H.265/HEVC,
 # and Helium (an ungoogled-chromium fork) ships no HEVC decoder — the binary has
@@ -7,8 +7,8 @@
 # outside the browser: mpv + NVDEC handles HEVC natively (vainfo advertises
 # VAProfileHEVCMain through Main444_12 on this host).
 #
-# The camera list is sops-encrypted because each Protect RTSPS URL embeds a
-# per-camera stream token — possession of the URL is possession of the stream.
+# Camera inventory and RTSPS URLs come from Protect's local Integration API.
+# Its console URL and API key are sops-encrypted; stream tokens stay ephemeral.
 {
   config,
   lib,
@@ -20,7 +20,7 @@ let
 
   common = import ../../../lib/common { };
 
-  secretName = "unifi-cameras";
+  secretName = "unifi-protect-api-key";
   secretPath = "/run/secrets/${secretName}";
 
   # mpv tuned for a live camera feed rather than a media file:
@@ -46,35 +46,128 @@ let
     set -uo pipefail
 
     SECRET=${lib.escapeShellArg secretPath}
-    MPV=${lib.getExe pkgs.mpv}
-    WOFI=${lib.getExe pkgs.wofi}
-    NOTIFY=${lib.getExe pkgs.libnotify}
+    API_BASE=""
+    API_KEY=""
+    CACHE_DIR="''${XDG_CACHE_HOME:-$HOME/.cache}/unifi-cameras"
+    CACHE="$CACHE_DIR/connected.json"
+    CURL=${lib.getExe pkgs.curl}
     JQ=${lib.getExe pkgs.jq}
+    MPV=${lib.getExe pkgs.mpv}
+    NOTIFY=${lib.getExe pkgs.libnotify}
 
-    if [ ! -r "$SECRET" ]; then
-      "$NOTIFY" -u critical "UniFi cameras" \
-        "No camera list at $SECRET. Populate secrets/unifi/cameras.conf with sops."
-      exit 1
-    fi
+    notify_error() {
+      "$NOTIFY" -u critical "UniFi cameras" "$1"
+    }
 
-    # Format: one camera per line, "Display Name<TAB>rtsps://…".
-    # Blank lines and #-comments are ignored so the decrypted file can be
-    # annotated. Read into arrays rather than re-reading the secret per lookup.
-    names=()
-    urls=()
-    while IFS=$'\t' read -r name url; do
-      case "$name" in
-        ""|"#"*) continue ;;
+    load_config() {
+      if [ ! -r "$SECRET" ] || [ ! -s "$SECRET" ]; then
+        notify_error "No Protect API configuration at $SECRET."
+        return 1
+      fi
+      if ! API_BASE=$(
+        "$JQ" -er '.url | select(type == "string" and length > 0) | rtrimstr("/")' "$SECRET"
+      ) || ! API_KEY=$(
+        "$JQ" -er '.apiKey | select(type == "string" and length > 0)' "$SECRET"
+      ); then
+        notify_error "The Protect API configuration is invalid."
+        return 1
+      fi
+    }
+
+    api() {
+      local method="$1" path="$2"
+      shift 2
+      "$CURL" \
+        --silent \
+        --show-error \
+        --fail-with-body \
+        --insecure \
+        --connect-timeout 2 \
+        --max-time 10 \
+        --request "$method" \
+        --header @<(printf 'X-API-KEY: %s\n' "$API_KEY") \
+        "$@" \
+        "$API_BASE$path"
+    }
+
+    refresh_inventory() {
+      local temporary
+      load_config || return 1
+      install -d -m 700 "$CACHE_DIR"
+      temporary=$(mktemp "$CACHE_DIR/connected.json.XXXXXX")
+
+      if api GET "/v1/cameras" \
+        | "$JQ" -ce '
+            [
+              .[]
+              | select(
+                  .state == "CONNECTED"
+                  and (.name | type == "string")
+                  and (.name | length > 0)
+                )
+              | { id, name }
+            ]
+            | sort_by(.name)
+          ' >"$temporary"
+      then
+        chmod 600 "$temporary"
+        mv -f "$temporary" "$CACHE"
+        return 0
+      fi
+
+      rm -f "$temporary"
+      if [ -r "$CACHE" ] && "$JQ" -e 'type == "array"' "$CACHE" >/dev/null 2>&1; then
+        printf 'Protect inventory refresh failed; using cached cameras.\n' >&2
+        return 0
+      fi
+
+      notify_error "Could not read cameras from Protect."
+      return 1
+    }
+
+    ensure_inventory() {
+      if [ -r "$CACHE" ] && "$JQ" -e 'type == "array"' "$CACHE" >/dev/null 2>&1; then
+        return 0
+      fi
+      refresh_inventory
+    }
+
+    camera_name() {
+      "$JQ" -r --arg id "$1" \
+        'first(.[] | select(.id == $id) | .name) // empty' "$CACHE"
+    }
+
+    stream_url() {
+      local id="$1" response url
+      case "$id" in
+        ""|*[!a-zA-Z0-9_-]*)
+          notify_error "Protect returned an invalid camera ID."
+          return 1
+          ;;
       esac
-      [ -n "''${url:-}" ] || continue
-      names+=("$name")
-      urls+=("$url")
-    done < "$SECRET"
 
-    if [ ''${#names[@]} -eq 0 ]; then
-      "$NOTIFY" -u critical "UniFi cameras" "Camera list is empty."
-      exit 1
-    fi
+      if ! response=$(api GET "/v1/cameras/$id/rtsps-stream"); then
+        notify_error "Could not read the camera stream from Protect."
+        return 1
+      fi
+      url=$(printf '%s' "$response" | "$JQ" -r '.high // empty') || return 1
+      if [ -n "$url" ]; then
+        printf '%s' "$url"
+        return 0
+      fi
+
+      if ! response=$(api POST "/v1/cameras/$id/rtsps-stream" \
+        --json '{"qualities":["high"]}')
+      then
+        notify_error "Could not enable the camera's high-quality stream."
+        return 1
+      fi
+      url=$(printf '%s' "$response" | "$JQ" -er '.high') || {
+        notify_error "Protect did not return a high-quality stream."
+        return 1
+      }
+      printf '%s' "$url"
+    }
 
     play() {
       # Title the window after the camera so Hyprland window rules and the
@@ -88,6 +181,19 @@ let
         exec "$MPV" ${mpvFlags} --title="CameraGrid $3 $1" --force-media-title="$1" "$2"
       fi
       exec "$MPV" ${mpvFlags} --title="Camera: $1" --force-media-title="$1" "$2"
+    }
+
+    play_camera() {
+      local id="$1" name url
+      load_config || return 1
+      ensure_inventory || return 1
+      name=$(camera_name "$id")
+      if [ -z "$name" ]; then
+        notify_error "The selected camera is no longer connected."
+        return 1
+      fi
+      url=$(stream_url "$id") || return 1
+      play "$name" "$url"
     }
 
     # Place a grid window by address. mpv's own --geometry is useless here:
@@ -129,97 +235,83 @@ let
           end'
     }
 
-    ALL_LABEL="▦  All cameras"
-    if [ "''${1:-}" = "--list" ]; then
-      printf '%s\n' "''${names[@]}"
-      exit 0
-    fi
+    launch_all() {
+      local box="" n cols rows tw th addr name url
+      local -a ids names urls
+      refresh_inventory || return 1
+      mapfile -t ids < <("$JQ" -r '.[].id' "$CACHE")
+      if [ "''${#ids[@]}" -eq 0 ]; then
+        notify_error "No connected cameras."
+        return 1
+      fi
 
-    choice=""
-    if [ "''${1:-}" = "--all" ]; then
-      choice="$ALL_LABEL"
-      shift
-    fi
-
-    # Non-interactive form: `unifi-cam [--slot N] <name>` skips the picker.
-    # `--list` exposes names without stream URLs; `--all` launches the grid.
-    # --slot tags windows created by the all-cameras fan-out.
-    slot=""
-    if [ "''${1:-}" = "--slot" ]; then
-      slot="''${2:-}"
-      shift 2
-    fi
-
-    if [ $# -gt 0 ] && [ -z "$choice" ]; then
-      want="$*"
-      for i in "''${!names[@]}"; do
-        if [ "''${names[$i]}" = "$want" ]; then
-          play "''${names[$i]}" "''${urls[$i]}" "$slot"
-        fi
+      # Protect rate-limits simultaneous Integration API calls. Resolve streams
+      # sequentially with a short gap, then let mpv negotiate them in parallel.
+      for id in "''${ids[@]}"; do
+        name=$(camera_name "$id")
+        url=$(stream_url "$id") || continue
+        names+=("$name")
+        urls+=("$url")
+        sleep 0.3
       done
-      "$NOTIFY" -u critical "UniFi cameras" "No camera named: $want"
-      exit 1
-    fi
+      n=''${#urls[@]}
+      if [ "$n" -eq 0 ]; then
+        notify_error "No camera streams are available."
+        return 1
+      fi
 
-    if [ -z "$choice" ]; then
-      # No icon prefix: the Protect camera names already carry their own emoji,
-      # so a second one just doubles up. The All entry uses ▦ to stand apart.
-      choice=$(
-        {
-          printf '%s\n' "''${names[@]}"
-          printf '%s\n' "$ALL_LABEL"
-        } | "$WOFI" --dmenu --prompt "Camera" --insensitive
-      ) || exit 0
-      [ -n "$choice" ] || exit 0
-    fi
-
-    if [ "$choice" = "$ALL_LABEL" ]; then
-      # One mpv window per camera, explicitly positioned into an even grid.
-      # Hyprland's dwindle would otherwise split recursively and give nine
-      # wildly uneven panes; there is no grid layout to ask it for. Columns are
-      # ceil(sqrt(n)) so the grid stays close to square at any camera count.
-      n=''${#names[@]}
-
-      # Start every stream first so they negotiate in parallel, then place
-      # them. Placing as each one appears would serialise nine RTSP handshakes.
-      for i in "''${!names[@]}"; do
-        setsid "$0" --slot "$i" "''${names[$i]}" >/dev/null 2>&1 &
+      for i in "''${!urls[@]}"; do
+        (play "''${names[$i]}" "''${urls[$i]}" "$i") >/dev/null 2>&1 &
       done
 
       box=$(monitor_box) || box=""
       # No compositor to ask (or not running under Hyprland): the windows are
       # already up, just leave them wherever they landed.
-      [ -n "$box" ] || exit 0
+      [ -n "$box" ] || return 0
       read -r ox oy ow oh <<<"$box"
 
       cols=1; while [ $((cols * cols)) -lt "$n" ]; do cols=$((cols + 1)); done
       rows=$(( (n + cols - 1) / cols ))
       tw=$((ow / cols)); th=$((oh / rows))
 
-      for i in "''${!names[@]}"; do
+      for i in "''${!urls[@]}"; do
         addr=$(await_window "CameraGrid $i ") || continue
         place "$addr" "$tw" "$th" \
           "$((ox + (i % cols) * tw))" "$((oy + (i / cols) * th))"
       done
-      exit 0
-    fi
+      return 0
+    }
 
-    for i in "''${!names[@]}"; do
-      if [ "''${names[$i]}" = "$choice" ]; then
-        play "''${names[$i]}" "''${urls[$i]}"
-      fi
-    done
-    exit 1
+    case "''${1:-}" in
+      --list)
+        refresh_inventory || exit 1
+        "$JQ" -c . "$CACHE"
+        ;;
+      --all)
+        launch_all
+        ;;
+      "")
+        printf 'usage: unifi-cam --list|--all|CAMERA_ID\n' >&2
+        exit 2
+        ;;
+      *)
+        [ $# -eq 1 ] || {
+          printf 'usage: unifi-cam CAMERA_ID\n' >&2
+          exit 2
+        }
+        play_camera "$1"
+        ;;
+    esac
   '';
 in
 {
   options.tomkoreny.nixos.unifi-cameras = {
-    enable = lib.mkEnableOption "UniFi Protect camera picker (launcher/wofi + mpv)";
+    enable = lib.mkEnableOption "UniFi Protect camera launcher backend";
 
     user = lib.mkOption {
       type = lib.types.str;
       default = common.user.name;
-      description = "User that owns the decrypted camera list";
+      description = "User allowed to read the decrypted Protect API configuration";
     };
   };
 
@@ -229,11 +321,10 @@ in
       camerasScript
     ];
 
-    # Whole-file secret: the list is a flat name/URL table, so there is nothing
-    # to gain from per-key extraction, and binary format keeps `sops` editing
-    # of the plaintext trivial.
+    # Connection URL and API key. The script passes the key to curl through a
+    # header file descriptor, never a command-line argument or process listing.
     sops.secrets.${secretName} = {
-      sopsFile = ../../../secrets/unifi/cameras.conf;
+      sopsFile = ../../../secrets/unifi/protect-api-key;
       format = "binary";
       owner = cfg.user;
       group = "users";
