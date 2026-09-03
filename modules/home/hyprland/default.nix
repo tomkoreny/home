@@ -16,9 +16,21 @@ let
   hyprlandPackage = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
   desktopBarService =
     if config.tomkoreny.quickshell-bar.enable then "quickshell-bar.service" else "waybar.service";
-  hyprlandConfig = builtins.replaceStrings [ "@desktopBarService@" ] [ desktopBarService ] (
-    builtins.readFile ./config/hyprland/main.lua
-  );
+  cameraLauncherCommand = "qs -c tom-bar ipc call launcher cameras";
+  clipboardLauncherCommand = "qs -c tom-bar ipc call launcher clipboard";
+  hyprlandConfig =
+    builtins.replaceStrings
+      [
+        "@desktopBarService@"
+        "@cameraLauncherCommand@"
+        "@clipboardLauncherCommand@"
+      ]
+      [
+        desktopBarService
+        cameraLauncherCommand
+        clipboardLauncherCommand
+      ]
+      (builtins.readFile ./config/hyprland/main.lua);
   common = import ../../../lib/common { };
   fontFamily = (common.stylix.fonts pkgs inputs).sansSerif.name;
   oledIdle = pkgs.writeShellApplication {
@@ -179,6 +191,20 @@ in
     ];
 
     xdg.configFile."quickshell/tom-idle/shell.qml".source = idleShell;
+    # Lua config reloads retain existing dispatcher callbacks. Rebind launcher
+    # shortcuts explicitly after Home Manager changes the linked config so the
+    # running compositor does not keep the previous Wofi commands until logout.
+    home.activation.refreshLauncherBindings = lib.mkIf (config.home.username == common.user.name) (
+      lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+        if [[ -n "''${HYPRLAND_INSTANCE_SIGNATURE:-}" ]] \
+          && ${hyprlandPackage}/bin/hyprctl version >/dev/null 2>&1; then
+          run ${hyprlandPackage}/bin/hyprctl eval ${lib.escapeShellArg ''hl.unbind("SUPER + U")''}
+          run ${hyprlandPackage}/bin/hyprctl eval ${lib.escapeShellArg ''hl.bind("SUPER + U", hl.dsp.exec_cmd("${cameraLauncherCommand}"))''}
+          run ${hyprlandPackage}/bin/hyprctl eval ${lib.escapeShellArg ''hl.unbind("SUPER + SHIFT + V")''}
+          run ${hyprlandPackage}/bin/hyprctl eval ${lib.escapeShellArg ''hl.bind("SUPER + SHIFT + V", hl.dsp.exec_cmd("${clipboardLauncherCommand}"))''}
+        fi
+      ''
+    );
 
     systemd.user.services.quickshell-idle = {
       Unit.Description = "Quickshell OLED idle surface";
