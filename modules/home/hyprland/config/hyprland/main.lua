@@ -241,7 +241,7 @@ hl.window_rule({
 
 hl.window_rule({
     name = "suppress-maximize",
-    match = { class = ".*" },
+    match = { class = "negative:^omp-relay-browser$" },
     suppress_event = "maximize",
 })
 
