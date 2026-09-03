@@ -25,6 +25,7 @@ ShellRoot {
     property var aiUsageProviders: []
     property bool aiUsageStale: false
     property real aiUsageUpdatedAt: 0
+    property var timerAnchor: null
 
     function refreshHerdr(): void {
         if (activeWindowSnapshot.running || herdrSnapshot.running)
@@ -305,9 +306,29 @@ ShellRoot {
     Notifications {
         id: notifications
     }
+    TimerService {
+        id: timers
+    }
+
+    TodoService {
+        id: todos
+    }
+
+    TodoPanel {
+        service: todos
+    }
+    TimerPopup {
+        id: timerPopup
+
+        service: timers
+        anchorItem: root.timerAnchor
+    }
+
+
 
     Launcher {
         id: launcher
+        timerService: timers
     }
 
     IpcHandler {
@@ -338,6 +359,15 @@ ShellRoot {
             return launcher.visible;
         }
     }
+    IpcHandler {
+        target: "timers"
+
+        function popup(): bool {
+            timerPopup.toggle();
+            return timerPopup.shown;
+        }
+    }
+
 
     IpcHandler {
         target: "notifications"
@@ -508,6 +538,52 @@ ShellRoot {
                             QQC2.ToolTip.text: root.herdrSummary
                         }
                     }
+                    Rectangle {
+                        width: 1
+                        height: 16
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: "@border@"
+                    }
+
+                    Item {
+                        id: timerHost
+
+                        width: timerText.implicitWidth + 12
+                        height: parent.height
+                        Component.onCompleted: {
+                            if (bar.primary)
+                                root.timerAnchor = timerHost;
+                        }
+
+
+                        Text {
+                            id: timerText
+
+                            anchors.centerIn: parent
+                            text: timers.nextTimer
+                                ? `󰔛 ${timers.formatRemaining(timers.remaining(timers.nextTimer))}${timers.activeCount > 1 ? ` +${timers.activeCount - 1}` : ""}`
+                                : "󰔛"
+                            color: timers.nextTimer ? "@accent@" : "@subdued@"
+                            font.family: "@fontFamily@"
+                            font.pixelSize: 12
+                            font.weight: Font.DemiBold
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: timerPopup.toggle()
+
+                            QQC2.ToolTip.visible: containsMouse && !timerPopup.shown
+                            QQC2.ToolTip.delay: 500
+                            QQC2.ToolTip.text: timers.nextTimer
+                                ? `${timers.nextTimer.name} · ${timers.formatRemaining(timers.remaining(timers.nextTimer))}`
+                                : "Create a timer"
+                        }
+
+                    }
+
 
                     Rectangle {
                         width: 1
@@ -665,6 +741,46 @@ ShellRoot {
                             }
                         }
                     }
+                    Rectangle {
+                        width: 1
+                        height: 16
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: "@border@"
+                    }
+
+                    Item {
+                        width: todoText.implicitWidth + 12
+                        height: parent.height
+
+                        Text {
+                            id: todoText
+
+                            anchors.centerIn: parent
+                            text: todos.overdueCount > 0
+                                ? `󰄬 ${todos.todayCount}  󰅖 ${todos.overdueCount}`
+                                : `󰄬 ${todos.todayCount}`
+                            color: todos.overdueCount > 0
+                                ? "@muted@"
+                                : todos.todayCount > 0 ? "@accent@" : "@subdued@"
+                            font.family: "@fontFamily@"
+                            font.pixelSize: 12
+                            font.weight: Font.DemiBold
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: todos.refresh()
+
+                            QQC2.ToolTip.visible: containsMouse
+                            QQC2.ToolTip.delay: 500
+                            QQC2.ToolTip.text: todos.stale
+                                ? `Notion tasks · stale · ${todos.error}`
+                                : `${todos.overdueCount} overdue · ${todos.todayCount} today`
+                        }
+                    }
+
 
                     Rectangle {
                         width: 1

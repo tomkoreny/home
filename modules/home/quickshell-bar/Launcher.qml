@@ -7,6 +7,8 @@ import QtQuick.Effects
 
 Scope {
     id: root
+    required property var timerService
+
 
     property bool shown: false
     property var targetScreen: null
@@ -24,6 +26,8 @@ Scope {
     readonly property string searchText: lockedMode !== "" ? query.trim() : queryWithoutPrefix(query, queryMode)
     readonly property bool calculationMode: queryMode === "calculator" || queryMode === "unit"
     readonly property bool aiMode: queryMode === "ai"
+    readonly property bool timerMode: queryMode === "timer"
+    readonly property bool commandMode: calculationMode || timerMode
     readonly property bool listMode: queryMode === "applications"
         || queryMode === "clipboard"
         || queryMode === "herdr"
@@ -34,7 +38,7 @@ Scope {
     readonly property var results: queryMode === "applications"
         ? rankedApplications(searchText)
         : externalListMode ? rankedExternal(providers.itemsForMode(queryMode), searchText) : []
-    readonly property int visibleResultCount: calculationMode || aiMode
+    readonly property int visibleResultCount: commandMode || aiMode
         ? 1
         : Math.max(1, results.length)
     readonly property bool visible: shown
@@ -53,6 +57,8 @@ Scope {
             return "unit";
         if (value.startsWith("?"))
             return "ai";
+        if (lower === "timer" || lower.startsWith("timer "))
+            return "timer";
         if (lower === "clip" || lower.startsWith("clip "))
             return "clipboard";
         if (lower === "h" || lower.startsWith("h "))
@@ -65,6 +71,8 @@ Scope {
     function queryWithoutPrefix(value: string, mode: string): string {
         if (mode === "calculator" || mode === "ai")
             return value.slice(1).trim();
+        if (mode === "timer")
+            return value.slice(value.length > 5 ? 6 : 5).trim();
         if (mode === "unit" || mode === "herdr")
             return value.slice(value.includes(" ") ? 2 : 1).trim();
         if (mode === "clipboard")
@@ -83,6 +91,8 @@ Scope {
             return "↔";
         if (mode === "ai")
             return "󰚩";
+        if (mode === "timer")
+            return "󰔛";
         if (mode === "clipboard")
             return "󰅇";
         if (mode === "herdr")
@@ -99,6 +109,8 @@ Scope {
             return "Unit conversion";
         if (mode === "ai")
             return "AI question";
+        if (mode === "timer")
+            return "Timer";
         if (mode === "clipboard")
             return "Clipboard";
         if (mode === "herdr")
@@ -111,6 +123,8 @@ Scope {
     function placeholderForMode(mode: string): string {
         if (mode === "ai")
             return "Ask a question";
+        if (mode === "timer")
+            return "20m pasta";
         if (mode === "clipboard")
             return "Search clipboard history";
         if (mode === "herdr")
@@ -417,6 +431,14 @@ Scope {
             copyTextResult(providerResult, control);
             return;
         }
+        if (timerMode) {
+            if (searchText !== "" && !providerPending) {
+                providerPending = true;
+                providerError = "";
+                timerService.addTimer(searchText);
+            }
+            return;
+        }
         if (aiMode) {
             if (providers.aiState === "running")
                 return;
@@ -520,6 +542,22 @@ Scope {
         mode: root.queryMode
         onClipboardCopied: root.close()
         onClipboardCopyFailed: message => root.actionError = message
+    }
+    Connections {
+        target: root.timerService
+
+        function onTimerCreated(name: string): void {
+            if (root.timerMode)
+                root.close();
+        }
+
+        function onTimerCreationFailed(message: string): void {
+            if (root.timerMode) {
+                root.providerPending = false;
+                root.providerError = message;
+                queryInput.forceActiveFocus();
+            }
+        }
     }
 
     Timer {
@@ -928,7 +966,7 @@ Scope {
                 anchors.leftMargin: 12
                 anchors.rightMargin: 12
                 height: 54
-                visible: root.calculationMode
+                visible: root.commandMode
                 radius: 12
                 color: "@accentSurface@"
                 border.width: 1
@@ -967,19 +1005,27 @@ Scope {
 
                     Text {
                         width: parent.width
-                        text: root.providerCopied
-                            ? "Copied to clipboard"
-                            : root.providerCopyError !== ""
-                                ? root.providerCopyError
-                                : root.providerPending
-                                    ? root.queryMode === "calculator" ? "Calculating…" : "Converting…"
-                                    : root.providerError !== ""
-                                        ? "Could not evaluate"
-                                        : root.providerReady
-                                            ? root.providerResult
-                                            : root.queryMode === "calculator"
-                                                ? "Type an expression after ="
-                                                : "Type a conversion after u"
+                        text: root.timerMode
+                            ? root.providerPending
+                                ? "Creating timer…"
+                                : root.providerError !== ""
+                                    ? "Could not create timer"
+                                    : root.searchText !== ""
+                                        ? `Start ${root.searchText}`
+                                        : "Type a duration and optional name"
+                            : root.providerCopied
+                                ? "Copied to clipboard"
+                                : root.providerCopyError !== ""
+                                    ? root.providerCopyError
+                                    : root.providerPending
+                                        ? root.queryMode === "calculator" ? "Calculating…" : "Converting…"
+                                        : root.providerError !== ""
+                                            ? "Could not evaluate"
+                                            : root.providerReady
+                                                ? root.providerResult
+                                                : root.queryMode === "calculator"
+                                                    ? "Type an expression after ="
+                                                    : "Type a conversion after u"
                         color: "@text@"
                         elide: Text.ElideRight
                         textFormat: Text.PlainText
@@ -991,7 +1037,7 @@ Scope {
                     Text {
                         width: parent.width
                         visible: text !== ""
-                        text: root.providerError !== "" ? root.providerError : root.providerExpression
+                        text: root.providerError !== "" ? root.providerError : root.providerExpression || root.searchText
                         color: "@subdued@"
                         elide: Text.ElideRight
                         textFormat: Text.PlainText
@@ -1002,9 +1048,9 @@ Scope {
 
                 MouseArea {
                     anchors.fill: parent
-                    enabled: root.providerReady
+                    enabled: root.timerMode ? root.searchText !== "" && !root.providerPending : root.providerReady
                     cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                    onClicked: root.copyTextResult(root.providerResult, false)
+                    onClicked: root.activateSelected(false, false)
                 }
             }
 
@@ -1096,13 +1142,15 @@ Scope {
                             : providers.aiState === "ready"
                                 ? "Enter copy   Ctrl+Enter keep   Shift+Enter continue"
                                 : "Enter ask   Esc close"
-                        : root.calculationMode
-                            ? "Enter copy   Ctrl+Enter copy and keep   Esc close"
-                            : root.queryMode === "herdr"
-                                ? "↑↓ navigate   Enter view   Shift+Enter take over"
-                                : root.queryMode === "clipboard"
-                                    ? "↑↓ navigate   Enter restore   Esc close"
-                                    : "↑↓ navigate   Enter launch   Esc close"
+                        : root.timerMode
+                            ? "Enter start timer   Esc close"
+                            : root.calculationMode
+                                ? "Enter copy   Ctrl+Enter copy and keep   Esc close"
+                                : root.queryMode === "herdr"
+                                    ? "↑↓ navigate   Enter view   Shift+Enter take over"
+                                    : root.queryMode === "clipboard"
+                                        ? "↑↓ navigate   Enter restore   Esc close"
+                                        : "↑↓ navigate   Enter launch   Esc close"
                     color: "@subdued@"
                     font.family: "@fontFamily@"
                     font.pixelSize: 11

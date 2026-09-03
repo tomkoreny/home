@@ -111,10 +111,16 @@ Scope {
         }
         try {
             const payload = JSON.parse(output);
-            if (action === "list")
+            if (action === "list") {
                 applyList(payload);
-            else
+            } else {
+                if (action === "complete" && context)
+                    recalculate(items.filter(item => item.id !== context.id));
+                else if (action === "undo" && context
+                         && !items.some(item => item.id === context.id))
+                    recalculate(items.concat([context]));
                 error = "";
+            }
         } catch (parseError) {
             error = "Could not read Notion response";
             stale = true;

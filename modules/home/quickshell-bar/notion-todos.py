@@ -10,7 +10,7 @@ from pathlib import Path
 
 API_ROOT = "https://api.notion.com/v1"
 API_VERSION = "2026-03-11"
-SECRET_FILE = Path("/run/secrets/notion-todos")
+SECRET_FILE = Path(os.environ.get("NOTION_TODOS_SECRET", "/run/secrets/notion-todos"))
 
 
 def cache_home() -> Path:

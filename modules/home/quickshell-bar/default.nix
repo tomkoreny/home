@@ -142,6 +142,31 @@ let
       esac
     '';
   };
+  timerHelper = pkgs.writeTextFile {
+    name = "quickshell-timer";
+    executable = true;
+    destination = "/bin/quickshell-timer";
+    text = builtins.replaceStrings [ "#!/usr/bin/env python3" ] [ "#!${pkgs.python3}/bin/python3" ] (
+      builtins.readFile ./timer-backend.py
+    );
+  };
+
+  notionTodoHelper = pkgs.writeTextFile {
+    name = "notion-todos";
+    executable = true;
+    destination = "/bin/notion-todos";
+    text =
+      builtins.replaceStrings
+        [
+          "#!/usr/bin/env python3"
+          "/run/secrets/notion-todos"
+        ]
+        [
+          "#!${pkgs.python3}/bin/python3"
+          config.sops.secrets.notion-todos.path
+        ]
+        (builtins.readFile ./notion-todos.py);
+  };
 
   launcherAiConfig = pkgs.writeText "launcher-ai-config.yml" ''
     advisor:
@@ -242,6 +267,28 @@ let
     herdrView = "${config.home.profileDirectory}/bin/herdr-view";
     launcherAi = lib.getExe launcherAi;
   };
+  timerService = pkgs.replaceVars ./TimerService.qml {
+    timerHelper = lib.getExe timerHelper;
+    notifySend = lib.getExe pkgs.libnotify;
+    pwPlay = lib.getExe' pkgs.pipewire "pw-play";
+    timerSound = "${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga";
+  };
+  timerPopup = pkgs.replaceVars ./TimerPopup.qml (
+    (builtins.removeAttrs themeVars [ "cardSurface" ])
+    // {
+      opaqueSurface = "#181825";
+    }
+  );
+  todoService = pkgs.replaceVars ./TodoService.qml {
+    todoHelper = lib.getExe notionTodoHelper;
+    xdgOpen = lib.getExe' pkgs.xdg-utils "xdg-open";
+  };
+  todoPanel = pkgs.replaceVars ./TodoPanel.qml (
+    (builtins.removeAttrs themeVars [ "cardSurface" ])
+    // {
+      primaryOutput = cfg.primaryOutput;
+    }
+  );
   notificationCard = pkgs.replaceVars ./NotificationCard.qml themeVars;
   notifications = pkgs.replaceVars ./Notifications.qml (
     (builtins.removeAttrs themeVars [
@@ -286,7 +333,17 @@ in
       }
     ];
 
-    home.packages = [ pkgs.quickshell ];
+    sops.secrets.notion-todos = {
+      sopsFile = ../../../secrets/notion/todos.json;
+      format = "binary";
+      mode = "0400";
+    };
+
+    home.packages = [
+      pkgs.quickshell
+      timerHelper
+      notionTodoHelper
+    ];
 
     xdg.configFile = {
       "quickshell/tom-bar/shell.qml".source = shell;
@@ -294,6 +351,10 @@ in
       "quickshell/tom-bar/LauncherData.qml".source = launcherData;
       "quickshell/tom-bar/NotificationCard.qml".source = notificationCard;
       "quickshell/tom-bar/Notifications.qml".source = notifications;
+      "quickshell/tom-bar/TimerService.qml".source = timerService;
+      "quickshell/tom-bar/TimerPopup.qml".source = timerPopup;
+      "quickshell/tom-bar/TodoService.qml".source = todoService;
+      "quickshell/tom-bar/TodoPanel.qml".source = todoPanel;
     };
 
     systemd.user.services.quickshell-bar = {

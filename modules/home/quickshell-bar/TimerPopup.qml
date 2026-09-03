@@ -1,13 +1,12 @@
 import Quickshell
-import Quickshell.Wayland
 import QtQuick
 import QtQuick.Controls as QQC2
 
 Scope {
     id: root
 
-    required property var service
-    required property var anchorItem
+    required property TimerService service
+    required property Item anchorItem
     property bool shown: false
     property string inputError: ""
 
@@ -42,18 +41,15 @@ Scope {
 
     PopupWindow {
         anchor.item: root.anchorItem
-        anchor.rect.x: root.anchorItem.width - implicitWidth
-        anchor.rect.y: root.anchorItem.height + 8
+        anchor.rect.x: root.anchorItem ? root.anchorItem.width - implicitWidth : 0
+        anchor.rect.y: root.anchorItem ? root.anchorItem.height + 8 : 0
         anchor.rect.width: 1
         anchor.rect.height: 1
         implicitWidth: 360
         implicitHeight: timerCard.implicitHeight
         color: "transparent"
-        visible: root.shown
+        visible: root.shown && root.anchorItem !== null
 
-        WlrLayershell.keyboardFocus: root.shown
-            ? WlrKeyboardFocus.OnDemand
-            : WlrKeyboardFocus.None
 
         Rectangle {
             id: timerCard
