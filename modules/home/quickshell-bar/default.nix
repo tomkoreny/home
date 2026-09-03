@@ -114,6 +114,8 @@ let
     (builtins.removeAttrs themeVars [ "muted" ])
     // {
       uwsm = lib.getExe pkgs.uwsm;
+      qalc = lib.getExe pkgs.libqalculate;
+      wlCopy = lib.getExe' pkgs.wl-clipboard "wl-copy";
       iconOverrides = launcherIconOverrides;
       customIcons = launcherCustomIcons;
     }

@@ -1,6 +1,7 @@
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Wayland
+import Quickshell.Io
 import QtQuick
 import QtQuick.Effects
 
@@ -11,7 +12,22 @@ Scope {
     property var targetScreen: null
     property alias query: queryInput.text
     property int selectedIndex: 0
-    readonly property var results: rankedApplications(query)
+    property int providerRevision: 0
+    property bool providerPending: false
+    property bool providerCopied: false
+    property string providerResult: ""
+    property string providerError: ""
+    property string providerCopyError: ""
+    readonly property string queryMode: query.startsWith("=")
+        ? "calculator"
+        : normalized(query).startsWith("u ") ? "unit" : "applications"
+    readonly property bool providerMode: queryMode !== "applications"
+    readonly property string providerExpression: providerMode
+        ? query.slice(queryMode === "calculator" ? 1 : 2).trim()
+        : ""
+    readonly property bool providerReady: providerResult !== "" && providerError === ""
+    readonly property var results: providerMode ? [] : rankedApplications(query)
+    readonly property int visibleResultCount: providerMode ? 1 : results.length
     readonly property bool visible: shown
     readonly property var iconOverrides: @iconOverrides@
     readonly property var customIcons: @customIcons@
@@ -130,6 +146,62 @@ Scope {
         return ranked;
     }
 
+    function cleanProviderOutput(value: var): string {
+        return String(value ?? "").trim().replace(/\s*\n\s*/g, " ");
+    }
+
+    function scheduleProvider(): void {
+        providerRevision++;
+        providerDebounce.stop();
+        providerCopied = false;
+        providerResult = "";
+        providerError = "";
+        providerCopyError = "";
+        if (qalcProcess.running)
+            qalcProcess.running = false;
+        if (!providerMode || providerExpression === "") {
+            providerPending = false;
+            return;
+        }
+        providerPending = true;
+        providerDebounce.restart();
+    }
+
+    function evaluateProvider(): void {
+        if (!providerMode || providerExpression === "")
+            return;
+        qalcProcess.activeExpression = providerExpression;
+        qalcProcess.activeRevision = providerRevision;
+        qalcProcess.outputText = "";
+        qalcProcess.errorText = "";
+        qalcProcess.running = true;
+    }
+
+    function finishProvider(revision: int, expression: string, exitCode: int, output: string, error: string): void {
+        if (revision !== providerRevision || !providerMode || providerExpression !== expression)
+            return;
+        providerPending = false;
+        const result = cleanProviderOutput(output);
+        const failure = cleanProviderOutput(error);
+        if (exitCode === 0 && result !== "") {
+            providerResult = result;
+            providerError = "";
+            return;
+        }
+        providerResult = "";
+        providerError = failure !== "" ? failure : "Unable to evaluate this expression";
+    }
+
+    function copyProviderResult(keepOpen: bool): void {
+        if (!providerReady || clipboardProcess.running)
+            return;
+        providerCopied = false;
+        providerCopyError = "";
+        clipboardProcess.pendingText = providerResult;
+        clipboardProcess.closeAfterSuccess = !keepOpen;
+        clipboardProcess.running = true;
+    }
+
     function focusedScreen(): var {
         let monitor = Hyprland.focusedMonitor ?? null;
         if (!monitor) {
@@ -189,6 +261,10 @@ Scope {
     }
 
     function launchSelected(): void {
+        if (providerMode) {
+            copyProviderResult(false);
+            return;
+        }
         if (selectedIndex < 0 || selectedIndex >= results.length)
             return;
         launch(results[selectedIndex].entry);
@@ -199,6 +275,77 @@ Scope {
             selectedIndex = 0;
         else if (selectedIndex >= results.length)
             selectedIndex = results.length - 1;
+    }
+
+    Timer {
+        id: providerDebounce
+
+        interval: 140
+        onTriggered: root.evaluateProvider()
+    }
+
+    Timer {
+        id: copiedTimer
+
+        interval: 900
+        onTriggered: root.providerCopied = false
+    }
+
+    Process {
+        id: qalcProcess
+
+        property string activeExpression: ""
+        property int activeRevision: 0
+        property string outputText: ""
+        property string errorText: ""
+
+        command: ["@qalc@", "-t", "-m", "1500", activeExpression]
+
+        stdout: StdioCollector {
+            onStreamFinished: qalcProcess.outputText = this.text
+        }
+
+        stderr: StdioCollector {
+            onStreamFinished: qalcProcess.errorText = this.text
+        }
+
+        onExited: (exitCode, exitStatus) => {
+            const revision = activeRevision;
+            const expression = activeExpression;
+            Qt.callLater(() => root.finishProvider(
+                revision,
+                expression,
+                exitCode,
+                qalcProcess.outputText,
+                qalcProcess.errorText
+            ));
+        }
+    }
+
+    Process {
+        id: clipboardProcess
+
+        property string pendingText: ""
+        property bool closeAfterSuccess: false
+
+        command: ["@wlCopy@", "--", pendingText]
+
+        onExited: (exitCode, exitStatus) => {
+            if (pendingText !== root.providerResult)
+                return;
+            if (exitCode !== 0) {
+                root.providerCopyError = "Could not copy result";
+                return;
+            }
+            root.providerCopied = true;
+            copiedTimer.restart();
+            if (closeAfterSuccess) {
+                root.close();
+            } else {
+                queryInput.forceActiveFocus();
+                queryInput.cursorPosition = queryInput.text.length;
+            }
+        }
     }
 
     PanelWindow {
@@ -247,7 +394,7 @@ Scope {
             anchors.centerIn: parent
             width: Math.min(640, overlay.width - 48)
             height: Math.min(
-                122 + Math.max(64, root.results.length * 57 - 3),
+                122 + Math.max(64, root.visibleResultCount * 57 - 3),
                 overlay.height - 96
             )
 
@@ -298,10 +445,13 @@ Scope {
                     anchors.left: parent.left
                     anchors.leftMargin: 16
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "󰍉"
+                    text: root.queryMode === "calculator"
+                        ? "="
+                        : root.queryMode === "unit" ? "↔" : "󰍉"
                     color: "@accent@"
                     font.family: "@fontFamily@"
                     font.pixelSize: 19
+                    font.weight: root.providerMode ? Font.DemiBold : Font.Normal
                 }
 
                 TextInput {
@@ -322,7 +472,9 @@ Scope {
 
                     onTextChanged: {
                         root.selectedIndex = 0;
-                        Qt.callLater(() => resultsList.positionViewAtBeginning());
+                        root.scheduleProvider();
+                        if (!root.providerMode)
+                            Qt.callLater(() => resultsList.positionViewAtBeginning());
                     }
 
                     Keys.onPressed: event => {
@@ -334,7 +486,10 @@ Scope {
                             root.moveSelection(-1);
                             event.accepted = true;
                         } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                            root.launchSelected();
+                            if (root.providerMode)
+                                root.copyProviderResult(control);
+                            else
+                                root.launchSelected();
                             event.accepted = true;
                         } else if (event.key === Qt.Key_Escape) {
                             root.close();
@@ -495,9 +650,101 @@ Scope {
                 }
             }
 
+            Rectangle {
+                id: providerRow
+
+                anchors.top: searchField.bottom
+                anchors.topMargin: 10
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.leftMargin: 12
+                anchors.rightMargin: 12
+                height: 54
+                visible: root.providerMode
+                radius: 12
+                color: "@accentSurface@"
+                border.width: 1
+                border.color: "@border@"
+
+                Rectangle {
+                    id: providerIcon
+
+                    anchors.left: parent.left
+                    anchors.leftMargin: 12
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 34
+                    height: 34
+                    radius: 9
+                    color: "transparent"
+                    border.width: 1
+                    border.color: "@accent@"
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: root.queryMode === "calculator" ? "=" : "↔"
+                        color: "@accent@"
+                        font.family: "@fontFamily@"
+                        font.pixelSize: 19
+                        font.weight: Font.DemiBold
+                    }
+                }
+
+                Column {
+                    anchors.left: providerIcon.right
+                    anchors.leftMargin: 12
+                    anchors.right: parent.right
+                    anchors.rightMargin: 14
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 2
+
+                    Text {
+                        width: parent.width
+                        text: root.providerCopied
+                            ? "Copied to clipboard"
+                            : root.providerCopyError !== ""
+                                ? root.providerCopyError
+                                : root.providerPending
+                                    ? root.queryMode === "calculator" ? "Calculating…" : "Converting…"
+                                    : root.providerError !== ""
+                                        ? "Could not evaluate"
+                                        : root.providerReady
+                                            ? root.providerResult
+                                            : root.queryMode === "calculator"
+                                                ? "Type an expression after ="
+                                                : "Type a conversion after u"
+                        color: "@text@"
+                        elide: Text.ElideRight
+                        textFormat: Text.PlainText
+                        font.family: "@fontFamily@"
+                        font.pixelSize: 15
+                        font.weight: Font.DemiBold
+                    }
+
+                    Text {
+                        width: parent.width
+                        visible: text !== ""
+                        text: root.providerError !== ""
+                            ? root.providerError
+                            : root.providerExpression
+                        color: "@subdued@"
+                        elide: Text.ElideRight
+                        textFormat: Text.PlainText
+                        font.family: "@fontFamily@"
+                        font.pixelSize: 12
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    enabled: root.providerReady
+                    cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    onClicked: root.copyProviderResult(false)
+                }
+            }
+
             Text {
                 anchors.centerIn: resultsList
-                visible: root.results.length === 0
+                visible: !root.providerMode && root.results.length === 0
                 text: "No matching applications"
                 color: "@subdued@"
                 font.family: "@fontFamily@"
@@ -518,7 +765,11 @@ Scope {
                 Text {
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
-                    text: `${root.results.length} result${root.results.length === 1 ? "" : "s"}`
+                    text: root.queryMode === "calculator"
+                        ? "Calculator"
+                        : root.queryMode === "unit"
+                            ? "Unit conversion"
+                            : `${root.results.length} result${root.results.length === 1 ? "" : "s"}`
                     color: "@subdued@"
                     font.family: "@fontFamily@"
                     font.pixelSize: 11
@@ -527,7 +778,9 @@ Scope {
                 Text {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "↑↓ navigate   Enter launch   Esc close"
+                    text: root.providerMode
+                        ? "Enter copy   Ctrl+Enter copy and keep   Esc close"
+                        : "↑↓ navigate   Enter launch   Esc close"
                     color: "@subdued@"
                     font.family: "@fontFamily@"
                     font.pixelSize: 11
