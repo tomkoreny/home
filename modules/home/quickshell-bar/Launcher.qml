@@ -299,7 +299,7 @@ Scope {
         property string outputText: ""
         property string errorText: ""
 
-        command: ["@qalc@", "-t", "-m", "1500", activeExpression]
+        command: ["@qalc@", "-t", "-s", "group 2", "-m", "1500", activeExpression]
 
         stdout: StdioCollector {
             onStreamFinished: qalcProcess.outputText = this.text
