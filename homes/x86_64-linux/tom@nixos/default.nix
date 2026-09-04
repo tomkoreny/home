@@ -322,6 +322,7 @@ in
     pkgs.seahorse
     pkgs.toybox
     pkgs.element-desktop
+    pkgs.onlyoffice-desktopeditors
     jellyfinMpvShim # Browser-enabled Jellyfin desktop/cast client backed by mpv
     pkgs.prismlauncher
     pkgs.remmina
