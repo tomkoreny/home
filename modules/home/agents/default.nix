@@ -351,6 +351,9 @@ in
       ".omp/agent/skills/diagnose/SKILL.md".source = ./agent/skills/diagnose/SKILL.md;
       ".omp/agent/skills/verify-claim/SKILL.md".source = ./agent/skills/verify-claim/SKILL.md;
       ".omp/agent/skills/grill/SKILL.md".source = ./agent/skills/grill/SKILL.md;
+      # Anthropic's frontend-design skill, vendored with its upstream license.
+      ".omp/agent/skills/frontend-design/SKILL.md".source = ./agent/skills/frontend-design/SKILL.md;
+      ".omp/agent/skills/frontend-design/LICENSE.txt".source = ./agent/skills/frontend-design/LICENSE.txt;
 
       # Light-slot theme; see the comment above the definition.
       ".omp/agent/themes/${ompLatteTheme.name}.json".text = builtins.toJSON ompLatteTheme;
