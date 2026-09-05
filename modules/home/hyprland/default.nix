@@ -20,17 +20,39 @@ let
   clipboardLauncherCommand = "qs -c tom-bar ipc call launcher clipboard";
   todoManagerCommand = "qs -c tom-bar ipc call todos toggle";
   todoCaptureCommand = "qs -c tom-bar ipc call todos capture";
+  aspectPython = pkgs.python3.withPackages (ps: [
+    ps.python-xlib
+    ps.inotify-simple
+  ]);
+  aspectController = pkgs.replaceVars ./aspect-tiling.py {
+    fitScript = ./aspect-fit.lua;
+  };
+  aspectTiling =
+    pkgs.runCommand "hyprland-aspect-tiling"
+      {
+        nativeBuildInputs = [ pkgs.makeWrapper ];
+      }
+      ''
+        mkdir -p "$out/lib" "$out/bin"
+        cp ${aspectController} "$out/lib/aspect-tiling.py"
+        cp ${./aspect_x11.py} "$out/lib/aspect_x11.py"
+        makeWrapper ${aspectPython}/bin/python3 "$out/bin/hyprland-aspect-tiling" \
+          --add-flags "$out/lib/aspect-tiling.py"
+      '';
+  aspectToggleSplit = ''function() hl.dispatch(hl.dsp.layout("togglesplit")); hl.exec_cmd("${aspectTiling}/bin/hyprland-aspect-tiling --trigger") end'';
   hyprlandConfig =
     builtins.replaceStrings
       [
         "@desktopBarService@"
         "@cameraLauncherCommand@"
         "@clipboardLauncherCommand@"
+        "@aspectToggleSplit@"
       ]
       [
         desktopBarService
         cameraLauncherCommand
         clipboardLauncherCommand
+        aspectToggleSplit
       ]
       (builtins.readFile ./config/hyprland/main.lua);
   common = import ../../../lib/common { };
@@ -173,6 +195,7 @@ in
       pkgs.quickshell
       oledIdle
       mediaControl
+      aspectTiling
 
       # Programs referenced by binds in main.lua
       pkgs.nautilus # Super+E file manager
@@ -208,6 +231,23 @@ in
     ];
 
     xdg.configFile."quickshell/tom-idle/shell.qml".source = idleShell;
+    xdg.configFile."mpv/scripts/hyprland-aspect.lua".source = pkgs.replaceVars ./mpv-aspect.lua {
+      mkdir = "${pkgs.coreutils}/bin/mkdir";
+    };
+
+    systemd.user.services.hyprland-aspect-tiling = {
+      Unit = {
+        Description = "Automatic playback aspect fitting in Hyprland dwindle";
+        PartOf = [ "graphical-session.target" ];
+        After = [ "graphical-session-pre.target" ];
+      };
+      Service = {
+        ExecStart = "${aspectTiling}/bin/hyprland-aspect-tiling";
+        Restart = "on-failure";
+        RestartSec = 2;
+      };
+      Install.WantedBy = [ "graphical-session.target" ];
+    };
     # Lua config reloads retain existing dispatcher callbacks. Rebind Quickshell
     # shortcuts explicitly after Home Manager changes the linked config so the
     # running compositor picks up new commands without a logout.
@@ -215,6 +255,8 @@ in
       lib.hm.dag.entryAfter [ "linkGeneration" ] ''
         if [[ -n "''${HYPRLAND_INSTANCE_SIGNATURE:-}" ]] \
           && ${hyprlandPackage}/bin/hyprctl version >/dev/null 2>&1; then
+          run ${hyprlandPackage}/bin/hyprctl eval ${lib.escapeShellArg ''hl.unbind("SUPER + J")''}
+          run ${hyprlandPackage}/bin/hyprctl eval ${lib.escapeShellArg ''hl.bind("SUPER + J", ${aspectToggleSplit})''}
           run ${hyprlandPackage}/bin/hyprctl eval ${lib.escapeShellArg ''hl.unbind("SUPER + U")''}
           run ${hyprlandPackage}/bin/hyprctl eval ${lib.escapeShellArg ''hl.bind("SUPER + U", hl.dsp.exec_cmd("${cameraLauncherCommand}"))''}
           run ${hyprlandPackage}/bin/hyprctl eval ${lib.escapeShellArg ''hl.unbind("SUPER + SHIFT + V")''}

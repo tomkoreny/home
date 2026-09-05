@@ -17,7 +17,7 @@ hl.env("XCURSOR_SIZE", "32")
 
 -- Autostart only on compositor startup, not on config reload.
 hl.on("hyprland.start", function()
-    hl.exec_cmd("systemctl --user start --no-block @desktopBarService@ jellyfin-mpv-shim.service quickshell-idle.service quickshell-osd.service")
+    hl.exec_cmd("systemctl --user start --no-block @desktopBarService@ jellyfin-mpv-shim.service quickshell-idle.service quickshell-osd.service hyprland-aspect-tiling.service")
     hl.exec_cmd("uwsm app -- teams-for-linux --minimized")
     hl.exec_cmd("uwsm app -- komai -p verification-recovery")
     hl.exec_cmd("wl-paste --type text --watch cliphist store")
@@ -188,7 +188,7 @@ hl.bind(mainMod .. " + SHIFT + Print", hl.dsp.exec_cmd("hyprshot -m window"))
 hl.bind(mainMod .. " + V", hl.dsp.window.float())
 hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("qs -c tom-bar ipc call launcher toggle"))
 hl.bind(mainMod .. " + P", hl.dsp.window.pseudo())
-hl.bind(mainMod .. " + J", hl.dsp.layout("togglesplit"))
+hl.bind(mainMod .. " + J", @aspectToggleSplit@)
 
 hl.bind(mainMod .. " + left", hl.dsp.focus({ direction = "left" }))
 hl.bind(mainMod .. " + right", hl.dsp.focus({ direction = "right" }))
