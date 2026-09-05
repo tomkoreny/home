@@ -57,6 +57,34 @@ then types it back over the selection.
 - Requires the `claude` CLI to be logged in; uses your Claude subscription and
   takes a second or two (a "Proofreading…" notification shows while it runs).
 
+## Text expansion (Espanso)
+
+Tom's Linux session runs Espanso on Wayland. Snippets are declared in
+`modules/home/espanso/default.nix`; edit them there and apply the configuration,
+not the generated YAML under `~/.config/espanso/`.
+
+| Trigger | Expansion |
+| --- | --- |
+| `;email` or `;@` | `tom@tomkoreny.com` |
+| `;name` | `Tom Koreny` |
+| `;web` | `https://tomkoreny.com` |
+| `;date` | Current local date, `YYYY-MM-DD` |
+
+For the initial installation, run `sudo nixos-rebuild switch --flake .#nixos`,
+then log out completely and back in (or reboot) to pick up the new
+`seat0-input` group. Espanso starts with the graphical session.
+Check it with `systemctl --user status espanso`.
+
+Permissions live in `modules/nixos/espanso/default.nix`. The unprivileged
+daemon can read seat0 event devices and write `/dev/uinput`; it is not given
+the global `input` group or `CAP_DAC_OVERRIDE`, which would expose seat1's
+keyboard. This does grant other processes running as Tom raw seat0 input
+access too. Terka's profile and macOS do not enable Espanso.
+
+The keyboard layout is explicitly US, matching the QMK/Hyprland setup.
+After connecting a new keyboard, run `systemctl --user restart espanso`;
+Espanso's Wayland backend discovers devices at startup.
+
 ## Gotcha: new files must be git-tracked
 
 This is a flake on a git repo, so **Nix ignores untracked files**. After adding
