@@ -9,6 +9,23 @@ let
   stripHash = lib.removePrefix "#";
   python = pkgs.python3Packages;
 
+  teamsTrayIcon = pkgs.runCommand "teams-tray-icon.png" { nativeBuildInputs = [ pkgs.librsvg ]; } ''
+    substitute ${../../../modules/home/quickshell-bar/icons/teams.svg} icon.svg \
+      --replace-fail "#fff" "${common.stylix.accent}"
+    rsvg-convert --width 96 --height 96 --output "$out" icon.svg
+  '';
+  teamsForLinux = pkgs.symlinkJoin {
+    inherit (pkgs.teams-for-linux) name meta;
+    paths = [ pkgs.teams-for-linux ];
+    nativeBuildInputs = [ pkgs.makeWrapper ];
+    # Supply the base artwork to Teams so its native unread badge stays intact.
+    # Keep its writable settings and packaged application code untouched.
+    postBuild = ''
+      wrapProgram "$out/bin/teams-for-linux" \
+        --add-flags "--appIcon ${teamsTrayIcon}"
+    '';
+  };
+
   jellyfinApiClient = python.jellyfin-apiclient-python.overridePythonAttrs (_: {
     version = "1.18.0";
     src = inputs.jellyfin-apiclient-python-src;
@@ -316,7 +333,7 @@ in
       hyprland = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
     })
     pkgs.libnotify # notify-send, used by hyprshot to confirm captures
-    pkgs.teams-for-linux
+    teamsForLinux
     pkgs.slack
     pkgs.git-credential-oauth
     pkgs.gnome-keyring
