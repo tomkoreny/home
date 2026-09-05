@@ -20,6 +20,7 @@ let
   clipboardLauncherCommand = "qs -c tom-bar ipc call launcher clipboard";
   todoManagerCommand = "qs -c tom-bar ipc call todos toggle";
   todoCaptureCommand = "qs -c tom-bar ipc call todos capture";
+  mpvAspectScript = pkgs.callPackage ./mpv-aspect.nix { };
   aspectPython = pkgs.python3.withPackages (ps: [
     ps.python-xlib
     ps.inotify-simple
@@ -231,9 +232,9 @@ in
     ];
 
     xdg.configFile."quickshell/tom-idle/shell.qml".source = idleShell;
-    xdg.configFile."mpv/scripts/hyprland-aspect.lua".source = pkgs.replaceVars ./mpv-aspect.lua {
-      mkdir = "${pkgs.coreutils}/bin/mkdir";
-    };
+    xdg.configFile."mpv/scripts/hyprland-aspect.lua".source = mpvAspectScript;
+    # Jellyfin starts external mpv with its own --config-dir.
+    xdg.configFile."jellyfin-mpv-shim/scripts/hyprland-aspect.lua".source = mpvAspectScript;
 
     systemd.user.services.hyprland-aspect-tiling = {
       Unit = {

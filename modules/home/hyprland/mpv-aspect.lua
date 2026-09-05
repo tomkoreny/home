@@ -27,10 +27,8 @@ local function positive_finite(value)
 end
 
 local function display_aspect()
-    local title = mp.get_property("options/title", "")
     if
-        title:sub(1, 8) ~= "Camera: "
-        or ended
+        ended
         or shutting_down
         or mp.get_property_bool("idle-active", false)
         or mp.get_property_bool("eof-reached", false)
@@ -107,14 +105,13 @@ local function update()
             last_aspect = aspect
         else
             remove_metadata()
-            mp.msg.warn("Could not publish camera aspect metadata")
+            mp.msg.warn("Could not publish mpv aspect metadata")
         end
     end
 end
 
 -- Initial observer notifications also cover load-script during playback.
 mp.observe_property("video-out-params", "native", update)
-mp.observe_property("options/title", "string", update)
 mp.observe_property("idle-active", "bool", update)
 mp.observe_property("eof-reached", "bool", update)
 mp.observe_property("vid", "string", update)

@@ -12,6 +12,7 @@ let
   };
   source = pkgs.replaceVars ./playback.py {
     mpv = lib.getExe mpv;
+    mpvAspectScript = pkgs.callPackage ../hyprland/mpv-aspect.nix { };
     ytDlp = lib.getExe pkgs.yt-dlp;
     streamlink = lib.getExe pkgs.streamlink;
     wlPaste = lib.getExe' pkgs.wl-clipboard "wl-paste";

@@ -46,7 +46,7 @@ async def ipc(command):
         await writer.wait_closed()
 
 
-def camera_ratios():
+def mpv_ratios():
     result = {}
     # Do not apply a leftover file to a different process after PID reuse.
     boot = time.time() - time.clock_gettime(time.CLOCK_BOOTTIME)
@@ -74,7 +74,7 @@ def camera_ratios():
 
 async def playback_state(hints):
     clients = json.loads(await ipc("j/clients"))
-    cameras, x11 = camera_ratios(), hints.ratios()
+    mpv, x11 = mpv_ratios(), hints.ratios()
     result = {}
     for client in clients:
         if (
@@ -84,10 +84,10 @@ async def playback_state(hints):
             or client["fullscreen"]
         ):
             continue
-        ratio = None
-        if client["class"] == "mpv" and client["title"].startswith("Camera: "):
-            ratio = cameras.get(client["pid"])
-        elif client["class"] == "multiviewer" and client["xwayland"]:
+        # The publisher identifies the mpv process even when a launcher sets
+        # a custom app ID (e.g. WebPlayback) or changes the window title.
+        ratio = mpv.get(client["pid"])
+        if ratio is None and client["class"] == "multiviewer" and client["xwayland"]:
             ratio = x11.get((client["pid"], client["title"]))
         if ratio is not None:
             result[client["address"]] = ratio

@@ -21,6 +21,7 @@ import time
 from urllib.parse import parse_qs, urlsplit
 
 MPV = "@mpv@"
+MPV_ASPECT_SCRIPT = "@mpvAspectScript@"
 YT_DLP = "@ytDlp@"
 STREAMLINK = "@streamlink@"
 WL_PASTE = "@wlPaste@"
@@ -295,6 +296,7 @@ def supervise(request, channel):
         ipc_path = directory / "mpv.sock"
         player_args = [
             MPV, f"--config-dir={config}", "--load-scripts=yes", "--load-auto-profiles=no",
+            f"--script={MPV_ASPECT_SCRIPT}",
             "--audio-client-name=WebPlayback", "--wayland-app-id=WebPlayback", "--x11-name=WebPlayback",
             "--hwdec=auto-safe",
             "--idle=once", "--keep-open=no", "--pause=no", "--input-terminal=no", "--term-status-msg=",
