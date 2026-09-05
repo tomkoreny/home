@@ -24,14 +24,9 @@ Row {
                 trayMenu.reveal();
             }
 
-            Image {
+            TrayIcon {
                 anchors.centerIn: parent
-                width: 17
-                height: 17
-                source: trayHost.modelData.icon
-                sourceSize.width: 17
-                sourceSize.height: 17
-                fillMode: Image.PreserveAspectFit
+                item: trayHost.modelData
             }
 
             MouseArea {

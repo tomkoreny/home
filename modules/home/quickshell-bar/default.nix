@@ -28,7 +28,7 @@ let
     substitute ${providerLogoSources.openai} "$out/openai.svg" \
       --replace-fail currentColor "#ffffff"
   '';
-  launcherCustomIcons = builtins.toJSON {
+  appIcons = {
     "betterbird" = ./icons/betterbird.svg;
     "com.mitchellh.ghostty" = ./icons/ghostty.svg;
     "counter-strike 2" = ./icons/counter-strike.svg;
@@ -299,6 +299,11 @@ let
       opaqueSurface = "#181825";
     }
   );
+  trayIcon = pkgs.replaceVars ./TrayIcon.qml {
+    accent = themeVars.accent;
+    steamIcon = appIcons.steam;
+    jellyfinIcon = appIcons.jellyfin-mpv-shim;
+  };
   trayMenu = pkgs.replaceVars ./TrayMenu.qml (
     builtins.removeAttrs themeVars [
       "cardSurface"
@@ -312,7 +317,7 @@ let
       qalc = lib.getExe pkgs.libqalculate;
       wlCopy = lib.getExe' pkgs.wl-clipboard "wl-copy";
       iconOverrides = launcherIconOverrides;
-      customIcons = launcherCustomIcons;
+      customIcons = builtins.toJSON appIcons;
     }
   );
   launcherData = pkgs.replaceVars ./LauncherData.qml {
@@ -414,6 +419,7 @@ in
       "quickshell/tom-bar/AiUsageIndicator.qml".source = aiUsageIndicator;
       "quickshell/tom-bar/HoverPopover.qml".source = hoverPopover;
       "quickshell/tom-bar/TrayArea.qml".source = ./TrayArea.qml;
+      "quickshell/tom-bar/TrayIcon.qml".source = trayIcon;
       "quickshell/tom-bar/TrayMenu.qml".source = trayMenu;
       "quickshell/tom-bar/OverlayController.qml".source = ./OverlayController.qml;
       "quickshell/tom-bar/Launcher.qml".source = launcher;
