@@ -236,6 +236,13 @@ hl.window_rule({
     border_size = 0,
 })
 
+-- Bitwarden's passkey and vault popouts share this native app ID.
+hl.window_rule({
+    name = "float-bitwarden-popout",
+    match = { initial_class = "^chrome-nngceckbapebfimnlniiiahkandclblb-Default$" },
+    float = true,
+})
+
 hl.window_rule({
     name = "camera-grid",
     match = { title = ".*CameraGrid .*" },

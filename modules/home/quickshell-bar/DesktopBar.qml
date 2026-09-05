@@ -18,7 +18,17 @@ PanelWindow {
     required property var modelData
     readonly property var displayMonitor: Hyprland.monitors.values.find(monitor => monitor.name === modelData.name) ?? null
     readonly property var displayWorkspace: displayMonitor ? displayMonitor.activeWorkspace : null
-    readonly property bool singleWindowMode: displayWorkspace !== null && displayWorkspace.toplevels.values.length === 1
+    readonly property bool singleWindowMode: {
+        if (displayWorkspace === null)
+            return false;
+        let tiledCount = 0;
+        for (const toplevel of displayWorkspace.toplevels.values) {
+            const state = toplevel.lastIpcObject;
+            if (state.mapped === true && state.hidden === false && state.floating === false)
+                tiledCount++;
+        }
+        return tiledCount === 1;
+    }
     readonly property bool primary: modelData.name === "@primaryOutput@"
 
     screen: modelData

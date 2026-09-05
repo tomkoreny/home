@@ -1,4 +1,5 @@
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Services.Pipewire
 import QtQuick
@@ -21,6 +22,30 @@ ShellRoot {
     property bool aiUsageStale: false
     property real aiUsageUpdatedAt: 0
     property var timerAnchor: null
+
+    Connections {
+        target: Hyprland
+
+        function onRawEvent(event): void {
+            // Quickshell 0.3 updates membership, but not these IPC-only window states.
+            // Group selection only emits a focus event, so refresh grouped focus changes.
+            switch (event.name) {
+            case "openwindow":
+            case "closewindow":
+            case "changefloatingmode":
+            case "movewindowv2":
+            case "togglegroup":
+            case "moveintogroup":
+            case "moveoutofgroup":
+                Hyprland.refreshToplevels();
+                break;
+            case "activewindowv2":
+                if ((Hyprland.activeToplevel?.lastIpcObject.grouped?.length ?? 0) > 1)
+                    Hyprland.refreshToplevels();
+                break;
+            }
+        }
+    }
 
     function refreshHerdr(): void {
         if (activeWindowSnapshot.running || herdrSnapshot.running)
