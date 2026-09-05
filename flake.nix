@@ -155,26 +155,30 @@
 
       homeModules = autoModules ./modules/home;
 
-      sharedHomeModules = [
-        inputs.mac-app-util.homeManagerModules.default
-        inputs.omp.homeManagerModules.default
-        inputs.stylix.homeModules.stylix
-        inputs.sops-nix.homeManagerModules.sops
-        ({ lib, ... }: {
-          # Reapplying Stylix's package overlays inside Home Manager is
-          # incompatible with useGlobalPkgs and causes standalone HM recursion.
-          stylix.overlays.enable = lib.mkForce false;
+      # mac-app-util can expose Linux packages, but its activation needs dockutil.
+      # Import the integration only for Darwin rather than relying on its default.
+      sharedHomeModules =
+        system:
+        nixpkgs.lib.optional (nixpkgs.lib.hasSuffix "-darwin" system) inputs.mac-app-util.homeManagerModules.default
+        ++ [
+          inputs.omp.homeManagerModules.default
+          inputs.stylix.homeModules.stylix
+          inputs.sops-nix.homeManagerModules.sops
+          ({ lib, ... }: {
+            # Reapplying Stylix's package overlays inside Home Manager is
+            # incompatible with useGlobalPkgs and causes standalone HM recursion.
+            stylix.overlays.enable = lib.mkForce false;
 
-          # `man home-configuration.nix` builds nixpkgs' options.json, which
-          # embeds nixpkgs store paths after unsafeDiscardStringContext (see
-          # nixos/lib/make-options-doc/default.nix) and warns on every eval,
-          # because Home Manager imports nixos/modules/misc/meta.nix by path and
-          # does not rewrite those declarations. Nothing repo-side can fix that,
-          # and the same reference lives in the online option search.
-          manual.manpages.enable = false;
-        })
-      ]
-      ++ homeModules;
+            # `man home-configuration.nix` builds nixpkgs' options.json, which
+            # embeds nixpkgs store paths after unsafeDiscardStringContext (see
+            # nixos/lib/make-options-doc/default.nix) and warns on every eval,
+            # because Home Manager imports nixos/modules/misc/meta.nix by path and
+            # does not rewrite those declarations. Nothing repo-side can fix that,
+            # and the same reference lives in the online option search.
+            manual.manpages.enable = false;
+          })
+        ]
+        ++ homeModules;
 
       nixosModules = [
         inputs.hyprland.nixosModules.default
@@ -225,7 +229,7 @@
           extraSpecialArgs = (mkSpecialArgs system) // {
             inherit pkgs;
           };
-          modules = sharedHomeModules ++ [ module ];
+          modules = sharedHomeModules system ++ [ module ];
         };
 
       homeManagerSystemConfig = system: {
@@ -233,7 +237,7 @@
           useGlobalPkgs = true;
           useUserPackages = true;
           extraSpecialArgs = mkSpecialArgs system;
-          sharedModules = sharedHomeModules;
+          sharedModules = sharedHomeModules system;
         };
       };
     in
