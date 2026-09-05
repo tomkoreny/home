@@ -8,6 +8,8 @@ Scope {
     id: root
 
     required property var widgetService
+    required property var overlayController
+    readonly property string overlayName: "todos"
 
     property bool shown: false
     property var targetScreen: null
@@ -47,6 +49,7 @@ Scope {
 
     function reveal(capture: bool): void {
         targetScreen = focusedScreen();
+        overlayController.claim(overlayName);
         shown = true;
         error = "";
         if (capture) {
@@ -73,11 +76,21 @@ Scope {
 
     function close(): void {
         shown = false;
+        overlayController.release(overlayName);
         searchText = "";
         searchInput.text = "";
         editingId = "";
         captureExpanded = false;
         error = "";
+    }
+
+    Connections {
+        target: root.overlayController
+
+        function onDismissRequested(except: string): void {
+            if (except !== root.overlayName && root.shown)
+                root.close();
+        }
     }
 
     function run(action: string, arguments: var, context: var): bool {

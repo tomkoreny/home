@@ -7,13 +7,27 @@ Scope {
 
     required property TimerService service
     required property Item anchorItem
+    required property var overlayController
+    readonly property string overlayName: "timers"
     property bool shown: false
     property string inputError: ""
 
+    function reveal(): void {
+        overlayController.claim(overlayName);
+        shown = true;
+        Qt.callLater(() => timerInput.forceActiveFocus());
+    }
+
+    function close(): void {
+        shown = false;
+        overlayController.release(overlayName);
+    }
+
     function toggle(): void {
-        shown = !shown;
         if (shown)
-            Qt.callLater(() => timerInput.forceActiveFocus());
+            close();
+        else
+            reveal();
     }
 
     function add(value: string): void {
@@ -36,6 +50,15 @@ Scope {
         function onTimerCreationFailed(message: string): void {
             root.inputError = message;
             timerInput.forceActiveFocus();
+        }
+    }
+
+    Connections {
+        target: root.overlayController
+
+        function onDismissRequested(except: string): void {
+            if (except !== root.overlayName && root.shown)
+                root.close();
         }
     }
 
@@ -98,7 +121,7 @@ Scope {
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: root.shown = false
+                            onClicked: root.close()
                         }
                     }
                 }
@@ -131,7 +154,7 @@ Scope {
                                 root.add(text);
                                 event.accepted = true;
                             } else if (event.key === Qt.Key_Escape) {
-                                root.shown = false;
+                                root.close();
                                 event.accepted = true;
                             }
                         }

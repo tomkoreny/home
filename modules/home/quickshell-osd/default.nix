@@ -105,6 +105,7 @@ let
           adjust_brightness -
           ;;
         session)
+          qs -c tom-bar ipc call overlays close >/dev/null 2>&1 || true
           qs -c tom-osd ipc call session reveal >/dev/null
           ;;
         *)

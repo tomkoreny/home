@@ -693,6 +693,14 @@ PanelWindow {
             sessionPopup.reveal();
         }
 
+        function close(): void {
+            sessionPopup.close();
+        }
+
+        function visible(): bool {
+            return sessionPopup.shown;
+        }
+
         function request(action: string): void {
             if (!sessionPopup.shown)
                 return;

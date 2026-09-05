@@ -8,6 +8,8 @@ import QtQuick.Effects
 Scope {
     id: root
     required property var timerService
+    required property var overlayController
+    readonly property string overlayName: "launcher"
 
 
     property bool shown: false
@@ -381,12 +383,14 @@ Scope {
         queryInput.text = "";
         selectedIndex = 0;
         actionError = "";
+        overlayController.claim(overlayName);
         shown = true;
         Qt.callLater(() => queryInput.forceActiveFocus());
     }
 
     function close(): void {
         shown = false;
+        overlayController.release(overlayName);
         clearCalculation();
         providers.resetAi();
         queryInput.text = "";
@@ -533,6 +537,15 @@ Scope {
             selectedIndex = 0;
         else if (selectedIndex >= results.length)
             selectedIndex = results.length - 1;
+    }
+
+    Connections {
+        target: root.overlayController
+
+        function onDismissRequested(except: string): void {
+            if (except !== root.overlayName && root.shown)
+                root.close();
+        }
     }
 
     LauncherData {

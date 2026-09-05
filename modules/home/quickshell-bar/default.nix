@@ -239,19 +239,58 @@ let
     subdued = "#a6adc8";
   };
   shell = pkgs.replaceVars ./shell.qml (
-    (builtins.removeAttrs themeVars [ "cardSurface" ])
+    (builtins.removeAttrs themeVars [
+      "accentSurface"
+      "border"
+      "cardSurface"
+      "fontFamily"
+      "surface"
+    ])
     // {
       outputs = builtins.toJSON cfg.outputs;
-      opaqueSurface = "#181825";
-      anthropicLogo = "${providerLogos}/anthropic.svg";
-      openaiLogo = "${providerLogos}/openai.svg";
-      primaryOutput = cfg.primaryOutput;
       herdr = lib.getExe herdrPackage;
       hyprctl = lib.getExe' config.wayland.windowManager.hyprland.package "hyprctl";
-      pavucontrol = lib.getExe pkgs.pavucontrol;
       omp = lib.getExe config.programs.omp.package;
       qs = "${pkgs.quickshell}/bin/qs";
     }
+  );
+  desktopBar = pkgs.replaceVars ./DesktopBar.qml (
+    (builtins.removeAttrs themeVars [
+      "accentSurface"
+      "cardSurface"
+    ])
+    // {
+      primaryOutput = cfg.primaryOutput;
+      pavucontrol = lib.getExe pkgs.pavucontrol;
+      qs = "${pkgs.quickshell}/bin/qs";
+    }
+  );
+  workspaceStrip = pkgs.replaceVars ./WorkspaceStrip.qml (
+    builtins.removeAttrs themeVars [
+      "cardSurface"
+      "muted"
+      "text"
+    ]
+  );
+  aiUsageIndicator = pkgs.replaceVars ./AiUsageIndicator.qml (
+    (builtins.removeAttrs themeVars [
+      "accent"
+      "accentSurface"
+      "cardSurface"
+      "subdued"
+      "surface"
+    ])
+    // {
+      opaqueSurface = "#181825";
+      anthropicLogo = "${providerLogos}/anthropic.svg";
+      openaiLogo = "${providerLogos}/openai.svg";
+    }
+  );
+  trayMenu = pkgs.replaceVars ./TrayMenu.qml (
+    builtins.removeAttrs themeVars [
+      "cardSurface"
+      "muted"
+    ]
   );
   launcher = pkgs.replaceVars ./Launcher.qml (
     (builtins.removeAttrs themeVars [ "muted" ])
@@ -357,6 +396,12 @@ in
 
     xdg.configFile = {
       "quickshell/tom-bar/shell.qml".source = shell;
+      "quickshell/tom-bar/DesktopBar.qml".source = desktopBar;
+      "quickshell/tom-bar/WorkspaceStrip.qml".source = workspaceStrip;
+      "quickshell/tom-bar/AiUsageIndicator.qml".source = aiUsageIndicator;
+      "quickshell/tom-bar/TrayArea.qml".source = ./TrayArea.qml;
+      "quickshell/tom-bar/TrayMenu.qml".source = trayMenu;
+      "quickshell/tom-bar/OverlayController.qml".source = ./OverlayController.qml;
       "quickshell/tom-bar/Launcher.qml".source = launcher;
       "quickshell/tom-bar/LauncherData.qml".source = launcherData;
       "quickshell/tom-bar/NotificationCard.qml".source = notificationCard;

@@ -5,6 +5,8 @@ import QtQuick
 
 Scope {
     id: root
+    required property var overlayController
+    readonly property string overlayName: "notifications"
 
     property var entries: []
     property bool doNotDisturb: false
@@ -161,8 +163,30 @@ Scope {
             entries = entries.slice();
     }
 
+    function revealCenter(): void {
+        overlayController.claim(overlayName);
+        center.shown = true;
+    }
+
+    function closeCenter(): void {
+        center.shown = false;
+        overlayController.release(overlayName);
+    }
+
     function toggleCenter(): void {
-        center.shown = !center.shown;
+        if (center.shown)
+            closeCenter();
+        else
+            revealCenter();
+    }
+
+    Connections {
+        target: root.overlayController
+
+        function onDismissRequested(except: string): void {
+            if (except !== root.overlayName && center.shown)
+                root.closeCenter();
+        }
     }
 
     NotificationServer {
@@ -303,7 +327,7 @@ Scope {
 
         MouseArea {
             anchors.fill: parent
-            onClicked: center.shown = false
+            onClicked: root.closeCenter()
         }
 
         Rectangle {
@@ -334,7 +358,7 @@ Scope {
             focus: center.shown
 
             Keys.onEscapePressed: event => {
-                center.shown = false;
+                root.closeCenter();
                 event.accepted = true;
             }
 
