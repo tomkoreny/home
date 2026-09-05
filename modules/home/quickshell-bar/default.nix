@@ -303,6 +303,8 @@ let
     accent = themeVars.accent;
     steamIcon = appIcons.steam;
     jellyfinIcon = appIcons.jellyfin-mpv-shim;
+    komaiIcon = ./icons/komai.svg;
+    inherit fontFamily;
   };
   trayMenu = pkgs.replaceVars ./TrayMenu.qml (
     builtins.removeAttrs themeVars [

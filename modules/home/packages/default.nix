@@ -22,9 +22,12 @@
 
     pkgs.php
 
-    (pkgs.discord.override {
-      withVencord = true;
-    })
+    (
+      if pkgs.stdenv.hostPlatform.isLinux then
+        pkgs.callPackage ./discord-tray-icons { }
+      else
+        pkgs.discord.override { withVencord = true; }
+    )
 
     pkgs.qmk
 
