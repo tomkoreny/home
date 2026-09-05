@@ -69,10 +69,10 @@ YouTube extractor restrictions can still prevent playback. Streamlink may pause
 through Twitch ad breaks and may launch its explicitly pinned, isolated Chromium
 for integrity checks; it never discovers or drives Helium.
 
-The extension is loaded automatically by the Helium wrapper on Linux. A native
-host manifest is also installed for Chromium, but manually loading the unpacked
-extension there remains an explicit choice. macOS and Terka's profile are not
-enabled. Boundary checks: `python3 -B modules/home/web-playback/test_playback.py`.
+The extension and native host are installed for **Helium only**. Chromium is used
+only for isolated verification and Streamlink's integrity checks, not as the
+viewing browser. macOS and Terka's profile are not enabled.
+Boundary checks: `python3 -B modules/home/web-playback/test_playback.py`.
 
 ## Czech diacritics
 

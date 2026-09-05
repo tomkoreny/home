@@ -47,17 +47,8 @@ in
     ];
 
     home.packages = [ launcher ];
-    xdg.configFile = builtins.listToAttrs (
-      map
-        (directory: {
-          name = "${directory}/NativeMessagingHosts/${nativeHost.name}.json";
-          value.text = builtins.toJSON nativeHost;
-        })
-        [
-          "net.imput.helium"
-          "chromium"
-        ]
-    );
+    xdg.configFile."net.imput.helium/NativeMessagingHosts/${nativeHost.name}.json".text =
+      builtins.toJSON nativeHost;
 
     wayland.windowManager.hyprland.extraConfig = lib.mkAfter ''
       -- Explicit clipboard handoff; ordinary video links stay in the browser.
