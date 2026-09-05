@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "Play in mpv",
+  "version": "1.0.0",
+  "description": "Explicitly hand off a YouTube or Twitch video to mpv.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwGZpszFq1TEHqF3IvVdW1Zf/1B4ddql/IpB0019zrnlKXR6GRlMp0f5tNfcM3iJVUqHECpt/u5zy1qVA+SIbKOs6n2+d1wxiDG9W/+4K/AMgTTYHE4nmwmagBwdosL59D/LhytFI+M58axih2J1i7WmqZzuA10ZNpCIzpuL0MnGyJ0TjhYwFbm+ThdBh7PCW/eE9ilktUH0ntVZ5sXWlQRr6UTGewmW0IZYlxRtq9Md8aoN16s4JH54OJpbOwikARncLjSKEhOpt54csX0RsKKNtzRnkXuB2JR9H4J0byc/5fxymzxBLvEVjqPRkaeBwXc3kkQsbAy4vkaVRDkizVQIDAQAB",
+  "permissions": ["nativeMessaging"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Play in mpv (Alt+Shift+M)"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+M"
+      }
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://youtube.com/*",
+        "https://www.youtube.com/*",
+        "https://m.youtube.com/*",
+        "https://youtu.be/*",
+        "https://twitch.tv/*",
+        "https://www.twitch.tv/*",
+        "https://m.twitch.tv/*",
+        "https://clips.twitch.tv/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

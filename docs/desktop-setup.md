@@ -29,12 +29,50 @@ keybind decision:
 | `Super + B`             | Launch Helium browser                               |
 | `Super + D`             | Proofread selection & rewrite with Czech diacritics |
 | `Super + Shift + V`     | Clipboard history (cliphist via wofi)               |
+| `Super + Shift + M`     | Play a copied YouTube/Twitch link in mpv             |
+| `Alt + Shift + M`       | Hand off the current browser video to mpv            |
 | `Print`                 | Screenshot a region (saved + copied)                |
 | `Super + Print`         | Screenshot the whole monitor                        |
 | `Super + Shift + Print` | Screenshot the active window                        |
 
 Screenshots use **hyprshot** (→ `~/Pictures` + clipboard). Clipboard history
 uses **cliphist**.
+
+## YouTube and Twitch in mpv
+
+Enabled for `tom@nixos` through `tomkoreny.web-playback.enable`. The launcher,
+native-messaging host, and browser extension live in `modules/home/web-playback/`.
+Apply the Home Manager configuration or your normal system rebuild, then fully
+exit and relaunch Helium so its declaratively loaded extension is picked up.
+There is no need to install a userscript or give the extension your cookies.
+
+- **Browser:** use the player-corner **Play in mpv** button, the extension toolbar
+  action, or **Alt + Shift + M**. YouTube's current position transfers; Twitch
+  joins the live stream (VODs/clips open without a position transfer). The webpage
+  pauses only after mpv reports playback, never just because a process started.
+  If you navigate during startup, the reply cannot pause the replacement video.
+- **Clipboard:** copy a supported link and press **Super + Shift + M**. YouTube
+  timestamps such as `?t=2m` are preserved; playlist parameters are discarded.
+  This entry point does not control or pause any browser tab.
+- **Terminal:** `web-playback 'https://youtu.be/VIDEO_ID'`, optionally with
+  `--start SECONDS`, or `web-playback --clipboard`.
+
+YouTube uses the pinned yt-dlp (including its JavaScript runtime); Twitch uses
+Streamlink. Both launch an independent mpv with normal MPRIS media controls and
+the `WebPlayback` identity, separate from Jellyfin's queue and camera settings.
+Closing the browser does not stop acknowledged playback. Failures are shown on
+the page or as a desktop notification for clipboard/terminal launches.
+
+This is guest playback: no account cookies, automatic redirects, watch-history
+sync, or recommendation/queue transfer. Keep restricted content in the browser.
+YouTube extractor restrictions can still prevent playback. Streamlink may pause
+through Twitch ad breaks and may launch its explicitly pinned, isolated Chromium
+for integrity checks; it never discovers or drives Helium.
+
+The extension is loaded automatically by the Helium wrapper on Linux. A native
+host manifest is also installed for Chromium, but manually loading the unpacked
+extension there remains an explicit choice. macOS and Terka's profile are not
+enabled. Boundary checks: `python3 -B modules/home/web-playback/test_playback.py`.
 
 ## Czech diacritics
 

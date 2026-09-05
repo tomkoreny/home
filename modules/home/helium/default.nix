@@ -2,6 +2,7 @@
   pkgs,
   lib,
   inputs,
+  config,
   ...
 }:
 let
@@ -573,7 +574,13 @@ let
   # Native Wayland applies Hyprland's per-monitor fractional scale. XWayland
   # stays unscaled by policy and makes Chromium's UI too small on HiDPI outputs.
   helium-browser = pkgs.writeShellScriptBin "helium-browser" ''
-    exec ${lib.getExe heliumAppImage} --ozone-platform=wayland --load-extension=${browserChromeTheme} "$@"
+    exec ${lib.getExe heliumAppImage} --ozone-platform=wayland \
+      --load-extension=${
+        lib.concatStringsSep "," (
+          [ "${browserChromeTheme}" ]
+          ++ lib.optional config.tomkoreny.web-playback.enable "${../web-playback/extension}"
+        )
+      } "$@"
   '';
 in
 {
@@ -629,11 +636,9 @@ in
   }
   // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux (externalExtensionFiles "net.imput.helium");
 
-  xdg.dataFile."icons/hicolor/256x256/apps/helium.png" =
-    lib.mkIf pkgs.stdenv.hostPlatform.isLinux
-      {
-        source = "${heliumContents}/usr/share/icons/hicolor/256x256/apps/helium.png";
-      };
+  xdg.dataFile."icons/hicolor/256x256/apps/helium.png" = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
+    source = "${heliumContents}/usr/share/icons/hicolor/256x256/apps/helium.png";
+  };
 
   # The AppImage wrapper ships no desktop entry, so provide one — without it
   # the mimeApps defaults below point at a .desktop file that doesn't exist

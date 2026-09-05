@@ -108,6 +108,7 @@ in
   };
 
   tomkoreny.komai.enable = true;
+  tomkoreny.web-playback.enable = true;
   tomkoreny.quickshell-osd = {
     enable = true;
     output = "DP-2";
