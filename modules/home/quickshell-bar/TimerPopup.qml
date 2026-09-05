@@ -1,6 +1,5 @@
 import Quickshell
 import QtQuick
-import QtQuick.Controls as QQC2
 
 Scope {
     id: root
@@ -73,7 +72,6 @@ Scope {
         color: "transparent"
         visible: root.shown && root.anchorItem !== null
 
-
         Rectangle {
             id: timerCard
 
@@ -99,9 +97,7 @@ Scope {
 
                     Text {
                         width: parent.width - closeButton.width - 8
-                        text: root.service.activeCount === 0
-                            ? "Timers"
-                            : `Timers · ${root.service.activeCount} active`
+                        text: root.service.activeCount === 0 ? "Timers" : `Timers · ${root.service.activeCount} active`
                         color: "@text@"
                         font.family: "@fontFamily@"
                         font.pixelSize: 15
@@ -296,9 +292,7 @@ Scope {
                             }
 
                             Text {
-                                text: timerRow.modelData.paused
-                                    ? `${root.service.formatRemaining(root.service.remaining(timerRow.modelData))} · paused`
-                                    : root.service.formatRemaining(root.service.remaining(timerRow.modelData))
+                                text: timerRow.modelData.paused ? `${root.service.formatRemaining(root.service.remaining(timerRow.modelData))} · paused` : root.service.formatRemaining(root.service.remaining(timerRow.modelData))
                                 color: timerRow.modelData.paused ? "@subdued@" : "@accent@"
                                 font.family: "@fontFamily@"
                                 font.pixelSize: 11
@@ -319,7 +313,10 @@ Scope {
                                         glyph: timerRow.modelData.paused ? "󰐊" : "󰏤",
                                         action: timerRow.modelData.paused ? "resume" : "pause"
                                     },
-                                    { glyph: "󰅖", action: "cancel" }
+                                    {
+                                        glyph: "󰅖",
+                                        action: "cancel"
+                                    }
                                 ]
 
                                 Rectangle {

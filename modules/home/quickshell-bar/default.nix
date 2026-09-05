@@ -276,14 +276,27 @@ let
     (builtins.removeAttrs themeVars [
       "accent"
       "accentSurface"
+      "border"
       "cardSurface"
+      "subdued"
+      "surface"
+      "text"
+    ])
+    // {
+      anthropicLogo = "${providerLogos}/anthropic.svg";
+      openaiLogo = "${providerLogos}/openai.svg";
+    }
+  );
+  hoverPopover = pkgs.replaceVars ./HoverPopover.qml (
+    (builtins.removeAttrs themeVars [
+      "accentSurface"
+      "cardSurface"
+      "muted"
       "subdued"
       "surface"
     ])
     // {
       opaqueSurface = "#181825";
-      anthropicLogo = "${providerLogos}/anthropic.svg";
-      openaiLogo = "${providerLogos}/openai.svg";
     }
   );
   trayMenu = pkgs.replaceVars ./TrayMenu.qml (
@@ -399,6 +412,7 @@ in
       "quickshell/tom-bar/DesktopBar.qml".source = desktopBar;
       "quickshell/tom-bar/WorkspaceStrip.qml".source = workspaceStrip;
       "quickshell/tom-bar/AiUsageIndicator.qml".source = aiUsageIndicator;
+      "quickshell/tom-bar/HoverPopover.qml".source = hoverPopover;
       "quickshell/tom-bar/TrayArea.qml".source = ./TrayArea.qml;
       "quickshell/tom-bar/TrayMenu.qml".source = trayMenu;
       "quickshell/tom-bar/OverlayController.qml".source = ./OverlayController.qml;

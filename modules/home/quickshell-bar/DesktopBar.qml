@@ -2,7 +2,6 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Wayland
 import QtQuick
-import QtQuick.Controls as QQC2
 
 PanelWindow {
     id: bar
@@ -87,14 +86,18 @@ PanelWindow {
                 }
 
                 MouseArea {
+                    id: herdrMouse
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: launcherController.toggleMode("herdr")
 
-                    QQC2.ToolTip.visible: containsMouse
-                    QQC2.ToolTip.delay: 500
-                    QQC2.ToolTip.text: shellRoot.herdrSummary
+                    HoverPopover {
+                        anchorItem: herdrMouse
+                        hovered: herdrMouse.containsMouse
+                        text: shellRoot.herdrSummary
+                        alignRight: true
+                    }
                 }
             }
             Rectangle {
@@ -126,14 +129,18 @@ PanelWindow {
                 }
 
                 MouseArea {
+                    id: timerMouse
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: timerPopupController.toggle()
 
-                    QQC2.ToolTip.visible: containsMouse && !timerPopupController.shown
-                    QQC2.ToolTip.delay: 500
-                    QQC2.ToolTip.text: timerService.nextTimer ? `${timerService.nextTimer.name} · ${timerService.formatRemaining(timerService.remaining(timerService.nextTimer))}` : "Create a timer"
+                    HoverPopover {
+                        anchorItem: timerMouse
+                        hovered: timerMouse.containsMouse && !timerPopupController.shown
+                        text: timerService.nextTimer ? `${timerService.nextTimer.name} · ${timerService.formatRemaining(timerService.remaining(timerService.nextTimer))}` : "Create a timer"
+                        alignRight: true
+                    }
                 }
             }
 
@@ -170,14 +177,18 @@ PanelWindow {
                 }
 
                 MouseArea {
+                    id: todoMouse
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: todoManagerController.toggle()
 
-                    QQC2.ToolTip.visible: containsMouse
-                    QQC2.ToolTip.delay: 500
-                    QQC2.ToolTip.text: todoService.stale ? `Notion tasks · stale · ${todoService.error}` : `${todoService.overdueCount} overdue · ${todoService.todayCount} today`
+                    HoverPopover {
+                        anchorItem: todoMouse
+                        hovered: todoMouse.containsMouse
+                        text: todoService.stale ? `Notion tasks · stale · ${todoService.error}` : `${todoService.overdueCount} overdue · ${todoService.todayCount} today`
+                        alignRight: true
+                    }
                 }
             }
 
@@ -204,14 +215,18 @@ PanelWindow {
                 }
 
                 MouseArea {
+                    id: audioMouse
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: Quickshell.execDetached(["@pavucontrol@"])
 
-                    QQC2.ToolTip.visible: containsMouse
-                    QQC2.ToolTip.delay: 500
-                    QQC2.ToolTip.text: shellRoot.audioMuted ? `Muted · ${shellRoot.volumePercent}%` : `Volume · ${shellRoot.volumePercent}%`
+                    HoverPopover {
+                        anchorItem: audioMouse
+                        hovered: audioMouse.containsMouse
+                        text: shellRoot.audioMuted ? `Muted · ${shellRoot.volumePercent}%` : `Volume · ${shellRoot.volumePercent}%`
+                        alignRight: true
+                    }
                 }
             }
 
@@ -262,14 +277,18 @@ PanelWindow {
                 }
 
                 MouseArea {
+                    id: clockMouse
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: shellRoot.showSeconds = !shellRoot.showSeconds
 
-                    QQC2.ToolTip.visible: containsMouse
-                    QQC2.ToolTip.delay: 500
-                    QQC2.ToolTip.text: Qt.formatDateTime(clockService.date, "dddd, d MMMM yyyy")
+                    HoverPopover {
+                        anchorItem: clockMouse
+                        hovered: clockMouse.containsMouse
+                        text: Qt.formatDateTime(clockService.date, "dddd, d MMMM yyyy")
+                        alignRight: true
+                    }
                 }
             }
 
@@ -318,14 +337,18 @@ PanelWindow {
                 }
 
                 MouseArea {
+                    id: notificationMouse
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: notificationService.toggleCenter()
 
-                    QQC2.ToolTip.visible: containsMouse && !notificationService.centerVisible
-                    QQC2.ToolTip.delay: 500
-                    QQC2.ToolTip.text: notificationService.doNotDisturb ? `Do Not Disturb · ${notificationService.unreadCount} unread` : `${notificationService.unreadCount} unread notifications`
+                    HoverPopover {
+                        anchorItem: notificationMouse
+                        hovered: notificationMouse.containsMouse && !notificationService.centerVisible
+                        text: notificationService.doNotDisturb ? `Do Not Disturb · ${notificationService.unreadCount} unread` : `${notificationService.unreadCount} unread notifications`
+                        alignRight: true
+                    }
                 }
             }
 
@@ -349,6 +372,7 @@ PanelWindow {
                 }
 
                 MouseArea {
+                    id: sessionMouse
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
@@ -357,9 +381,12 @@ PanelWindow {
                         Quickshell.execDetached(["@qs@", "-c", "tom-osd", "ipc", "call", "session", "reveal"]);
                     }
 
-                    QQC2.ToolTip.visible: containsMouse
-                    QQC2.ToolTip.delay: 500
-                    QQC2.ToolTip.text: "Session"
+                    HoverPopover {
+                        anchorItem: sessionMouse
+                        hovered: sessionMouse.containsMouse
+                        text: "Session"
+                        alignRight: true
+                    }
                 }
             }
         }

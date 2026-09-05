@@ -1,6 +1,5 @@
 import Quickshell.Hyprland
 import QtQuick
-import QtQuick.Controls as QQC2
 
 Rectangle {
     id: workspaceIsland
@@ -54,15 +53,18 @@ Rectangle {
                 }
 
                 MouseArea {
+                    id: workspaceMouse
                     anchors.fill: parent
                     enabled: workspaceButton.onThisMonitor
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: workspaceButton.modelData.activate()
 
-                    QQC2.ToolTip.visible: containsMouse
-                    QQC2.ToolTip.delay: 500
-                    QQC2.ToolTip.text: `Workspace ${workspaceButton.modelData.id}`
+                    HoverPopover {
+                        anchorItem: workspaceMouse
+                        hovered: workspaceMouse.containsMouse
+                        text: `Workspace ${workspaceButton.modelData.id}`
+                    }
                 }
             }
         }

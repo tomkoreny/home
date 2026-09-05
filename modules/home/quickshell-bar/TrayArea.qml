@@ -1,6 +1,5 @@
 import Quickshell.Services.SystemTray
 import QtQuick
-import QtQuick.Controls as QQC2
 
 Row {
     id: trayRow
@@ -36,6 +35,7 @@ Row {
             }
 
             MouseArea {
+                id: trayMouse
                 anchors.fill: parent
                 acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
                 hoverEnabled: true
@@ -51,9 +51,12 @@ Row {
                     }
                 }
 
-                QQC2.ToolTip.visible: containsMouse && !trayMenu.visible
-                QQC2.ToolTip.delay: 500
-                QQC2.ToolTip.text: trayHost.modelData.tooltipTitle
+                HoverPopover {
+                    anchorItem: trayMouse
+                    hovered: trayMouse.containsMouse && !trayMenu.visible
+                    text: trayHost.modelData.tooltipTitle
+                    alignRight: true
+                }
             }
 
             TrayMenu {

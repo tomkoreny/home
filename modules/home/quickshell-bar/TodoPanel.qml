@@ -1,7 +1,6 @@
 import Quickshell
 import Quickshell.Wayland
 import QtQuick
-import QtQuick.Controls as QQC2
 
 Scope {
     id: root
@@ -81,9 +80,7 @@ Scope {
                         }
 
                         Text {
-                            text: root.service.overdueCount > 0
-                                ? `${root.service.overdueCount} overdue · ${root.service.todayCount} today`
-                                : root.service.todayCount === 1 ? "1 task" : `${root.service.todayCount} tasks`
+                            text: root.service.overdueCount > 0 ? `${root.service.overdueCount} overdue · ${root.service.todayCount} today` : root.service.todayCount === 1 ? "1 task" : `${root.service.todayCount} tasks`
                             color: root.service.overdueCount > 0 ? "@muted@" : "@subdued@"
                             font.family: "@fontFamily@"
                             font.pixelSize: 10
@@ -116,11 +113,12 @@ Scope {
                             cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                             onClicked: root.service.refresh()
 
-                            QQC2.ToolTip.visible: containsMouse
-                            QQC2.ToolTip.delay: 500
-                            QQC2.ToolTip.text: root.service.stale
-                                ? `Stale · ${root.service.error}`
-                                : "Refresh Notion tasks"
+                            HoverPopover {
+                                anchorItem: refreshMouse
+                                hovered: refreshMouse.containsMouse
+                                text: root.service.stale ? `Stale · ${root.service.error}` : "Refresh Notion tasks"
+                                alignRight: true
+                            }
                         }
                     }
                 }
@@ -146,11 +144,7 @@ Scope {
                         }
 
                         Text {
-                            text: root.service.loading
-                                ? "Loading tasks…"
-                                : root.service.error !== "" && root.service.updatedAt === ""
-                                    ? "Notion tasks unavailable"
-                                    : "All clear"
+                            text: root.service.loading ? "Loading tasks…" : root.service.error !== "" && root.service.updatedAt === "" ? "Notion tasks unavailable" : "All clear"
                             color: "@text@"
                             font.family: "@fontFamily@"
                             font.pixelSize: 13
@@ -200,9 +194,11 @@ Scope {
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: root.service.completeTask(taskRow.modelData)
 
-                                QQC2.ToolTip.visible: containsMouse
-                                QQC2.ToolTip.delay: 500
-                                QQC2.ToolTip.text: "Complete"
+                                HoverPopover {
+                                    anchorItem: checkMouse
+                                    hovered: checkMouse.containsMouse
+                                    text: "Complete"
+                                }
                             }
                         }
 
@@ -244,9 +240,12 @@ Scope {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: root.service.openTask(taskRow.modelData)
 
-                            QQC2.ToolTip.visible: containsMouse
-                            QQC2.ToolTip.delay: 500
-                            QQC2.ToolTip.text: "Open in Notion"
+                            HoverPopover {
+                                anchorItem: titleMouse
+                                hovered: titleMouse.containsMouse
+                                text: "Open in Notion"
+                                alignRight: true
+                            }
                         }
                     }
                 }
