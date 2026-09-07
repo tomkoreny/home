@@ -228,6 +228,14 @@ hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.fullscreen_state({ internal = 3
 hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("oled-idle blank"))
 
 -- Window rules
+-- Keep the configured HDR output: native CS2's SDR tag must not switch
+-- fullscreen signaling to SDR while Hyprland still renders in HDR.
+hl.window_rule({
+    name = "cs2-preserve-monitor-hdr",
+    match = { class = "^cs2$" },
+    no_auto_hdr = true,
+})
+
 -- The 1px accent focus border reads as a stray blue line across the top of
 -- the browser when it tiles flush under the top bar; drop it for Helium only and
 -- keep the border as the focus cue for everything else.
