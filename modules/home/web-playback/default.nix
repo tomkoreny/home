@@ -61,6 +61,12 @@ in
     wayland.windowManager.hyprland.extraConfig = lib.mkAfter ''
       -- Explicit clipboard handoff; ordinary video links stay in the browser.
       hl.bind("SUPER + SHIFT + M", hl.dsp.exec_cmd("${clipboardCommand}"))
+      -- A non-silent assignment follows the video onto the main OLED workspace.
+      hl.window_rule({
+        name = "web-playback-workspace",
+        match = { class = "^WebPlayback$" },
+        workspace = "5",
+      })
     '';
     home.activation.refreshWebPlaybackBinding = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
       if [[ -n "''${HYPRLAND_INSTANCE_SIGNATURE:-}" ]] \

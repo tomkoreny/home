@@ -366,6 +366,8 @@ bundle uosc (including its icon fonts and helper), and use `~/.config/mpv`.
 Web handoff retains its isolated config directory and imports only the shared
 UI config, input bindings and uosc options. Its MPRIS and aspect scripts remain
 separate from the UI.
+Browser-launched `WebPlayback` windows open on workspace 5 on the main OLED and
+take focus. This assignment does not apply to other mpv windows.
 
 Jellyfin uses the same theme in its own config directory. `osc_style = "none"`
 disables Shim's original playback HUD and prevents it from enabling mpv's stock
