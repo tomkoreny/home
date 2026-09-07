@@ -22,25 +22,7 @@ let
   todoCaptureCommand = "qs -c tom-bar ipc call todos capture";
   workManagerCommand = "qs -c tom-bar ipc call workTasks toggle";
   mpvAspectScript = pkgs.callPackage ./mpv-aspect.nix { };
-  aspectPython = pkgs.python3.withPackages (ps: [
-    ps.python-xlib
-    ps.inotify-simple
-  ]);
-  aspectController = pkgs.replaceVars ./aspect-tiling.py {
-    fitScript = ./aspect-fit.lua;
-  };
-  aspectTiling =
-    pkgs.runCommand "hyprland-aspect-tiling"
-      {
-        nativeBuildInputs = [ pkgs.makeWrapper ];
-      }
-      ''
-        mkdir -p "$out/lib" "$out/bin"
-        cp ${aspectController} "$out/lib/aspect-tiling.py"
-        cp ${./aspect_x11.py} "$out/lib/aspect_x11.py"
-        makeWrapper ${aspectPython}/bin/python3 "$out/bin/hyprland-aspect-tiling" \
-          --add-flags "$out/lib/aspect-tiling.py"
-      '';
+  aspectTiling = pkgs.callPackage ./aspect-tiling.nix { };
   aspectToggleSplit = ''function() hl.dispatch(hl.dsp.layout("togglesplit")); hl.exec_cmd("${aspectTiling}/bin/hyprland-aspect-tiling --trigger") end'';
   hyprlandConfig =
     builtins.replaceStrings

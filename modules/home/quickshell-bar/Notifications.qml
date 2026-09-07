@@ -6,6 +6,7 @@ import QtQuick
 Scope {
     id: root
     required property var overlayController
+    required property string targetOutput
     readonly property string overlayName: "notifications"
 
     property var entries: []
@@ -21,7 +22,7 @@ Scope {
     readonly property var targetScreen: {
         for (let i = 0; i < Quickshell.screens.length; ++i) {
             const candidate = Quickshell.screens[i];
-            if (candidate.name === "@primaryOutput@")
+            if (candidate.name === root.targetOutput)
                 return candidate;
         }
         return null;

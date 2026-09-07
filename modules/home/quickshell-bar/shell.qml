@@ -8,6 +8,21 @@ ShellRoot {
     id: root
 
     readonly property var outputs: @outputs@
+    readonly property string primaryOutput: @primaryOutput@
+    readonly property string videoStatusOutput: @videoStatusOutput@
+    readonly property int barHeight: 36
+    readonly property bool videoMode: videoPolicy.active
+        && Quickshell.screens.some(screen => screen.name === root.videoStatusOutput)
+    readonly property string statusOutput: videoMode ? videoStatusOutput : primaryOutput
+
+    onStatusOutputChanged: overlays.dismissAll()
+
+    VideoBarPolicy {
+        id: videoPolicy
+        primaryOutput: root.primaryOutput
+        statusOutput: root.videoStatusOutput
+        barHeight: root.barHeight
+    }
     readonly property var audioNode: Pipewire.defaultAudioSink
     readonly property var audio: audioNode ? audioNode.audio : null
     readonly property bool audioMuted: audio ? audio.muted : false
@@ -326,6 +341,7 @@ ShellRoot {
     Notifications {
         id: notifications
         overlayController: overlays
+        targetOutput: root.statusOutput
     }
     OverlayController {
         id: overlays

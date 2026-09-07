@@ -1,4 +1,4 @@
-"""Rebalance dwindle on playback/placement changes, never on focus changes."""
+"""Watch playback metadata, optionally rebalancing dwindle placement."""
 
 import argparse
 import asyncio
@@ -27,6 +27,27 @@ EVENTS = {
     "moveworkspacev2",
     "configreloaded",
 }
+PLAYBACK_EVENTS = EVENTS | {
+    "workspace",
+    "workspacev2",
+    "focusedmon",
+    "activespecial",
+    "activespecialv2",
+    "createworkspacev2",
+    "destroyworkspacev2",
+    "renameworkspace",
+    "moveworkspace",
+    "monitoradded",
+    "monitorremovedv2",
+    "monitorlayout",
+    "togglegroup",
+    "moveintogroup",
+    "moveoutofgroup",
+    "lockgroups",
+    "lockactivegroup",
+    "activewindowv2",
+}
+PLAYBACK_REFRESH_SECONDS = 2
 
 
 async def ipc(command):
@@ -127,7 +148,7 @@ def placement_state(clients, ratios):
     )
 
 
-async def watch():
+async def watch(playback_only=False):
     RUNTIME.mkdir(mode=0o700, exist_ok=True)
     loop = asyncio.get_running_loop()
     changed = asyncio.Event()
@@ -136,11 +157,13 @@ async def watch():
     notify.add_watch(str(RUNTIME), flags.MOVED_TO | flags.CLOSE_WRITE | flags.DELETE)
     hints = AspectHints()
     hints.refresh()
-    trigger = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+    trigger = None
     trigger_path = RUNTIME / "trigger.sock"
-    trigger_path.unlink(missing_ok=True)
-    trigger.bind(str(trigger_path))
-    trigger.setblocking(False)
+    if not playback_only:
+        trigger = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+        trigger_path.unlink(missing_ok=True)
+        trigger.bind(str(trigger_path))
+        trigger.setblocking(False)
 
     def metadata_changed():
         if any(
@@ -163,7 +186,8 @@ async def watch():
 
     loop.add_reader(notify.fileno(), metadata_changed)
     loop.add_reader(hints.fileno(), x11_changed)
-    loop.add_reader(trigger.fileno(), triggered)
+    if trigger is not None:
+        loop.add_reader(trigger.fileno(), triggered)
 
     async def events():
         path = (
@@ -173,24 +197,44 @@ async def watch():
             / ".socket2.sock"
         )
         reader, writer = await asyncio.open_unix_connection(path)
+        relevant_events = PLAYBACK_EVENTS if playback_only else EVENTS
         try:
             while line := await reader.readline():
-                if line.decode().partition(">>")[0] in EVENTS:
+                if line.decode().partition(">>")[0] in relevant_events:
                     changed.set()
             raise ConnectionError("Hyprland event socket closed")
         finally:
             writer.close()
             await writer.wait_closed()
 
-    async def rebalance():
+    async def update():
         last_state = None
         changed.set()
         while True:
-            await changed.wait()
+            if playback_only:
+                # DPMS and some geometry changes have no socket event. Poll
+                # read-only snapshots at a bounded rate, without a second loop.
+                try:
+                    await asyncio.wait_for(changed.wait(), PLAYBACK_REFRESH_SECONDS)
+                except TimeoutError:
+                    pass
+            else:
+                await changed.wait()
             # Coalesce map/title/hints bursts, including late playback metadata.
             await asyncio.sleep(0.15)
             changed.clear()
             clients, ratios = await playback_state(hints)
+            if playback_only:
+                monitors = json.loads(await ipc("j/monitors"))
+                state = json.dumps(
+                    {"clients": clients, "ratios": ratios, "monitors": monitors},
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+                if state != last_state:
+                    print(state, flush=True)
+                    last_state = state
+                continue
             state = placement_state(clients, ratios)
             if state != last_state:
                 await fit(ratios)
@@ -202,19 +246,22 @@ async def watch():
     async def metadata_failure():
         await failed
 
-    print("Watching playback aspect metadata and Hyprland placement events", flush=True)
+    if not playback_only:
+        print("Watching playback aspect metadata and Hyprland placement events", flush=True)
     try:
         async with asyncio.TaskGroup() as group:
             group.create_task(events())
-            group.create_task(rebalance())
+            group.create_task(update())
             group.create_task(metadata_failure())
     finally:
-        for fd in (notify.fileno(), hints.fileno(), trigger.fileno()):
+        for fd in (notify.fileno(), hints.fileno()):
             loop.remove_reader(fd)
         notify.close()
         hints.close()
-        trigger.close()
-        trigger_path.unlink(missing_ok=True)
+        if trigger is not None:
+            loop.remove_reader(trigger.fileno())
+            trigger.close()
+            trigger_path.unlink(missing_ok=True)
 
 
 def main():
@@ -235,6 +282,11 @@ def main():
         action="store_true",
         help="request rebalancing after an explicit layout operation",
     )
+    mode.add_argument(
+        "--watch-playback",
+        action="store_true",
+        help="stream playback clients, ratios and monitors as JSON without resizing",
+    )
     args = parser.parse_args()
     if args.trigger:
         with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as trigger:
@@ -254,7 +306,7 @@ def main():
         finally:
             hints.close()
     else:
-        asyncio.run(watch())
+        asyncio.run(watch(playback_only=args.watch_playback))
 
 
 if __name__ == "__main__":

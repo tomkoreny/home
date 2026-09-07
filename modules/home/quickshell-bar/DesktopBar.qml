@@ -31,12 +31,22 @@ PanelWindow {
         }
         return tiledCount === 1;
     }
-    readonly property bool primary: modelData.name === "@primaryOutput@"
+    readonly property bool primary: modelData.name === shellRoot.primaryOutput
+    readonly property bool statusHost: modelData.name === shellRoot.statusOutput
+    readonly property bool videoHidden: primary && shellRoot.videoMode
+
+    function updateTimerAnchor(): void {
+        if (statusHost)
+            shellRoot.timerAnchor = timerHost;
+    }
+    onStatusHostChanged: updateTimerAnchor()
+    Component.onCompleted: updateTimerAnchor()
 
     screen: modelData
+    visible: !videoHidden
     color: singleWindowMode ? "#000000" : "transparent"
-    implicitHeight: 36
-    exclusiveZone: 36
+    implicitHeight: shellRoot.barHeight
+    exclusiveZone: videoHidden ? 0 : shellRoot.barHeight
     aboveWindows: true
 
     anchors.top: true
@@ -70,7 +80,7 @@ PanelWindow {
         width: statusRow.implicitWidth + 12
         height: 30
         radius: bar.singleWindowMode ? 0 : 8
-        visible: bar.primary
+        visible: bar.statusHost
         color: bar.singleWindowMode ? "transparent" : "@surface@"
         border.width: bar.singleWindowMode ? 0 : 1
         border.color: "@border@"
@@ -124,10 +134,6 @@ PanelWindow {
 
                 width: timerText.implicitWidth + 12
                 height: parent.height
-                Component.onCompleted: {
-                    if (bar.primary)
-                        shellRoot.timerAnchor = timerHost;
-                }
 
                 Text {
                     id: timerText

@@ -122,6 +122,7 @@ in
       "DP-3"
     ];
     primaryOutput = "DP-2";
+    videoStatusOutput = "DP-3";
     workTasks = {
       enable = true;
       provider = "mantisbt";

@@ -11,6 +11,7 @@ let
   fontFamily = (common.stylix.fonts pkgs inputs).sansSerif.name;
   notionTodoAssigneeId = "c3045b6d-8e81-4f7a-a5fe-ebf07f041fef";
   herdrPackage = inputs.herdr.packages.${pkgs.stdenv.hostPlatform.system}.default;
+  aspectTiling = pkgs.callPackage ../hyprland/aspect-tiling.nix { };
   providerLogoSources = {
     anthropic = pkgs.fetchurl {
       url = "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.94.0/icons/anthropic.svg";
@@ -277,6 +278,8 @@ let
     ])
     // {
       outputs = builtins.toJSON cfg.outputs;
+      primaryOutput = builtins.toJSON cfg.primaryOutput;
+      videoStatusOutput = builtins.toJSON cfg.videoStatusOutput;
       workTasksEnabled = builtins.toJSON cfg.workTasks.enable;
       herdr = lib.getExe herdrPackage;
       hyprctl = lib.getExe' config.wayland.windowManager.hyprland.package "hyprctl";
@@ -284,13 +287,15 @@ let
       qs = "${pkgs.quickshell}/bin/qs";
     }
   );
+  videoBarPolicy = pkgs.replaceVars ./VideoBarPolicy.qml {
+    aspectController = lib.getExe' aspectTiling "hyprland-aspect-tiling";
+  };
   desktopBar = pkgs.replaceVars ./DesktopBar.qml (
     (builtins.removeAttrs themeVars [
       "accentSurface"
       "cardSurface"
     ])
     // {
-      primaryOutput = cfg.primaryOutput;
       pavucontrol = lib.getExe pkgs.pavucontrol;
       workProviderLabel = builtins.toJSON cfg.workTasks.label;
       qs = "${pkgs.quickshell}/bin/qs";
@@ -397,13 +402,10 @@ let
   workTaskManager = pkgs.replaceVars ./WorkTaskManager.qml themeVars;
   notificationCard = pkgs.replaceVars ./NotificationCard.qml themeVars;
   notifications = pkgs.replaceVars ./Notifications.qml (
-    (builtins.removeAttrs themeVars [
+    builtins.removeAttrs themeVars [
       "cardSurface"
       "muted"
-    ])
-    // {
-      primaryOutput = cfg.primaryOutput;
-    }
+    ]
   );
 in
 {
@@ -420,6 +422,12 @@ in
       type = lib.types.str;
       default = "";
       description = "Monitor connector that hosts the status cluster";
+    };
+
+    videoStatusOutput = lib.mkOption {
+      type = lib.types.str;
+      default = "";
+      description = "Bar output receiving status controls while a sole aspect-benefiting video hides the primary bar; empty disables this mode";
     };
 
     workTasks = {
@@ -462,6 +470,12 @@ in
         message = "tomkoreny.quickshell-bar.primaryOutput must be one of its outputs.";
       }
       {
+        assertion =
+          cfg.videoStatusOutput == ""
+          || (cfg.videoStatusOutput != cfg.primaryOutput && lib.elem cfg.videoStatusOutput cfg.outputs);
+        message = "videoStatusOutput must be a different configured bar output.";
+      }
+      {
         assertion = !cfg.workTasks.enable || cfg.workTasks.sopsFile != null;
         message = "Work tasks require a SOPS-encrypted token file.";
       }
@@ -493,6 +507,7 @@ in
     xdg.configFile = {
       "quickshell/tom-bar/shell.qml".source = shell;
       "quickshell/tom-bar/DesktopBar.qml".source = desktopBar;
+      "quickshell/tom-bar/VideoBarPolicy.qml".source = videoBarPolicy;
       "quickshell/tom-bar/WorkspaceStrip.qml".source = workspaceStrip;
       "quickshell/tom-bar/AiUsageIndicator.qml".source = aiUsageIndicator;
       "quickshell/tom-bar/HoverPopover.qml".source = hoverPopover;
