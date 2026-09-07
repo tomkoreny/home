@@ -84,6 +84,13 @@ has no Helium target. Browser chrome therefore continues to use the operating
 system UI font (SF Pro on macOS); the generated style controls website content.
 Re-import the Stylus file after changing any shared font.
 
+The Linux profiles run on NixOS through either the system-integrated or standalone
+Home Manager entry point. `modules/home/stylix/default.nix` explicitly enables
+`stylix.targets.qt` and `fonts.fontconfig` for both paths. Upstream otherwise
+infers these defaults from `nixosConfig`, which standalone evaluation lacks.
+Keep these settings in the shared home module: relying on the system defaults
+alone makes a standalone activation remove Qt, Kvantum, and fontconfig files.
+
 ## Ghostty
 
 Ghostty follows the system appearance on its own. `modules/home/stylix/default.nix`

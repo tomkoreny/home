@@ -27,7 +27,13 @@ in
       // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
         cursor = common.stylix.cursor pkgs;
         targets.waybar.font = "sansSerif";
+        # These Linux profiles run on NixOS even when evaluated standalone,
+        # where Stylix cannot infer that from a nixosConfig argument.
+        targets.qt.enable = true;
       };
+
+    # Do not let a standalone switch remove the NixOS-integrated font config.
+    fonts.fontconfig.enable = lib.mkIf pkgs.stdenv.hostPlatform.isLinux true;
 
     # The package is installed separately by modules/home/packages. Enabling the
     # Home Manager module lets Stylix generate Ghostty's font and color config.
