@@ -47,7 +47,7 @@ hl.monitor({
     mode = "highres",
     position = "1152x376",
     scale = "1.666667",
-    vrr = 3,
+    vrr = 2, -- Fullscreen, including XWayland games without a content type.
     bitdepth = 10,
     cm = "hdredid",
     sdrbrightness = 1.5,

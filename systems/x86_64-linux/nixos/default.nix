@@ -359,6 +359,7 @@ in
       "docker"
       "video"
       "render"
+      "gamemode"
     ];
     packages = [ ];
   };
