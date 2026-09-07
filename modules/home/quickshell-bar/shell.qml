@@ -357,6 +357,15 @@ ShellRoot {
         widgetService: todos
         overlayController: overlays
     }
+    WorkTaskService {
+        id: workTasks
+        enabled: @workTasksEnabled@
+    }
+    WorkTaskManager {
+        id: workManager
+        service: workTasks
+        overlayController: overlays
+    }
     TimerPopup {
         id: timerPopup
 
@@ -422,6 +431,15 @@ ShellRoot {
             return todoManager.visible;
         }
     }
+    IpcHandler {
+        target: "workTasks"
+
+        function toggle(): bool {
+            if (workTasks.enabled)
+                workManager.toggle();
+            return workManager.visible;
+        }
+    }
 
 
 
@@ -456,6 +474,8 @@ ShellRoot {
             timerService: timers
             todoManagerController: todoManager
             todoService: todos
+            workManagerController: workManager
+            workService: workTasks
         }
     }
 }

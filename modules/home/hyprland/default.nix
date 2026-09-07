@@ -20,6 +20,7 @@ let
   clipboardLauncherCommand = "qs -c tom-bar ipc call launcher clipboard";
   todoManagerCommand = "qs -c tom-bar ipc call todos toggle";
   todoCaptureCommand = "qs -c tom-bar ipc call todos capture";
+  workManagerCommand = "qs -c tom-bar ipc call workTasks toggle";
   mpvAspectScript = pkgs.callPackage ./mpv-aspect.nix { };
   aspectPython = pkgs.python3.withPackages (ps: [
     ps.python-xlib
@@ -48,12 +49,16 @@ let
         "@cameraLauncherCommand@"
         "@clipboardLauncherCommand@"
         "@aspectToggleSplit@"
+        "@workManagerCommand@"
+        "@workTasksEnabled@"
       ]
       [
         desktopBarService
         cameraLauncherCommand
         clipboardLauncherCommand
         aspectToggleSplit
+        workManagerCommand
+        (if config.tomkoreny.quickshell-bar.workTasks.enable then "true" else "false")
       ]
       (builtins.readFile ./config/hyprland/main.lua);
   common = import ../../../lib/common { };
@@ -266,6 +271,10 @@ in
           run ${hyprlandPackage}/bin/hyprctl eval ${lib.escapeShellArg ''hl.bind("SUPER + T", hl.dsp.exec_cmd("${todoManagerCommand}"))''}
           run ${hyprlandPackage}/bin/hyprctl eval ${lib.escapeShellArg ''hl.unbind("SUPER + SHIFT + T")''}
           run ${hyprlandPackage}/bin/hyprctl eval ${lib.escapeShellArg ''hl.bind("SUPER + SHIFT + T", hl.dsp.exec_cmd("${todoCaptureCommand}"))''}
+          run ${hyprlandPackage}/bin/hyprctl eval ${lib.escapeShellArg ''hl.unbind("SUPER + W")''}
+          ${lib.optionalString config.tomkoreny.quickshell-bar.workTasks.enable ''
+            run ${hyprlandPackage}/bin/hyprctl eval ${lib.escapeShellArg ''hl.bind("SUPER + W", hl.dsp.exec_cmd("${workManagerCommand}"))''}
+          ''}
         fi
       ''
     );

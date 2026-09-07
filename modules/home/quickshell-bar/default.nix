@@ -171,6 +171,35 @@ let
         (builtins.readFile ./notion-todos.py);
   };
 
+  workConfig = pkgs.writeText "work-tasks-config.json" (
+    builtins.toJSON {
+      inherit (cfg.workTasks) provider baseUrl label;
+      tokenFile = if cfg.workTasks.enable then config.sops.secrets.work-tasks.path else "";
+    }
+  );
+  workTaskHelper = pkgs.runCommand "work-tasks" { nativeBuildInputs = [ pkgs.makeWrapper ]; } ''
+    mkdir -p "$out/lib/work-tasks" "$out/bin"
+    substitute ${./work-tasks.py} "$out/lib/work-tasks/work-tasks.py" \
+      --replace-fail '@workConfig@' '${workConfig}'
+    cp ${./mantis_tasks.py} "$out/lib/work-tasks/mantis_tasks.py"
+    makeWrapper ${pkgs.python3}/bin/python3 "$out/bin/work-tasks" \
+      --add-flags "$out/lib/work-tasks/work-tasks.py"
+  '';
+  workNotify = pkgs.writeShellApplication {
+    name = "work-task-notify";
+    runtimeInputs = [
+      pkgs.libnotify
+      pkgs.xdg-utils
+    ];
+    text = ''
+      action="$(notify-send --app-name="Work tasks" \
+        --action=default=Open --wait -- "Assigned to you" "''${1:?task title}")"
+      if [[ "$action" == default ]]; then
+        xdg-open "''${2:?task URL}"
+      fi
+    '';
+  };
+
   launcherAiConfig = pkgs.writeText "launcher-ai-config.yml" ''
     advisor:
       enabled: false
@@ -248,6 +277,7 @@ let
     ])
     // {
       outputs = builtins.toJSON cfg.outputs;
+      workTasksEnabled = builtins.toJSON cfg.workTasks.enable;
       herdr = lib.getExe herdrPackage;
       hyprctl = lib.getExe' config.wayland.windowManager.hyprland.package "hyprctl";
       omp = lib.getExe config.programs.omp.package;
@@ -262,6 +292,7 @@ let
     // {
       primaryOutput = cfg.primaryOutput;
       pavucontrol = lib.getExe pkgs.pavucontrol;
+      workProviderLabel = builtins.toJSON cfg.workTasks.label;
       qs = "${pkgs.quickshell}/bin/qs";
     }
   );
@@ -358,6 +389,12 @@ let
       xdgOpen = lib.getExe' pkgs.xdg-utils "xdg-open";
     }
   );
+  workTaskService = pkgs.replaceVars ./WorkTaskService.qml {
+    workHelper = "${workTaskHelper}/bin/work-tasks";
+    workNotify = lib.getExe workNotify;
+    xdgOpen = lib.getExe' pkgs.xdg-utils "xdg-open";
+  };
+  workTaskManager = pkgs.replaceVars ./WorkTaskManager.qml themeVars;
   notificationCard = pkgs.replaceVars ./NotificationCard.qml themeVars;
   notifications = pkgs.replaceVars ./Notifications.qml (
     (builtins.removeAttrs themeVars [
@@ -384,6 +421,30 @@ in
       default = "";
       description = "Monitor connector that hosts the status cluster";
     };
+
+    workTasks = {
+      enable = lib.mkEnableOption "independent provider-backed work tasks";
+      provider = lib.mkOption {
+        type = lib.types.enum [ "mantisbt" ];
+        default = "mantisbt";
+        description = "Work task provider adapter";
+      };
+      baseUrl = lib.mkOption {
+        type = lib.types.str;
+        default = "";
+        description = "HTTPS root URL of the work task provider";
+      };
+      label = lib.mkOption {
+        type = lib.types.str;
+        default = "Work provider";
+        description = "Provider name shown in the work count tooltip";
+      };
+      sopsFile = lib.mkOption {
+        type = lib.types.nullOr lib.types.path;
+        default = null;
+        description = "SOPS-encrypted JSON containing the personal API token under token";
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -400,6 +461,14 @@ in
         assertion = lib.elem cfg.primaryOutput cfg.outputs;
         message = "tomkoreny.quickshell-bar.primaryOutput must be one of its outputs.";
       }
+      {
+        assertion = !cfg.workTasks.enable || cfg.workTasks.sopsFile != null;
+        message = "Work tasks require a SOPS-encrypted token file.";
+      }
+      {
+        assertion = !cfg.workTasks.enable || lib.hasPrefix "https://" cfg.workTasks.baseUrl;
+        message = "Work tasks require an HTTPS provider base URL.";
+      }
     ];
 
     sops.secrets.notion-todos = {
@@ -407,12 +476,19 @@ in
       format = "binary";
       mode = "0400";
     };
+    sops.secrets.work-tasks = lib.mkIf cfg.workTasks.enable {
+      sopsFile = cfg.workTasks.sopsFile;
+      format = "json";
+      key = "token";
+      mode = "0400";
+    };
 
     home.packages = [
       pkgs.quickshell
       timerHelper
       notionTodoHelper
-    ];
+    ]
+    ++ lib.optional cfg.workTasks.enable workTaskHelper;
 
     xdg.configFile = {
       "quickshell/tom-bar/shell.qml".source = shell;
@@ -433,6 +509,8 @@ in
       "quickshell/tom-bar/TodoService.qml".source = todoService;
       "quickshell/tom-bar/TodoPanel.qml".source = todoPanel;
       "quickshell/tom-bar/TodoManager.qml".source = todoManager;
+      "quickshell/tom-bar/WorkTaskService.qml".source = workTaskService;
+      "quickshell/tom-bar/WorkTaskManager.qml".source = workTaskManager;
     };
 
     systemd.user.services.quickshell-bar = {

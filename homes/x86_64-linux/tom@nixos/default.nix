@@ -122,6 +122,13 @@ in
       "DP-3"
     ];
     primaryOutput = "DP-2";
+    workTasks = {
+      enable = true;
+      provider = "mantisbt";
+      baseUrl = "https://polaris.i2ginfra.cz";
+      label = "Polaris";
+      sopsFile = ../../../secrets/polaris/work-tasks.json;
+    };
   };
 
   tomkoreny.komai.enable = true;

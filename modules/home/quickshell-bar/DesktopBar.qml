@@ -14,6 +14,8 @@ PanelWindow {
     required property var timerService
     required property var todoManagerController
     required property var todoService
+    required property var workManagerController
+    required property var workService
 
     required property var modelData
     readonly property var displayMonitor: Hyprland.monitors.values.find(monitor => monitor.name === modelData.name) ?? null
@@ -197,6 +199,48 @@ PanelWindow {
                         anchorItem: todoMouse
                         hovered: todoMouse.containsMouse
                         text: todoService.stale ? `Notion tasks · stale · ${todoService.error}` : `${todoService.overdueCount} overdue · ${todoService.todayCount} today`
+                        alignRight: true
+                    }
+                }
+            }
+
+            Rectangle {
+                visible: workIndicator.visible
+                width: 1
+                height: 16
+                anchors.verticalCenter: parent.verticalCenter
+                color: "@border@"
+            }
+
+            Item {
+                id: workIndicator
+                visible: workService.enabled && workService.actionableCount > 0
+                width: workText.implicitWidth + 12
+                height: parent.height
+
+                Text {
+                    id: workText
+                    anchors.centerIn: parent
+                    text: ` ${workService.actionableCount}${workService.stale ? " !" : ""}`
+                    color: workService.stale ? "@muted@" : "@accent@"
+                    font.family: "@fontFamily@"
+                    font.pixelSize: 12
+                    font.weight: Font.DemiBold
+                }
+
+                MouseArea {
+                    id: workMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: workManagerController.toggle()
+
+                    HoverPopover {
+                        anchorItem: workMouse
+                        hovered: workMouse.containsMouse
+                        text: @workProviderLabel@ + (workService.stale
+                            ? ` · stale · ${workService.error || "Waiting for refresh"}`
+                            : ` · ${workService.actionableCount} actionable tasks assigned to you`)
                         alignRight: true
                     }
                 }

@@ -4,8 +4,8 @@
 
 The desktop shell is split into two Quickshell configurations:
 
-- `tom-bar` provides the multi-monitor bar, launcher, timers, Notion tasks, and
-  notifications.
+- `tom-bar` provides the multi-monitor bar, launcher, timers, Notion tasks,
+  work tasks, and notifications.
 - `tom-osd` provides volume and brightness indicators, the media popup, and the
   session menu.
 
@@ -25,6 +25,7 @@ hard-coded visual convention.
 | Timer creation | Click the timer in the bar or enter `timer 20m pasta` | `TimerPopup.qml`, `TimerService.qml`, `timer-backend.py` |
 | Notion task manager | `Super + T` or click the task count in the bar | `TodoManager.qml`, `notion-todos.py` |
 | Direct task capture | `Super + Shift + T` | `TodoManager.qml`, `notion-todos.py` |
+| Work task manager | `Super + W` or click the briefcase count | `WorkTaskManager.qml`, `WorkTaskService.qml`, `work-tasks.py`, `mantis_tasks.py` |
 | Notification centre | `Super + N` or click the bell | `Notifications.qml`, `NotificationCard.qml` |
 | Session menu | `Super + Escape` or click the power icon | `modules/home/quickshell-osd/shell.qml` |
 | Volume OSD | Audio volume and mute keys | `modules/home/quickshell-osd/` |
@@ -62,6 +63,7 @@ follows:
 | Timers | Remaining time for the next running timer and `+N` for additional timers | Click to open the timer popup. |
 | AI limits | OpenAI Codex weekly limit and Claude five-hour/weekly limits, including compact reset times | Click to invalidate and refresh OMP usage; hover for every reported limit and exact reset time. |
 | Notion tasks | Today count and, when non-zero, overdue count | Click to open the focused task manager; hover for freshness or cache errors. |
+| Work tasks | Briefcase and actionable assigned count; hidden at zero | Click to open the separate manager; hover for provider and freshness. |
 | Audio | PipeWire default-sink volume and mute state | Click to open `pavucontrol`. |
 | System tray | Quickshell system-tray items | Left click activates, middle click performs secondary activation, and right click opens the nested menu. |
 | Clock | Time and abbreviated date | Click to toggle seconds; hover for the full date. |
@@ -214,6 +216,85 @@ Caches and local state:
 The four query caches are separate so a broad manager result cannot replace the
 small desktop-widget result. Any successful mutation invalidates all four.
 
+## Work tasks
+
+Work tasks are independent of personal Notion tasks. One configured provider is
+active at a time; Polaris uses the MantisBT adapter. There is no creation,
+assignment editing, commenting, or inline detail view.
+
+`Super + W` or the primary bar's briefcase opens the manager on the focused
+monitor. The shortcut remains available when the count is zero and the bar
+indicator is hidden.
+
+- Rows show title and status only. The title opens the provider's canonical URL.
+- The status pill opens the provider's permitted workflow actions, not a generic
+  completion checkbox. Resolved tasks leave the actionable list.
+- Search matches titles and adapter keywords, including issue IDs and projects.
+- The provider status filter survives close/reopen within the running session.
+- Ordering uses adapter rank, then most recently updated first. Mantis ranks
+  sticky issues first, then higher priority, then status.
+- Arrow keys select a row; Enter opens it; Tab from the selected row focuses its
+  status pill. Escape closes the action menu before closing the manager.
+
+### Freshness and writes
+
+The manager loads its cache immediately, refreshes when opened, and polls every
+five minutes. Refresh is also available manually. Failed refreshes preserve the
+last successful snapshot, display an error, and disable status writes. There is
+no offline write queue.
+
+Status changes are optimistic, serialized, and rolled back on failure. Before a
+write, the Mantis adapter rechecks the account, assignment, current status,
+project permissions, and configured workflow. The status-only PATCH uses the
+fresh issue ETag with `If-Match`; conflicts are not silently retried.
+
+The adapter requires workflow and permission metadata rather than guessing.
+It conservatively enforces both generic status-update permission and per-status
+thresholds, including the stricter REST restriction present in MantisBT 2.28.4.
+Lower-access accounts on older releases may therefore have fewer offered
+actions than that older REST endpoint itself accepts.
+
+### Assignment notifications and storage
+
+The first successful sync establishes a silent baseline. Later successful
+polls notify only when an issue enters the actionable-assigned set, including
+reassignment after an observed departure. Changes away and back between polls
+cannot be detected. Other updates do not notify.
+
+Assignment notifications use the existing notification server and DND policy.
+They show the assignment event and task title, with an Open action for the
+canonical URL.
+
+`work-tasks.py` owns the provider-neutral snapshot and assignment baseline;
+`mantis_tasks.py` owns Mantis REST, workflow, and access checks. Cache and baseline
+are committed together atomically under:
+
+```text
+~/.local/state/quickshell-bar/work-tasks/<provider-config-hash>/state.json
+```
+
+The directory is private (`0700`) and the state file is `0600`. State is scoped
+to provider configuration and the notification baseline resets silently when
+the authenticated account changes.
+
+Enable the widget through `tomkoreny.quickshell-bar.workTasks`:
+
+```nix
+workTasks = {
+  enable = true;
+  provider = "mantisbt";
+  baseUrl = "https://polaris.i2ginfra.cz";
+  label = "Polaris";
+  sopsFile = ../../../secrets/polaris/work-tasks.json;
+};
+```
+
+The encrypted JSON's `token` key becomes a raw, mode-`0400` SOPS secret. Neither
+the token nor issue data is placed in QML or the generated Nix-store config.
+The installed `work-tasks cache` command is network-free; `work-tasks list`
+refreshes the cache and advances the notification baseline. Do not use `list`
+as passive inspection while the bar is running: it consumes assignment events.
+
 ## Notifications
 
 Quickshell is the notification server while the bar module is enabled; the Mako
@@ -305,6 +386,7 @@ qs -c tom-bar ipc call launcher cameras
 qs -c tom-bar ipc call timers popup
 qs -c tom-bar ipc call todos toggle
 qs -c tom-bar ipc call todos capture
+qs -c tom-bar ipc call workTasks toggle
 qs -c tom-bar ipc call notifications toggle
 qs -c tom-osd ipc call media reveal
 qs -c tom-osd ipc call session reveal
@@ -345,6 +427,10 @@ does not prove QML interaction, monitor placement, focus, or compositor input.
 | `modules/home/quickshell-bar/TodoPanel.qml` | Persistent Today/Overdue panel. |
 | `modules/home/quickshell-bar/TodoManager.qml` | Focused task views, capture, editing, assignment, completion, and reopen UI. |
 | `modules/home/quickshell-bar/notion-todos.py` | Notion schema discovery, queries, mutations, caches, and completion journal. |
+| `modules/home/quickshell-bar/WorkTaskService.qml` | Independent work cache, refresh, optimistic status changes, and assignment notifications. |
+| `modules/home/quickshell-bar/WorkTaskManager.qml` | Focused work manager, local search, status filter, and workflow action menus. |
+| `modules/home/quickshell-bar/work-tasks.py` | Provider-neutral CLI, atomic snapshot/baseline, and serialized refreshes/writes. |
+| `modules/home/quickshell-bar/mantis_tasks.py` | Mantis REST identity, pagination, workflow/access metadata, ranking, and guarded status-only PATCH. |
 | `modules/home/quickshell-bar/Notifications.qml` | Notification server, banners, history, DND, and centre. |
 | `modules/home/quickshell-bar/NotificationCard.qml` | Shared banner/history card presentation and actions. |
 | `modules/home/quickshell-osd/default.nix` | OSD options, `desktop-osd`, and `quickshell-osd.service`. |
