@@ -42,7 +42,7 @@ hl.monitor({
 
 -- Centre QD-OLED, 4K240, HDR. Its logical 2304x1296 area is vertically
 -- centred against the side panels' logical 1152x2048 areas.
-hl.monitor({
+local oledMonitorRule = {
     output = "desc:Dell Inc. AW3225QF 6D12YZ3",
     mode = "highres",
     position = "1152x376",
@@ -54,7 +54,8 @@ hl.monitor({
     sdrsaturation = 0.98,
     sdr_min_luminance = 0.0,
     min_luminance = 0.0,
-})
+}
+hl.monitor(oledMonitorRule)
 
 -- Right portrait ViewSonic (lip facing right).
 hl.monitor({
@@ -228,12 +229,17 @@ hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.fullscreen_state({ internal = 3
 hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("oled-idle blank"))
 
 -- Window rules
--- Keep the configured HDR output: native CS2's SDR tag must not switch
--- fullscreen signaling to SDR while Hyprland still renders in HDR.
+-- Let the CS2 presentation policy own the output mode, not automatic HDR.
 hl.window_rule({
-    name = "cs2-preserve-monitor-hdr",
+    name = "cs2-presentation",
     match = { class = "^cs2$" },
     no_auto_hdr = true,
+    immediate = true,
+})
+hl.window_rule({
+    name = "no-tearing-other-apps",
+    match = { class = "negative:^cs2$" },
+    immediate = false,
 })
 
 -- The 1px accent focus border reads as a stray blue line across the top of
@@ -316,3 +322,45 @@ for _, id in ipairs({ 3, 6, 9 }) do
         persistent = true,
     })
 end
+
+-- Switch only the OLED's color mode; retain its geometry, refresh, and VRR.
+local desktopColorMode = oledMonitorRule.cm
+local cs2PresentationActive = false
+local presentationUpdatePending = false
+
+local function updateCs2Presentation()
+    presentationUpdatePending = false
+    local monitor = hl.get_monitor(oledMonitorRule.output)
+    local workspace = monitor and monitor.active_workspace
+    local window = workspace and workspace.fullscreen_window
+    local active = window ~= nil and window.mapped and window.class == "cs2"
+        and (window.fullscreen & 2) ~= 0 and monitor.active_special_workspace == nil
+    local colorMode = active and "srgb" or desktopColorMode
+
+    if active == cs2PresentationActive and (not monitor or monitor.cm == colorMode) then
+        return
+    end
+
+    cs2PresentationActive = active
+    oledMonitorRule.cm = colorMode
+    hl.monitor(oledMonitorRule)
+    hl.config({ general = { allow_tearing = active } })
+end
+
+local function scheduleCs2Presentation()
+    if presentationUpdatePending then
+        return
+    end
+    presentationUpdatePending = true
+    -- Observe completed close/fullscreen/workspace transitions, not intermediate state.
+    hl.timer(updateCs2Presentation, { timeout = 1, type = "oneshot" })
+end
+
+for _, event in ipairs({
+    "window.open", "window.close", "window.fullscreen", "window.class",
+    "window.move_to_workspace", "workspace.active", "workspace.special_active",
+    "workspace.move_to_monitor", "monitor.added", "monitor.removed", "config.reloaded",
+}) do
+    hl.on(event, scheduleCs2Presentation)
+end
+scheduleCs2Presentation()
