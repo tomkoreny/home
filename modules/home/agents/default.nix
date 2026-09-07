@@ -292,11 +292,11 @@ in
       };
 
       modelRoles = {
-        default = "openai-codex/gpt-5.6-sol";
+        default = "openai-codex/gpt-6-astra";
         # Second model reviewing every primary turn; it can inject a note or
         # interrupt with a blocker. Runs on the same ChatGPT OAuth account as
         # the primary, so both draw from one rate limit.
-        advisor = "openai-codex/gpt-5.6-sol:medium";
+        advisor = "openai-codex/gpt-6-astra:medium";
       };
       advisor.enabled = true;
 
