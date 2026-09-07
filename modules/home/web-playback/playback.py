@@ -22,6 +22,9 @@ from urllib.parse import parse_qs, urlsplit
 
 MPV = "@mpv@"
 MPV_ASPECT_SCRIPT = "@mpvAspectScript@"
+MPV_UI_CONFIG = "@mpvUiConfig@"
+UOSC_CONFIG = "@uoscConfig@"
+MPV_INPUT_CONFIG = "@mpvInputConfig@"
 YT_DLP = "@ytDlp@"
 STREAMLINK = "@streamlink@"
 WL_PASTE = "@wlPaste@"
@@ -290,12 +293,16 @@ def supervise(request, channel):
         directory = runtime_directory()
         config = directory / "config"
         config.mkdir()
+        # Keep the isolated playback config; import only the shared UI assets.
+        (config / "script-opts").mkdir()
+        (config / "script-opts" / "uosc.conf").symlink_to(UOSC_CONFIG)
         environment = os.environ.copy()
         environment["TMPDIR"] = str(directory)
         environment.pop("MPV_HOME", None)
         ipc_path = directory / "mpv.sock"
         player_args = [
             MPV, f"--config-dir={config}", "--load-scripts=yes", "--load-auto-profiles=no",
+            f"--include={MPV_UI_CONFIG}", f"--input-conf={MPV_INPUT_CONFIG}",
             f"--script={MPV_ASPECT_SCRIPT}",
             "--audio-client-name=WebPlayback", "--wayland-app-id=WebPlayback", "--x11-name=WebPlayback",
             "--hwdec=auto-safe",

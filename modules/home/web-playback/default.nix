@@ -7,12 +7,19 @@
 }:
 let
   cfg = config.tomkoreny.web-playback;
+  ui = pkgs.callPackage ../mpv-ui/theme.nix { inherit inputs; };
   mpv = pkgs.mpv.override {
-    scripts = [ pkgs.mpvScripts.mpris ];
+    scripts = [
+      pkgs.mpvScripts.mpris
+      pkgs.mpvScripts.uosc
+    ];
   };
   source = pkgs.replaceVars ./playback.py {
     mpv = lib.getExe mpv;
     mpvAspectScript = pkgs.callPackage ../hyprland/mpv-aspect.nix { };
+    mpvUiConfig = ui.mpvConfig;
+    uoscConfig = ui.uoscConfig;
+    mpvInputConfig = ui.inputConfig;
     ytDlp = lib.getExe pkgs.yt-dlp;
     streamlink = lib.getExe pkgs.streamlink;
     wlPaste = lib.getExe' pkgs.wl-clipboard "wl-paste";

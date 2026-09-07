@@ -22,6 +22,7 @@ let
 
   secretName = "unifi-protect-api-key";
   secretPath = "/run/secrets/${secretName}";
+  mpv = pkgs.mpv.override { scripts = [ pkgs.mpvScripts.uosc ]; };
 
   # mpv tuned for a live camera feed rather than a media file:
   #   profile=low-latency  drop the demuxer/output buffering that adds seconds
@@ -52,7 +53,7 @@ let
     CACHE="$CACHE_DIR/connected.json"
     CURL=${lib.getExe pkgs.curl}
     JQ=${lib.getExe pkgs.jq}
-    MPV=${lib.getExe pkgs.mpv}
+    MPV=${lib.getExe mpv}
     NOTIFY=${lib.getExe pkgs.libnotify}
 
     notify_error() {

@@ -352,3 +352,29 @@ injects the three site styles directly and marks those pages as already themed
 for Dark Reader. That removes the Stylus import but requires maintaining and
 signing our own extension; Dark Reader's own fallback settings would still need
 either a one-time import or a maintained fork.
+
+## mpv playback controls
+
+`modules/home/mpv-ui/theme.nix` generates the shared uosc appearance: true black,
+the Stylix blue accent, and the shared sans-serif font. Controls appear near the
+pointer and hide away from it; neither a top title bar nor a permanent progress
+line remains on the OLED. Non-seekable streams omit skip, speed and timeline
+controls, even when their demuxer reports a growing duration.
+
+The Linux home enables `tomkoreny.mpv-ui`. Standalone mpv and the camera launcher
+bundle uosc (including its icon fonts and helper), and use `~/.config/mpv`.
+Web handoff retains its isolated config directory and imports only the shared
+UI config, input bindings and uosc options. Its MPRIS and aspect scripts remain
+separate from the UI.
+
+Jellyfin uses the same theme in its own config directory. `osc_style = "none"`
+disables Shim's original playback HUD and prevents it from enabling mpv's stock
+OSC over uosc; it does not disable the separately loaded uosc script. The small
+`jellyfin.lua` adapter hides uosc while the library browser or Jellyfin settings
+menu owns the window. Its playback menu and previous/next controls use Shim's
+existing media keys, not mpv's one-file playlist. HDR, NVDEC and the patched
+Jellyfin MPRIS plugin are unchanged.
+
+Apply both the home configuration and the NixOS camera launcher, then open new
+players. Existing mpv processes retain their already-loaded scripts. Right-click
+opens the themed menu; standalone/web playback also use Tab to toggle controls.

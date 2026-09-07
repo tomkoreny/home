@@ -8,6 +8,7 @@ let
   common = import ../../../lib/common { };
   stripHash = lib.removePrefix "#";
   python = pkgs.python3Packages;
+  mpvUi = pkgs.callPackage ../../../modules/home/mpv-ui/theme.nix { inherit inputs; };
 
   teamsTrayIcon = pkgs.runCommand "teams-tray-icon.png" { nativeBuildInputs = [ pkgs.librsvg ]; } ''
     substitute ${../../../modules/home/quickshell-bar/icons/teams.svg} icon.svg \
@@ -50,7 +51,10 @@ let
   });
 
   mpvForJellyfinShim = pkgs.mpv.override {
-    scripts = [ jellyfinMpris ];
+    scripts = [
+      jellyfinMpris
+      pkgs.mpvScripts.uosc
+    ];
   };
 
   jellyfinMpvShim = pkgs.jellyfin-mpv-shim.overridePythonAttrs (old: {
@@ -101,7 +105,9 @@ let
         --replace-fail 'ui_text_scale: float = 1.0' \
                        'ui_text_scale: float = 1.1' \
         --replace-fail 'ui_text_min: int = 0' \
-                       'ui_text_min: int = 15'
+                       'ui_text_min: int = 15' \
+        --replace-fail 'osc_style: str = "mpvtk"' \
+                       'osc_style: str = "none"'
     '';
     preFixup = old.preFixup + ''
       # libmpv loads CUDA/NVDEC dynamically, so expose the active NixOS NVIDIA
@@ -113,6 +119,8 @@ in
 {
   # NOTE: all modules under modules/home/ are auto-imported by Snowfall Lib —
   # no explicit imports needed here, just per-host knobs.
+
+  tomkoreny.mpv-ui.enable = true;
 
   tomkoreny.quickshell-bar = {
     enable = true;
@@ -212,6 +220,9 @@ in
   xdg.configFile."jellyfin-mpv-shim/mpv.conf" = {
     force = true;
     text = ''
+      include=${mpvUi.mpvConfig}
+      script=${../../../modules/home/mpv-ui/jellyfin.lua}
+
       # Give Shim a distinct MPRIS bus name; standalone mpv remains separate.
       audio-client-name=JellyfinMPVShim
 
@@ -226,6 +237,7 @@ in
       hwdec=nvdec
     '';
   };
+  xdg.configFile."jellyfin-mpv-shim/script-opts/uosc.conf".source = mpvUi.jellyfinUoscConfig;
 
   # Match the system's OLED Catppuccin Mocha palette while keeping the shared
   # background and accent colours as the single source of truth.
@@ -295,16 +307,21 @@ in
   # Existing profiles persist these settings in conf.json, so changing the
   # package defaults alone would leave them on the embedded backend. Update
   # only those keys atomically without taking ownership of the app-managed file.
+  # uosc replaces Shim's own playback HUD, not its library browser. "none"
+  # prevents Shim from re-enabling the built-in OSC over the custom controller.
   home.activation.enableJellyfinMpvMpris = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     config_file="$HOME/.config/jellyfin-mpv-shim/conf.json"
     mpv_path="${mpvForJellyfinShim}/bin/mpv"
-    if [ -f "$config_file" ] && {
+    if [ -n "''${DRY_RUN:-}" ]; then
+      echo "Would configure Jellyfin's external mpv and uosc controller"
+    elif [ -f "$config_file" ] && {
       [ "$(${pkgs.jq}/bin/jq -r '.mpv_ext // false' "$config_file")" != true ] ||
-      [ "$(${pkgs.jq}/bin/jq -r '.mpv_ext_path // ""' "$config_file")" != "$mpv_path" ]
+      [ "$(${pkgs.jq}/bin/jq -r '.mpv_ext_path // ""' "$config_file")" != "$mpv_path" ] ||
+      [ "$(${pkgs.jq}/bin/jq -r '.osc_style // ""' "$config_file")" != none ]
     }; then
       tmp_file="$(${pkgs.coreutils}/bin/mktemp "$config_file.XXXXXX")"
       if ${pkgs.jq}/bin/jq --arg mpv_path "$mpv_path" \
-        '.mpv_ext = true | .mpv_ext_path = $mpv_path' \
+        '.mpv_ext = true | .mpv_ext_path = $mpv_path | .osc_style = "none"' \
         "$config_file" > "$tmp_file"; then
         ${pkgs.coreutils}/bin/chmod --reference="$config_file" "$tmp_file"
         ${pkgs.coreutils}/bin/mv "$tmp_file" "$config_file"
