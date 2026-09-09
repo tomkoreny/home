@@ -12,6 +12,14 @@ let
     scripts = [
       pkgs.mpvScripts.mpris
       pkgs.mpvScripts.uosc
+      pkgs.mpvScripts.sponsorblock-minimal
+    ];
+    # Wrapper flags survive the launcher's isolated config directory.
+    extraMakeWrapperArgs = [
+      "--add-flags"
+      "--script-opts-append=sponsorblock_minimal-categories=sponsor;intro;selfpromo;outro;interaction"
+      "--add-flags"
+      "--script-opts-append=sponsorblock_minimal-hash=true"
     ];
   };
   source = pkgs.replaceVars ./playback.py {

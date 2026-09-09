@@ -369,6 +369,14 @@ separate from the UI.
 Browser-launched `WebPlayback` windows open on workspace 5 on the main OLED and
 take focus. This assignment does not apply to other mpv windows.
 
+The browser wrapper also bundles SponsorBlock Minimal for YouTube. It skips
+sponsors, intro/intermission animations, unpaid/self-promotion, outros/endcards
+and interaction reminders. Previews, greetings, tangents and non-music sections
+are not selected. Press `b` to toggle skipping for the current video when segment
+data is available. API queries use a four-character SHA-256 prefix rather than
+the full video ID. Missing segments or failed lookups leave playback running.
+This script is not installed in the standalone, Jellyfin or camera mpv wrappers.
+
 Jellyfin uses the same theme in its own config directory. `osc_style = "none"`
 disables Shim's original playback HUD and prevents it from enabling mpv's stock
 OSC over uosc; it does not disable the separately loaded uosc script. The small
