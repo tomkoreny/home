@@ -286,7 +286,11 @@ in
     # so change settings here rather than in the TUI.
     programs.omp.settings = {
       providers.webSearchOrder = [ ];
-      completion.notify = "on";
+      # Off: OMP runs inside Herdr panes, and since OMP 18.1.12 this toast is
+      # routed through `herdr notification show`, which duplicates Herdr's own
+      # agent-state "omp finished" toast (the one the Quickshell bar reconciles
+      # and dismisses per pane). Ask/error notifications are not gated by this.
+      completion.notify = "off";
       browser = {
         headless = false;
       };
