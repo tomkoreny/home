@@ -20,10 +20,10 @@
     # use the new Lua configuration API, so they can follow current main.
     hyprland.url = "github:hyprwm/Hyprland";
     stylix = {
-      # PR branch until nix-community/stylix#2497 merges: nvf renamed
-      # vim.statusline.lualine.theme to setupOpts.options.theme and upstream
-      # stylix still sets the old path, which warns on every evaluation.
-      url = "github:tomwrw/stylix/nvf-lualine-renamed-theme-option";
+      # Upstream still sets nvf's renamed vim.statusline.lualine.theme, so
+      # every evaluation prints a rename warning until
+      # nix-community/stylix#2497 merges. Harmless; not worth a fork pin.
+      url = "github:danth/stylix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nvf = {

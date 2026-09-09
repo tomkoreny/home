@@ -1756,16 +1756,15 @@
         "tinted-zed": "tinted-zed"
       },
       "locked": {
-        "lastModified": 1788778409,
-        "narHash": "sha256-JazZh1zEiWnci4O7uOEeBDPZLcRtY/BwMoYVg5h3l5U=",
-        "owner": "tomwrw",
+        "lastModified": 1787771653,
+        "narHash": "sha256-DkkJSBOXWV/mja5Vy8az5g1KpZlsbUwlmH0BsQhowaQ=",
+        "owner": "danth",
         "repo": "stylix",
-        "rev": "82c8e1e4981881c0629880645f95aecb189bb31f",
+        "rev": "5e3809851f486e7fc7e84b40f174c74b60ecc784",
         "type": "github"
       },
       "original": {
-        "owner": "tomwrw",
-        "ref": "nvf-lualine-renamed-theme-option",
+        "owner": "danth",
         "repo": "stylix",
         "type": "github"
       }
