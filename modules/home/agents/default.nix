@@ -296,11 +296,27 @@ in
       };
 
       modelRoles = {
-        default = "openai-codex/gpt-6-astra";
+        default = "anthropic/claude-fable-5-1";
+        # Vibe-mode worker tiers: `fast` spawns run @smol, `good` spawns run @task.
+        smol = "openai-codex/gpt-6-astra:low";
+        task = "openai-codex/gpt-6-astra:high";
         # Second model reviewing every primary turn; it can inject a note or
-        # interrupt with a blocker. Runs on the same ChatGPT OAuth account as
-        # the primary, so both draw from one rate limit.
+        # interrupt with a blocker.
         advisor = "openai-codex/gpt-6-astra:medium";
+      };
+      # Provider quota is finite and unpredictable per plan. Model-keyed fallback
+      # chains (keys containing "/") follow the model wherever it is active,
+      # including inside vibe/task subagents, so a 429 or a depleted usage
+      # reserve on one provider moves the turn to the other and reverts when the
+      # cooldown ends. The chains are deliberately circular.
+      retry = {
+        usageAwareFallback = true;
+        usageReservePct = 10;
+        usageReservePolicy = "auto";
+        fallbackChains = {
+          "anthropic/claude-fable-5-1" = [ "openai-codex/gpt-6-astra:high" ];
+          "openai-codex/gpt-6-astra" = [ "anthropic/claude-fable-5-1" ];
+        };
       };
       advisor.enabled = true;
 
