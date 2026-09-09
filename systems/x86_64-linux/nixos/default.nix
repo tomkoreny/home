@@ -331,15 +331,21 @@ in
     };
   };
 
-  # Keep passwordless sudo narrowly limited to systemctl. `sw` uses nh's normal
-  # elevation path; allowlisting nh would require allowlisting its
-  # `sudo env ... <cmd>` wrapper and therefore every command.
+  # Passwordless sudo is limited to two allowlisted binaries. `systemctl`
+  # covers service restarts; `nixos-rebuild` lets coding agents deploy this
+  # repo without a password prompt (see AGENTS.md). `sw` stays on nh's normal
+  # elevation path: nh wraps activation in `sudo env ... <cmd>`, so
+  # allowlisting it would mean allowlisting every command.
   security.sudo.extraRules = [
     {
       users = [ name ];
       commands = [
         {
           command = "/run/current-system/sw/bin/systemctl";
+          options = [ "NOPASSWD" ];
+        }
+        {
+          command = "/run/current-system/sw/bin/nixos-rebuild";
           options = [ "NOPASSWD" ];
         }
       ];
