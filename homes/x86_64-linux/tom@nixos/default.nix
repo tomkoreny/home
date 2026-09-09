@@ -347,6 +347,7 @@ in
   };
 
   home.packages = [
+    (pkgs.callPackage ./orca.nix { })
     pkgs.sshpass
     pkgs.atool
     pkgs.docker
