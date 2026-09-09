@@ -343,6 +343,9 @@ in
       # Advisor-only guidance: appended to the reviewer's prompt, never to the
       # primary agent's.
       ".omp/agent/WATCHDOG.md".source = ./agent/WATCHDOG.md;
+      # Replaces OMP's built-in `default` personality block, which asks for
+      # fragments and arrow shorthand; this one asks for whole plain sentences.
+      ".omp/agent/PERSONALITY.md".source = ./agent/PERSONALITY.md;
 
       ".omp/agent/rules/slop-guard.md".source = ./agent/rules/slop-guard.md;
       ".omp/agent/rules/no-stub-delivery.md".source = ./agent/rules/no-stub-delivery.md;
@@ -355,6 +358,8 @@ in
       ".omp/agent/skills/diagnose/SKILL.md".source = ./agent/skills/diagnose/SKILL.md;
       ".omp/agent/skills/verify-claim/SKILL.md".source = ./agent/skills/verify-claim/SKILL.md;
       ".omp/agent/skills/grill/SKILL.md".source = ./agent/skills/grill/SKILL.md;
+      # Hidden from the model; `/skill:bro` restates the last reply plainly.
+      ".omp/agent/skills/bro/SKILL.md".source = ./agent/skills/bro/SKILL.md;
       # Anthropic's frontend-design skill, vendored with its upstream license.
       ".omp/agent/skills/frontend-design/SKILL.md".source = ./agent/skills/frontend-design/SKILL.md;
       ".omp/agent/skills/frontend-design/LICENSE.txt".source = ./agent/skills/frontend-design/LICENSE.txt;
