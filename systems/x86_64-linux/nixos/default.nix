@@ -253,8 +253,9 @@ in
         initial_session = {
           # The launcher, not the bare Hyprland binary — same thing the
           # hyprland.desktop session file execs (Hyprland >= 0.55 warns
-          # otherwise). Select the Home Manager Lua config explicitly.
-          command = "start-hyprland -- --config /home/${name}/.config/hypr/hyprland.lua";
+          # otherwise). HYPRLAND_CONFIG preserves the Home Manager symlink;
+          # --config canonicalizes it and pins reloads to the login generation.
+          command = "env HYPRLAND_CONFIG=/home/${name}/.config/hypr/hyprland.lua start-hyprland";
           user = name;
         };
         # Also autologin after logout/session exit (no greeter on this box;
