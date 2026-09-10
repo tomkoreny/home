@@ -69,6 +69,8 @@
     pkgs.pngpaste
   ]
   ++ lib.optionals (!pkgs.stdenv.hostPlatform.isDarwin) [
+    # Native desktop shell for Hermes Agent on the Linux workstation.
+    inputs.nix-ai-tools.packages.${pkgs.stdenv.hostPlatform.system}.hermes-desktop
     pkgs.kicad
     pkgs.zed-editor
   ];
