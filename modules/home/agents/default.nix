@@ -333,6 +333,11 @@ in
         apiUrl = "https://hindsight.home.tomkoreny.com";
         scoping = "per-project-tagged";
       };
+      # The eval tool otherwise looks for `python`/`python3` on PATH, which
+      # nothing on these hosts provides, so `language: "py"` cells failed with
+      # "Python backend is unavailable". The bundled runner needs 3.10+ and no
+      # extra packages.
+      python.interpreter = lib.getExe pkgs.python3;
       theme = {
         dark = "titanium";
         # Generated below. The name carries the `-stylix` suffix because
