@@ -209,6 +209,7 @@
         import nixpkgs {
           inherit system;
           config.allowUnfree = true;
+          overlays = [ (import ./overlays/quickshell.nix) ];
         };
 
       mkSpecialArgs = system: {
