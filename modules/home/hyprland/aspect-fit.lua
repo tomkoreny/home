@@ -169,20 +169,23 @@ return function(ratios)
     for _, w in ipairs(hl.get_windows()) do
         local ws = w.workspace
         if ws and w.mapped and not w.hidden then
+            -- `id` is nil for named and special workspaces; the addressable
+            -- name identifies every kind.
+            local key = ws.addressable_name
             if w.fullscreen ~= 0 then
-                blocked[ws.id] = true
+                blocked[key] = true
             end
             local layout = w.layout
             if not w.floating and layout and layout.name == "dwindle" then
-                workspaces[ws.id] = workspaces[ws.id] or {}
-                table.insert(workspaces[ws.id], w)
+                workspaces[key] = workspaces[key] or {}
+                table.insert(workspaces[key], w)
             end
         end
     end
     local result = {}
-    for id, windows in pairs(workspaces) do
-        if not blocked[id] then
-            result[id] = fit_workspace(windows, ratios)
+    for key, windows in pairs(workspaces) do
+        if not blocked[key] then
+            result[key] = fit_workspace(windows, ratios)
         end
     end
     return result

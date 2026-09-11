@@ -33,7 +33,7 @@ ShellRoot {
     property int herdrIdle: 0
     property string herdrSummary: "Herdr · unavailable"
     property string foregroundAppId: ""
-    property var aiUsageProviders: []
+    property var aiUsageAccounts: []
     property bool aiUsageStale: false
     property real aiUsageUpdatedAt: 0
     property var timerAnchor: null
@@ -121,24 +121,34 @@ ShellRoot {
             aiUsageSnapshot.running = true;
     }
 
+    readonly property var aiProviders: [
+        { id: "openai-codex", label: "OpenAI Codex", windowIds: ["7d"] },
+        { id: "anthropic", label: "Claude", windowIds: ["5h", "7d"] }
+    ]
+
+    function aiPlaceholderLimits(provider: var): var {
+        return provider.windowIds.map(windowId => ({
+            windowId: windowId,
+            remaining: null,
+            resetsAt: null
+        }));
+    }
+
     function updateAiUsage(payload: string): void {
         try {
             const snapshot = JSON.parse(payload);
-            const supportedProviders = ["openai-codex", "anthropic"];
-            const reports = (snapshot.reports ?? []).filter(
-                report => supportedProviders.includes(report.provider)
-            );
-            const providers = reports.map(report => {
+            const accounts = [];
+            (snapshot.reports ?? []).forEach((report, index) => {
+                const provider = aiProviders.find(candidate => candidate.id === report.provider);
+                if (!provider)
+                    return;
                 const limits = (report.limits ?? []).filter(
                     limit => limit.amount && typeof limit.amount.remaining === "number"
                 );
                 if (limits.length === 0)
-                    return null;
+                    return;
 
-                const windowIds = report.provider === "openai-codex"
-                    ? ["7d"]
-                    : ["5h", "7d"];
-                const barLimits = windowIds.map(windowId => {
+                const barLimits = provider.windowIds.map(windowId => {
                     const limit = limits.find(candidate =>
                         candidate.scope
                         && candidate.scope.windowId === windowId
@@ -154,18 +164,30 @@ ShellRoot {
                     };
                 });
 
-                return {
-                    id: report.provider,
-                    label: report.provider === "openai-codex" ? "OpenAI Codex" : "Claude",
+                // One report per authenticated account; the same provider can
+                // appear several times, so identify accounts, not providers.
+                const metadata = report.metadata ?? {};
+                const email = typeof metadata.email === "string" ? metadata.email : "";
+                const accountId = typeof metadata.accountId === "string" ? metadata.accountId : "";
+                accounts.push({
+                    id: `${provider.id}:${accountId || email || index}`,
+                    providerId: provider.id,
+                    label: email ? `${provider.label} · ${email}` : provider.label,
+                    email: email,
                     barLimits: barLimits,
                     limits: limits
-                };
-            }).filter(provider => provider !== null);
+                });
+            });
 
-            if (providers.length === 0)
+            if (accounts.length === 0)
                 throw new Error("No supported provider limits");
 
-            aiUsageProviders = providers;
+            const providerOrder = aiProviders.map(provider => provider.id);
+            accounts.sort((a, b) =>
+                providerOrder.indexOf(a.providerId) - providerOrder.indexOf(b.providerId)
+                || a.email.localeCompare(b.email)
+            );
+            aiUsageAccounts = accounts;
             aiUsageUpdatedAt = snapshot.generatedAt ?? Date.now();
             aiUsageStale = false;
         } catch (error) {
@@ -174,19 +196,18 @@ ShellRoot {
         }
     }
 
-    function aiProvider(providerId: string): var {
-        return aiUsageProviders.find(provider => provider.id === providerId) ?? null;
-    }
-
-    function aiBarLimits(providerId: string): var {
-        const provider = aiProvider(providerId);
-        if (provider !== null)
-            return provider.barLimits;
-        const windowIds = providerId === "openai-codex" ? ["7d"] : ["5h", "7d"];
-        return windowIds.map(windowId => ({
-            windowId: windowId,
-            remaining: null,
-            resetsAt: null
+    // Bar entries: every known account, or one placeholder per provider until
+    // the first snapshot arrives.
+    function aiBarAccounts(): var {
+        if (aiUsageAccounts.length > 0)
+            return aiUsageAccounts;
+        return aiProviders.map(provider => ({
+            id: provider.id,
+            providerId: provider.id,
+            label: provider.label,
+            email: "",
+            barLimits: aiPlaceholderLimits(provider),
+            limits: []
         }));
     }
 
@@ -206,8 +227,8 @@ ShellRoot {
         return "@text@";
     }
 
-    function aiProviderColor(providerId: string): string {
-        const numericLimits = aiBarLimits(providerId).filter(
+    function aiAccountColor(account: var): string {
+        const numericLimits = account.barLimits.filter(
             limit => typeof limit.remaining === "number"
         );
         if (numericLimits.length === 0)
@@ -242,15 +263,15 @@ ShellRoot {
     }
 
     function aiUsageTooltip(): string {
-        if (aiUsageProviders.length === 0)
+        if (aiUsageAccounts.length === 0)
             return aiUsageStale ? "AI limits · unavailable" : "AI limits · loading";
 
         const now = clock.date.getTime();
         const updated = relativeDuration(now - aiUsageUpdatedAt);
         const lines = [`AI limits · updated ${updated} ago${aiUsageStale ? " · stale" : ""}`];
-        for (const provider of aiUsageProviders) {
-            lines.push(provider.label);
-            for (const limit of provider.limits) {
+        for (const account of aiUsageAccounts) {
+            lines.push(account.label);
+            for (const limit of account.limits) {
                 const remaining = `${Math.round(limit.amount.remaining)}%`;
                 if (!limit.window || typeof limit.window.resetsAt !== "number") {
                     lines.push(`  ${limit.label} · ${remaining} · reset unavailable`);

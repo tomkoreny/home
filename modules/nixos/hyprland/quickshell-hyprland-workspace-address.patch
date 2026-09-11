@@ -1,0 +1,146 @@
+diff --git a/src/wayland/hyprland/ipc/connection.cpp b/src/wayland/hyprland/ipc/connection.cpp
+index 627c369..3784118 100644
+--- a/src/wayland/hyprland/ipc/connection.cpp
++++ b/src/wayland/hyprland/ipc/connection.cpp
+@@ -330,7 +330,7 @@ void HyprlandIpc::onEvent(HyprlandIpcEvent* event) {
+ 	} else if (event->name == "createworkspacev2") {
+ 		auto args = event->parseView(2);
+ 
+-		auto id = args.at(0).toInt();
++		auto id = workspaceIdFromSelector(args.at(0));
+ 		auto name = QString::fromUtf8(args.at(1));
+ 
+ 		qCDebug(logHyprlandIpc) << "Workspace created with id" << id << "name" << name;
+@@ -351,13 +351,13 @@ void HyprlandIpc::onEvent(HyprlandIpcEvent* event) {
+ 	} else if (event->name == "destroyworkspacev2") {
+ 		auto args = event->parseView(2);
+ 
+-		auto id = args.at(0).toInt();
++		auto id = workspaceIdFromSelector(args.at(0));
+ 		auto name = QString::fromUtf8(args.at(1));
+ 
+ 		const auto& mList = this->mWorkspaces.valueList();
+ 
+-		auto workspaceIter = std::ranges::find_if(mList, [id](HyprlandWorkspace* m) {
+-			return m->bindableId().value() == id;
++		auto workspaceIter = std::ranges::find_if(mList, [&](HyprlandWorkspace* m) {
++			return id != -1 ? m->bindableId().value() == id : m->bindableName().value() == name;
+ 		});
+ 
+ 		if (workspaceIter == mList.end()) {
+@@ -401,7 +401,7 @@ void HyprlandIpc::onEvent(HyprlandIpcEvent* event) {
+ 		                        << (workspace ? workspace->bindableId().value() : -1);
+ 	} else if (event->name == "workspacev2") {
+ 		auto args = event->parseView(2);
+-		auto id = args.at(0).toInt();
++		auto id = workspaceIdFromSelector(args.at(0));
+ 		auto name = QString::fromUtf8(args.at(1));
+ 
+ 		if (this->bFocusedMonitor != nullptr) {
+@@ -412,7 +412,7 @@ void HyprlandIpc::onEvent(HyprlandIpcEvent* event) {
+ 		}
+ 	} else if (event->name == "moveworkspacev2") {
+ 		auto args = event->parseView(3);
+-		auto id = args.at(0).toInt();
++		auto id = workspaceIdFromSelector(args.at(0));
+ 		auto name = QString::fromUtf8(args.at(1));
+ 		auto monitorName = QString::fromUtf8(args.at(2));
+ 
+@@ -423,9 +423,12 @@ void HyprlandIpc::onEvent(HyprlandIpcEvent* event) {
+ 		workspace->setMonitor(monitor);
+ 	} else if (event->name == "renameworkspace") {
+ 		auto args = event->parseView(2);
+-		auto id = args.at(0).toInt();
++		auto id = workspaceIdFromSelector(args.at(0));
+ 		auto name = QString::fromUtf8(args.at(1));
+ 
++		// Without a numeric id the old name is unknown, so the workspace cannot be matched.
++		if (id == -1) return;
++
+ 		const auto& mList = this->mWorkspaces.valueList();
+ 
+ 		auto workspaceIter = std::ranges::find_if(mList, [id](HyprlandWorkspace* m) {
+@@ -631,11 +634,14 @@ void HyprlandIpc::refreshWorkspaces(bool canCreate) {
+ 		for (auto entry: json) {
+ 			auto object = entry.toObject().toVariantMap();
+ 
+-			auto id = object.value("id").toInt();
++			auto id = workspaceIdFromObject(object);
+ 
+-			auto workspaceIter = std::ranges::find_if(mList, [&](HyprlandWorkspace* m) {
+-				return m->bindableId().value() == id;
+-			});
++			auto workspaceIter = mList.end();
++			if (id != -1) {
++				workspaceIter = std::ranges::find_if(mList, [&](HyprlandWorkspace* m) {
++					return m->bindableId().value() == id;
++				});
++			}
+ 
+ 			// Only fall back to name-based filtering as a last resort, for workspaces where
+ 			// no ID has been determined yet.
+diff --git a/src/wayland/hyprland/ipc/monitor.cpp b/src/wayland/hyprland/ipc/monitor.cpp
+index ddf3706..17126a1 100644
+--- a/src/wayland/hyprland/ipc/monitor.cpp
++++ b/src/wayland/hyprland/ipc/monitor.cpp
+@@ -28,7 +28,7 @@ void HyprlandMonitor::updateInitial(qint32 id, const QString& name, const QStrin
+ 
+ void HyprlandMonitor::updateFromObject(QVariantMap object) {
+ 	auto activeWorkspaceObj = object.value("activeWorkspace").value<QVariantMap>();
+-	auto activeWorkspaceId = activeWorkspaceObj.value("id").value<qint32>();
++	auto activeWorkspaceId = workspaceIdFromObject(activeWorkspaceObj);
+ 	auto activeWorkspaceName = activeWorkspaceObj.value("name").value<QString>();
+ 	auto focused = object.value("focused").value<bool>();
+ 
+diff --git a/src/wayland/hyprland/ipc/workspace.cpp b/src/wayland/hyprland/ipc/workspace.cpp
+index 44377c0..d772d1e 100644
+--- a/src/wayland/hyprland/ipc/workspace.cpp
++++ b/src/wayland/hyprland/ipc/workspace.cpp
+@@ -15,6 +15,20 @@ namespace qs::hyprland::ipc {
+ 
+ QVariantMap HyprlandWorkspace::lastIpcObject() const { return this->mLastIpcObject; }
+ 
++qint32 workspaceIdFromObject(const QVariantMap& object) {
++	if (object.contains("id")) return object.value("id").value<qint32>();
++	if (object.value("type").toString() == "numbered") {
++		return workspaceIdFromSelector(object.value("address").toString().toUtf8());
++	}
++	return -1;
++}
++
++qint32 workspaceIdFromSelector(QByteArrayView selector) {
++	bool ok = false;
++	auto id = selector.toInt(&ok);
++	return ok ? id : -1;
++}
++
+ HyprlandWorkspace::HyprlandWorkspace(HyprlandIpc* ipc): QObject(ipc), ipc(ipc) {
+ 	Qt::beginPropertyUpdateGroup();
+ 
+@@ -51,7 +65,7 @@ void HyprlandWorkspace::updateFromObject(QVariantMap object) {
+ 
+ 	// ID cannot be updated after creation
+ 	if (initial) {
+-		this->bId = object.value("id").value<qint32>();
++		this->bId = workspaceIdFromObject(object);
+ 	}
+ 
+ 	// No events we currently handle give a workspace id but not a name,
+diff --git a/src/wayland/hyprland/ipc/workspace.hpp b/src/wayland/hyprland/ipc/workspace.hpp
+index a0b09cf..3db79a3 100644
+--- a/src/wayland/hyprland/ipc/workspace.hpp
++++ b/src/wayland/hyprland/ipc/workspace.hpp
+@@ -15,6 +15,13 @@ namespace qs::hyprland::ipc {
+ 
+ class HyprlandMonitor;
+ 
++// Hyprland main after v0.56 identifies workspaces by {address, type, name} and no
++// longer emits a numeric "id" in hyprctl JSON or socket2 selectors. Numbered
++// workspaces carry their number as the address / selector; other kinds have no
++// numeric identity, which Quickshell represents as -1 (see findWorkspaceByName).
++qint32 workspaceIdFromObject(const QVariantMap& object);
++qint32 workspaceIdFromSelector(QByteArrayView selector);
++
+ class HyprlandWorkspace: public QObject {
+ 	Q_OBJECT;
+ 	// clang-format off

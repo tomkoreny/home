@@ -11,16 +11,17 @@ Scope {
     property bool active: false
 
     function benefits(snapshot): bool {
+        // `hyprctl monitors` only lists enabled monitors, and Hyprland main
+        // currently reports `disabled` inverted, so it is not consulted.
         const primary = snapshot.monitors.find(monitor => monitor.name === primaryOutput);
         const destination = snapshot.monitors.find(monitor => monitor.name === statusOutput);
-        if (!primary || !destination || primary.disabled || destination.disabled
-                || !primary.dpmsStatus || !destination.dpmsStatus
-                || primary.specialWorkspace.id !== 0 || destination.specialWorkspace.id !== 0)
+        if (!primary || !destination || !primary.dpmsStatus || !destination.dpmsStatus
+                || primary.specialWorkspace.name !== "" || destination.specialWorkspace.name !== "")
             return false;
 
         const windows = snapshot.clients.filter(client => client.mapped && !client.hidden
             && client.monitor === primary.id
-            && (client.workspace.id === primary.activeWorkspace.id || client.pinned));
+            && (client.workspace.address === primary.activeWorkspace.address || client.pinned));
         if (windows.length !== 1)
             return false;
         const window = windows[0];
@@ -31,7 +32,7 @@ Scope {
         // A fullscreen window on the destination could cover the relocated controls.
         if (snapshot.clients.some(client => client.mapped && !client.hidden
                 && client.monitor === destination.id
-                && client.workspace.id === destination.activeWorkspace.id
+                && client.workspace.address === destination.activeWorkspace.address
                 && client.fullscreen === 2))
             return false;
 

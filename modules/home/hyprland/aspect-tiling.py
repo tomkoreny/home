@@ -130,11 +130,12 @@ async def fit(ratios):
 
 
 def placement_state(clients, ratios):
-    workspaces = {c["workspace"]["id"] for c in clients if c["address"] in ratios}
+    # Hyprland identifies workspaces by address; numbered ones use their number.
+    workspaces = {c["workspace"]["address"] for c in clients if c["address"] in ratios}
     return sorted(ratios.items()), sorted(
         (
             c["address"],
-            c["workspace"]["id"],
+            c["workspace"]["address"],
             c["monitor"],
             c["at"],
             c["size"],
@@ -144,7 +145,7 @@ def placement_state(clients, ratios):
             c["mapped"],
         )
         for c in clients
-        if c["workspace"]["id"] in workspaces
+        if c["workspace"]["address"] in workspaces
     )
 
 

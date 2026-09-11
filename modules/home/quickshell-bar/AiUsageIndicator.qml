@@ -5,6 +5,11 @@ Item {
     id: aiLimitsHost
     required property var root
 
+    readonly property var providerLogos: ({
+        "openai-codex": "@openaiLogo@",
+        "anthropic": "@anthropicLogo@"
+    })
+
     width: aiLimitsRow.implicitWidth + 12
     height: parent.height
 
@@ -15,19 +20,10 @@ Item {
         spacing: 8
 
         Repeater {
-            model: [
-                {
-                    providerId: "openai-codex",
-                    logo: "@openaiLogo@"
-                },
-                {
-                    providerId: "anthropic",
-                    logo: "@anthropicLogo@"
-                }
-            ]
+            model: root.aiBarAccounts()
 
             Row {
-                id: providerLimit
+                id: accountLimit
 
                 required property var modelData
                 anchors.verticalCenter: parent.verticalCenter
@@ -43,7 +39,7 @@ Item {
                         id: providerLogoSource
 
                         anchors.fill: parent
-                        source: providerLimit.modelData.logo
+                        source: aiLimitsHost.providerLogos[accountLimit.modelData.providerId] ?? ""
                         sourceSize.width: 14
                         sourceSize.height: 14
                         fillMode: Image.PreserveAspectFit
@@ -54,7 +50,7 @@ Item {
                         anchors.fill: providerLogoSource
                         source: providerLogoSource
                         colorization: 1
-                        colorizationColor: root.aiProviderColor(providerLimit.modelData.providerId)
+                        colorizationColor: root.aiAccountColor(accountLimit.modelData)
                     }
                 }
 
@@ -63,7 +59,7 @@ Item {
                     spacing: -1
 
                     Repeater {
-                        model: root.aiBarLimits(providerLimit.modelData.providerId)
+                        model: accountLimit.modelData.barLimits
 
                         Text {
                             required property var modelData
