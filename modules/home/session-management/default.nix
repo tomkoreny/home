@@ -127,6 +127,14 @@ in
     fi
   '';
 
+  # Package-manager updates do not replace Herdr's running servers. Use its
+  # local handoff command only after configuration and integrations are ready.
+  # Handoff is experimental and version-gated by the helper. Failures are
+  # reported, never followed by a stop/restart that would kill pane processes.
+  home.activation.herdrHandoff = lib.hm.dag.entryAfter [ "herdrOmpIntegration" "herdrConfig" ] ''
+    run ${pkgs.python3}/bin/python3 ${./herdr-handoff.py} ${lib.getExe herdrPackage}
+  '';
+
   # Herdr follows the host terminal's light/dark appearance and sends agent
   # completion notifications through the system notification service.
   #
