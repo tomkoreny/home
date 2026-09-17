@@ -21,6 +21,18 @@ jobs:
         with:
           install_url: https://releases.nixos.org/nix/nix-2.31.3/install
 
+      # Herdr is pinned to a release tag so hosts never run master. A tag pin
+      # is invisible to `nix flake update`, so bump it here from the latest
+      # non-prerelease GitHub release first.
+      - name: Bump herdr release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$(gh api repos/herdrdev/herdr/releases/latest --jq .tag_name)"
+          [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "unexpected herdr tag: $tag" >&2; exit 1; }
+          sed -i -E "s|(url = \"github:herdrdev/herdr/)v[0-9.]+\"|\1$tag\"|" flake.nix
+          grep -q "github:herdrdev/herdr/$tag\"" flake.nix
+
       - name: Update flake.lock
         run: |
           nix --version
@@ -57,10 +69,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet flake.lock; then
-            echo "No changes to flake.lock"
+          if git diff --quiet flake.nix flake.lock; then
+            echo "No changes to flake inputs"
           else
-            git add flake.lock
+            git add flake.nix flake.lock
             git commit -m "flake.lock: daily update"
             git push
           fi
