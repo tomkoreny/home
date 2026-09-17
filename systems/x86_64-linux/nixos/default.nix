@@ -221,13 +221,6 @@ in
         cache-size = 400;
       };
     };
-    tailscale = {
-      enable = true;
-      useRoutingFeatures = "client";
-      extraSetFlags = [
-        "--accept-dns=false"
-      ];
-    };
     xserver = {
       # Enable the X11 windowing system.
       enable = true;

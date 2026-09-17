@@ -30,15 +30,16 @@ let
       User = "root";
     };
 
+    # mDNS name published by the NixOS host's avahi; its DHCP address has
+    # changed before, so no hardcoded IP.
     "nixos-desktop" = {
-      HostName = "192.168.5.201";
+      HostName = "nixos.local";
       User = "tom";
     };
 
-    # Attach directly to the persistent NixOS tmux session over Tailscale.
-    # This relies on Tailscale MagicDNS resolving the machine hostname.
+    # Attach directly to the persistent NixOS tmux session.
     "nixos-session" = {
-      HostName = "nixos";
+      HostName = "nixos.local";
       User = "tom";
       RequestTTY = "force";
       RemoteCommand = "mux main";

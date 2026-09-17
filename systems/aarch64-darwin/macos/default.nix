@@ -249,8 +249,6 @@ in
     Defaults:${name} timestamp_timeout=30
     Defaults:${name} !tty_tickets
   '';
-  services.tailscale.enable = true;
-  environment.etc."resolver/ts.net".enable = lib.mkForce false;
   nix-homebrew = {
     # Install Homebrew under the default prefix
     enable = true;
