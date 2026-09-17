@@ -48,7 +48,6 @@ let
     "org.openrgb.openrgb" = ./icons/openrgb.svg;
     "org.prismlauncher.prismlauncher" = ./icons/prismlauncher.svg;
     "org.remmina.remmina" = ./icons/remmina.svg;
-    "pycharm" = ./icons/pycharm.svg;
     "slack" = ./icons/slack.svg;
     "steam" = ./icons/steam.svg;
     "teams-for-linux" = ./icons/teams.svg;
@@ -79,7 +78,6 @@ let
     "org.kicad.pcbnew" = profileIcon "scalable/apps/pcbnew.svg";
     "org.prismlauncher.prismlauncher" = profileIcon "scalable/apps/org.prismlauncher.PrismLauncher.svg";
     "org.remmina.remmina" = profileIcon "scalable/apps/org.remmina.Remmina.svg";
-    "pycharm" = profileIcon "scalable/apps/pycharm.svg";
     "slack" = profileIcon "512x512/apps/slack.png";
     "teams-for-linux" = profileIcon "512x512/apps/teams-for-linux.png";
     "webstorm" = profileIcon "scalable/apps/webstorm.svg";

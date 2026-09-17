@@ -130,7 +130,6 @@ in
           "/Applications/Claude.app"
           "${homeDir}/Applications/WebStorm.app"
           "${homeManagerApps}/DataGrip.app"
-          "${homeDir}/Applications/PyCharm.app"
           "/Applications/Zed.app"
           "${homeDir}/Applications/Android Studio.app"
           "/Applications/Original Prusa Drivers/PrusaSlicer.app"
