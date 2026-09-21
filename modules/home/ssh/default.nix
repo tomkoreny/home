@@ -37,6 +37,16 @@ let
       User = "tom";
     };
 
+    # Global IPv6 address of the same host, reachable from outside the home
+    # network without a VPN. Herdr's saved "nixos" machine targets this alias.
+    # The host-key alias keeps one known_hosts identity across both paths.
+    "nixos-v6" = {
+      HostName = "2a0d:3344:78f0:9f07:c8b8:5c45:e58e:b26e";
+      User = "tom";
+      AddressFamily = "inet6";
+      HostKeyAlias = "nixos.local";
+    };
+
     # Attach directly to the persistent NixOS tmux session.
     "nixos-session" = {
       HostName = "nixos.local";
