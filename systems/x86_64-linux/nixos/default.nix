@@ -66,6 +66,9 @@ in
     randomizedDelaySec = "10min";
   };
 
+  # Let later scheduled updates retry instead of waiting forever on a stuck build.
+  systemd.services.nixos-upgrade.serviceConfig.TimeoutStartSec = "2h";
+
   # Your configuration.
   imports = [
     # Include the results of the hardware scan.
