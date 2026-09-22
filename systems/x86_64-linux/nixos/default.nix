@@ -39,10 +39,9 @@ in
     # Always-on split-tunnel WireGuard link (10.71.71.3, internal routes only).
     wireguard.enable = true;
 
-    # OpenClaw node - connects to gateway via Traefik
-    # Same as Mac: clawdbot.home.tomkoreny.com:443 with TLS (defaults)
+    # Temporarily disabled: node startup failures were failing system activation.
     clawdbot-node = {
-      enable = true;
+      enable = false;
       displayName = "NixOS Desktop";
     };
 
