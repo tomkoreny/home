@@ -414,7 +414,8 @@ in
   '';
 
   hardware = {
-    printers = {
+    # Paused while the HP printer is unreachable; CUPS keeps existing queues.
+    printers = lib.mkIf false {
       ensurePrinters = [
         {
           name = "HP_Color_LaserJet_4302";
