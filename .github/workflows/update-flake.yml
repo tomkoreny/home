@@ -2,7 +2,7 @@ name: Update flake inputs
 
 on:
   schedule:
-    - cron: '0 4 * * *'  # Daily 4am UTC
+    - cron: '17 * * * *'  # Hourly, away from the busy start of the hour
   workflow_dispatch:
 
 permissions:
@@ -67,13 +67,13 @@ jobs:
 
       - name: Commit and push
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "Tom Koreny"
+          git config user.email "tom@tomkoreny.com"
           if git diff --quiet flake.nix flake.lock; then
             echo "No changes to flake inputs"
           else
             git add flake.nix flake.lock
-            git commit -m "flake.lock: daily update"
+            git commit -m "flake.lock: update inputs"
             git push
           fi
 
@@ -95,7 +95,7 @@ jobs:
             exit 0
           fi
           gh issue create --title "$TITLE" --body-file - <<EOF
-          The daily flake input update stopped validating, so nothing is being
+          The scheduled flake input update stopped validating, so nothing is being
           pushed and every host stays on the last good lock until this passes.
 
           First failing run: $RUN_URL
