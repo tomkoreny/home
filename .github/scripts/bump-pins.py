@@ -83,6 +83,14 @@ def betterbird_latest() -> str:
     return max(builds, key=lambda v: [int(n) for n in re.findall(r"\d+", v)])
 
 
+def moshi_hook_latest() -> str:
+    # moshi-hook has no public repository; its installer resolves this file.
+    request = urllib.request.Request(
+        "https://cdn.getmoshi.app/hook/latest/version.txt", headers={"User-Agent": "tomkoreny-home-ci"}
+    )
+    return urllib.request.urlopen(request, timeout=60).read().decode().strip().removeprefix("v")
+
+
 def flake_tag(repo: str, prefix: str = "v") -> str:
     return rf'url = "github:{re.escape(repo)}/{prefix}([^"]+)"'
 
@@ -126,6 +134,14 @@ PINS = [
         {"modules/home/mtplx/package.nix": [Source(
             "MTPLX/releases/download",
             "https://github.com/youssofal/MTPLX/releases/download/v{version}/MTPLX-{version}.dmg",
+        )]},
+    ),
+    Pin(
+        "moshi-hook", "auto", moshi_hook_latest,
+        {"modules/home/moshi-hook/package.nix": r'^  version = "([^"]+)";'},
+        {"modules/home/moshi-hook/package.nix": [Source(
+            "cdn.getmoshi.app/hook",
+            "https://cdn.getmoshi.app/hook/v{version}/moshi-hook_Linux_x86_64.tar.gz",
         )]},
     ),
     Pin("herdr", "auto", github_latest("herdrdev/herdr"), {"flake.nix": flake_tag("herdrdev/herdr")}),

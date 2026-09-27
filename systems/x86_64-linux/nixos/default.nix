@@ -557,6 +557,9 @@ in
       capSysNice = true;
     };
     gamemode.enable = true;
+    # Moshi on the phone connects over public IPv6; this installs mosh-server
+    # and opens UDP 60000-61000 on the host firewall.
+    mosh.enable = true;
   };
 
   environment.sessionVariables = {
