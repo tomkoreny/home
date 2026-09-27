@@ -370,6 +370,9 @@ ShellRoot {
     TimerService {
         id: timers
     }
+    UpgradeStatusService {
+        id: upgradeStatus
+    }
 
     Connections {
         target: overlays
@@ -506,6 +509,7 @@ ShellRoot {
             clockService: clock
             launcherController: launcher
             notificationService: notifications
+            upgradeStatusService: upgradeStatus
             overlayController: overlays
             timerPopupController: timerPopup
             timerService: timers

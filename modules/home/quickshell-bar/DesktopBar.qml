@@ -9,6 +9,7 @@ PanelWindow {
     required property var clockService
     required property var launcherController
     required property var notificationService
+    required property var upgradeStatusService
     required property var overlayController
     required property var timerPopupController
     required property var timerService
@@ -91,6 +92,45 @@ PanelWindow {
             anchors.centerIn: parent
             height: 26
             spacing: 3
+
+            Item {
+                id: upgradeIndicator
+                visible: upgradeStatusService.needsAttention
+                width: upgradeText.implicitWidth + 12
+                height: parent.height
+
+                Text {
+                    id: upgradeText
+                    anchors.centerIn: parent
+                    text: upgradeStatusService.failed ? "󰀦 upgrade" : "󰀦 no upgrade"
+                    color: "@muted@"
+                    font.family: "@fontFamily@"
+                    font.pixelSize: 12
+                    font.weight: Font.DemiBold
+                }
+
+                MouseArea {
+                    id: upgradeMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: upgradeStatusService.openLog()
+
+                    HoverPopover {
+                        anchorItem: upgradeMouse
+                        hovered: upgradeMouse.containsMouse
+                        text: upgradeStatusService.tooltip()
+                        alignRight: true
+                    }
+                }
+            }
+            Rectangle {
+                visible: upgradeIndicator.visible
+                width: 1
+                height: 16
+                anchors.verticalCenter: parent.verticalCenter
+                color: "@border@"
+            }
 
             Item {
                 width: herdrText.implicitWidth + 12

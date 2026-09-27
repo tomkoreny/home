@@ -375,6 +375,14 @@ let
       opaqueSurface = "#181825";
     }
   );
+  upgradeStatusService = pkgs.replaceVars ./UpgradeStatusService.qml {
+    cat = lib.getExe' pkgs.coreutils "cat";
+    ghostty = lib.getExe pkgs.ghostty;
+    # The system unit's journal reader; the bar module itself stays host-agnostic.
+    journalctl = "/run/current-system/sw/bin/journalctl";
+    notifySend = lib.getExe pkgs.libnotify;
+    uwsm = lib.getExe pkgs.uwsm;
+  };
   todoService = pkgs.replaceVars ./TodoService.qml {
     todoHelper = lib.getExe notionTodoHelper;
     xdgOpen = lib.getExe' pkgs.xdg-utils "xdg-open";
@@ -518,6 +526,7 @@ in
       "quickshell/tom-bar/NotificationCard.qml".source = notificationCard;
       "quickshell/tom-bar/Notifications.qml".source = notifications;
       "quickshell/tom-bar/TimerService.qml".source = timerService;
+      "quickshell/tom-bar/UpgradeStatusService.qml".source = upgradeStatusService;
       "quickshell/tom-bar/TimerPopup.qml".source = timerPopup;
       "quickshell/tom-bar/TodoService.qml".source = todoService;
       "quickshell/tom-bar/TodoPanel.qml".source = todoPanel;

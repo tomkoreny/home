@@ -10,9 +10,9 @@
 
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
-    # Release tag, not a branch: .github/workflows/update-flake.yml rewrites it
-    # to the latest GitHub release before locking, so `nix flake update` alone
-    # would not move it.
+    # Release tag, not a branch: .github/scripts/bump-pins.py rewrites it to
+    # the latest GitHub release before the scheduled lock update, so
+    # `nix flake update` alone would not move it.
     herdr = {
       url = "github:herdrdev/herdr/v0.9.1";
       inputs.nixpkgs.follows = "nixpkgs";

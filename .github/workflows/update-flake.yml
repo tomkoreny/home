@@ -21,59 +21,65 @@ jobs:
         with:
           install_url: https://releases.nixos.org/nix/nix-2.31.3/install
 
-      # Herdr is pinned to a release tag so hosts never run master. A tag pin
-      # is invisible to `nix flake update`, so bump it here from the latest
-      # non-prerelease GitHub release first.
-      - name: Bump herdr release tag
+      # `nix flake update` only moves inputs that track a branch. Release pins
+      # (a version plus a fixed-output hash, or a tag in a flake URL) are
+      # invisible to it, which is how Helium sat seven months behind. The script
+      # moves them to upstream's latest release first, so the lock below picks
+      # up bumped tags; majors and boot-critical pins open an issue instead.
+      - name: Bump pinned versions
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          tag="$(gh api repos/herdrdev/herdr/releases/latest --jq .tag_name)"
-          [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "unexpected herdr tag: $tag" >&2; exit 1; }
-          sed -i -E "s|(url = \"github:herdrdev/herdr/)v[0-9.]+\"|\1$tag\"|" flake.nix
-          grep -q "github:herdrdev/herdr/$tag\"" flake.nix
+          BUMP_SUMMARY: ${{ runner.temp }}/pin-bumps.txt
+        run: python3 .github/scripts/bump-pins.py
 
       - name: Update flake.lock
         run: |
           nix --version
           nix flake update
 
-      # Never push a lock that doesn't evaluate — every machine's auto-upgrade
-      # would pull it.
-      #
-      # `nix flake check` alone is a weaker gate than it looks. It understands a
-      # fixed set of output schemas: nixosConfigurations is deep-checked, but
-      # darwinConfigurations and homeConfigurations are only visited, and on the
-      # pinned nix 2.31.3 a `throw` inside either still exits 0. That asymmetry
-      # is exactly why this job caught a removed services.i2pd option in the
-      # NixOS config while an nvf assertion in the home configs sailed past.
-      #
-      # So instantiate every host explicitly rather than trusting the schema
-      # list. `nix eval` of a drvPath instantiates without building, which is
-      # what lets an ubuntu runner vet the two darwin hosts. --all-systems keeps
-      # the check itself from skipping aarch64-darwin outputs such as formatter.
+      # Never push a lock that doesn't evaluate or build — every machine's
+      # auto-upgrade would pull it. A pin bump that breaks either check must not
+      # hold back the lock update too, so revert the bumps, re-lock, report
+      # them in an issue, and check again without them.
       - name: Validate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUMP_SUMMARY: ${{ runner.temp }}/pin-bumps.txt
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          nix flake check --all-systems path:.
-          for attr in \
-            'nixosConfigurations.nixos.config.system.build.toplevel' \
-            'darwinConfigurations.macos.system' \
-            'homeConfigurations."tom@macos".activationPackage' \
-            'homeConfigurations."tom@nixos".activationPackage' \
-            'homeConfigurations."terka@nixos".activationPackage'; do
-            echo "instantiating $attr"
-            nix eval --raw "path:.#$attr.drvPath" > /dev/null
-          done
+          .github/scripts/validate.sh || {
+            .github/scripts/revert-pin-bumps.sh "stopped evaluating"
+            .github/scripts/validate.sh
+          }
+
+      - name: Build moving packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUMP_SUMMARY: ${{ runner.temp }}/pin-bumps.txt
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if git diff --quiet; then
+            echo "No changes to build"
+            exit 0
+          fi
+          .github/scripts/build-moving.sh || {
+            .github/scripts/revert-pin-bumps.sh "failed to build"
+            .github/scripts/build-moving.sh
+          }
 
       - name: Commit and push
+        env:
+          BUMP_SUMMARY: ${{ runner.temp }}/pin-bumps.txt
         run: |
           git config user.name "Tom Koreny"
           git config user.email "tom@tomkoreny.com"
-          if git diff --quiet flake.nix flake.lock; then
-            echo "No changes to flake inputs"
+          if git diff --quiet; then
+            echo "No changes to flake inputs or pins"
+          elif [ -s "$BUMP_SUMMARY" ]; then
+            git commit -a -m "chore: bump pinned versions and flake inputs" -m "$(cat "$BUMP_SUMMARY")"
+            git push
           else
-            git add flake.nix flake.lock
-            git commit -m "flake.lock: update inputs"
+            git commit -a -m "flake.lock: update inputs"
             git push
           fi
 
@@ -95,7 +101,7 @@ jobs:
             exit 0
           fi
           gh issue create --title "$TITLE" --body-file - <<EOF
-          The scheduled flake input update stopped validating, so nothing is being
+          The scheduled flake input update stopped validating or building, so nothing is being
           pushed and every host stays on the last good lock until this passes.
 
           First failing run: $RUN_URL

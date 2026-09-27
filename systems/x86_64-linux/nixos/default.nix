@@ -66,7 +66,46 @@ in
   };
 
   # Let later scheduled updates retry instead of waiting forever on a stuck build.
-  systemd.services.nixos-upgrade.serviceConfig.TimeoutStartSec = "2h";
+  # Every run's outcome lands in /var/lib/nixos-upgrade-status/status.json,
+  # which the Quickshell bar reads so a failing or stalled upgrade is visible
+  # instead of silently leaving the system on an old generation.
+  systemd.services.nixos-upgrade.serviceConfig = {
+    TimeoutStartSec = "2h";
+    StateDirectory = "nixos-upgrade-status";
+    ExecStopPost = pkgs.writeShellScript "record-nixos-upgrade-status" ''
+      set -u
+      PATH=${
+        lib.makeBinPath [
+          pkgs.coreutils
+          pkgs.gnugrep
+          pkgs.gnused
+          pkgs.jq
+          config.systemd.package
+        ]
+      }
+      state="$STATE_DIRECTORY/status.json"
+      now="$(date +%s)"
+      last_success="$(jq -r '.lastSuccessAt // 0' "$state" 2>/dev/null || echo 0)"
+      error=""
+      if [ "$SERVICE_RESULT" = success ]; then
+        last_success="$now"
+      else
+        # Nix reports the root failure first; drop store hashes so it fits the bar.
+        error="$(journalctl --no-pager -o cat _SYSTEMD_INVOCATION_ID="$INVOCATION_ID" \
+          | grep -m1 -E '^[[:space:]]*error:' \
+          | sed -E 's/^[[:space:]]*//; s|/nix/store/[a-z0-9]{32}-||g' || true)"
+        [ -n "$error" ] || error="nixos-upgrade ended with $SERVICE_RESULT (''${EXIT_CODE:-} ''${EXIT_STATUS:-})"
+      fi
+      jq -n \
+        --arg result "$SERVICE_RESULT" \
+        --arg error "$error" \
+        --argjson finishedAt "$now" \
+        --argjson lastSuccessAt "$last_success" \
+        '{result: $result, error: $error, finishedAt: $finishedAt, lastSuccessAt: $lastSuccessAt}' \
+        > "$state.tmp"
+      mv "$state.tmp" "$state"
+    '';
+  };
 
   # Your configuration.
   imports = [
@@ -412,6 +451,9 @@ in
   services.udev.extraRules = ''
     ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="046d", ATTR{idProduct}=="08e5", ATTR{power/autosuspend}="-1", ATTR{power/control}="on"
   '';
+  # Grants the logged-in user hidraw access to the Arctis Pro Wireless base
+  # (1038:1290), which the Quickshell bar's arctis helper queries.
+  services.udev.packages = [ pkgs.headsetcontrol ];
 
   hardware = {
     # Paused while the HP printer is unreachable; CUPS keeps existing queues.
