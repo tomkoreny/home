@@ -14,6 +14,7 @@ PanelWindow {
     required property var overlayController
     required property var timerPopupController
     required property var headsetPopupController
+    required property var volumePopupController
     required property var timerService
     required property var todoManagerController
     required property var todoService
@@ -42,7 +43,8 @@ PanelWindow {
         if (!statusHost)
             return;
         shellRoot.timerAnchor = timerHost;
-        shellRoot.headsetAnchor = headsetBattery;
+        shellRoot.headsetAnchor = headsetBatteries;
+        shellRoot.volumeAnchor = volumeText;
     }
     onStatusHostChanged: updatePopupAnchors()
     Component.onCompleted: updatePopupAnchors()
@@ -314,6 +316,7 @@ PanelWindow {
                     spacing: 5
 
                     Text {
+                        id: volumeText
                         text: `${shellRoot.audioIcon()}  ${shellRoot.volumePercent}%`
                         color: shellRoot.audioMuted ? "@muted@" : "@text@"
                         font.family: "@fontFamily@"
@@ -321,16 +324,36 @@ PanelWindow {
                         font.weight: Font.DemiBold
                     }
 
-                    // Arctis headset battery, on the base's own 4-bar scale;
-                    // clicking it opens the headset settings.
-                    Text {
-                        id: headsetBattery
-                        visible: headsetService.headsetOn || headsetService.status === "error"
-                        text: headsetService.batteryIcon()
-                        color: headsetService.batteryLow() ? "@muted@" : "@text@"
-                        font.family: "@fontFamily@"
-                        font.pixelSize: 12
-                        font.weight: Font.DemiBold
+                    // Arctis batteries on the base's own 4-bar scale: the
+                    // headset while it is on, then the spare charging in the
+                    // base. Clicking them opens the headset settings.
+                    Row {
+                        id: headsetBatteries
+
+                        // Bind to service state: a child's `visible` turns
+                        // false with its parent's and would latch this off.
+                        visible: headsetService.showHeadsetBattery || headsetService.showSpareBattery
+                        spacing: 3
+
+                        Text {
+                            id: headsetBattery
+                            visible: headsetService.showHeadsetBattery
+                            text: headsetService.batteryIcon()
+                            color: headsetService.batteryLow() ? "@muted@" : "@text@"
+                            font.family: "@fontFamily@"
+                            font.pixelSize: 12
+                            font.weight: Font.DemiBold
+                        }
+
+                        Text {
+                            id: spareBattery
+                            visible: headsetService.showSpareBattery
+                            text: headsetService.spareIcon()
+                            color: "@subdued@"
+                            font.family: "@fontFamily@"
+                            font.pixelSize: 12
+                            font.weight: Font.DemiBold
+                        }
                     }
                 }
 
@@ -338,20 +361,25 @@ PanelWindow {
                     id: audioMouse
                     anchors.fill: parent
                     hoverEnabled: true
+                    acceptedButtons: Qt.LeftButton | Qt.MiddleButton
                     cursorShape: Qt.PointingHandCursor
                     onClicked: mouse => {
-                        const point = headsetBattery.mapFromItem(audioMouse, mouse.x, mouse.y);
-                        if (headsetBattery.visible && headsetBattery.contains(point))
+                        if (mouse.button === Qt.MiddleButton) {
+                            shellRoot.toggleMute();
+                            return;
+                        }
+                        const point = headsetBatteries.mapFromItem(audioMouse, mouse.x, mouse.y);
+                        if (headsetBatteries.visible && headsetBatteries.contains(point))
                             headsetPopupController.toggle();
                         else
-                            Quickshell.execDetached(["@pavucontrol@"]);
+                            volumePopupController.toggle();
                     }
 
                     HoverPopover {
                         anchorItem: audioMouse
-                        hovered: audioMouse.containsMouse && !headsetPopupController.shown
+                        hovered: audioMouse.containsMouse && !headsetPopupController.shown && !volumePopupController.shown
                         text: (shellRoot.audioMuted ? `Muted · ${shellRoot.volumePercent}%` : `Volume · ${shellRoot.volumePercent}%`)
-                            + (headsetService.headsetOn || headsetService.status === "error" ? `\n${headsetService.tooltip()}` : "")
+                            + (headsetService.displayConnected || headsetService.status === "error" ? `\n${headsetService.tooltip()}` : "")
                         alignRight: true
                     }
                 }

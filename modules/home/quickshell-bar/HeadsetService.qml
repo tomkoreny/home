@@ -20,6 +20,9 @@ Scope {
     readonly property bool headsetOn: status === "on"
     // The helper keeps its clock on the base's OLED whenever the base answers.
     readonly property bool displayConnected: status === "on" || status === "off"
+    readonly property bool showHeadsetBattery: headsetOn || status === "error"
+    // 0 bars also means an empty charging slot, so it shows nothing.
+    readonly property bool showSpareBattery: displayConnected && spareBars > 0
 
     function barsText(bars: int): string {
         return bars < 0 ? "unknown" : `${bars}/4 bars`;
@@ -33,6 +36,11 @@ Scope {
         return ["󰂎", "󰁻", "󰁾", "󰂁", "󰁹"][headsetBars] ?? "󰂎";
     }
 
+    // Charging glyphs for the spare battery in the base, same stretch as above.
+    function spareIcon(): string {
+        return ["󰢟", "󰂆", "󰢝", "󰂊", "󰂅"][spareBars] ?? "󰢟";
+    }
+
     function batteryLow(): bool {
         return status === "error" || (headsetBars >= 0 && headsetBars <= 1);
     }
@@ -40,8 +48,9 @@ Scope {
     function tooltip(): string {
         if (status === "error")
             return `Arctis Pro Wireless · ${error}`;
+        const headset = status === "off" ? "off" : barsText(headsetBars);
         const spare = spareBars === 0 ? "empty or not inserted" : barsText(spareBars);
-        return `Headset · ${barsText(headsetBars)}\nSpare battery in base · ${spare}`;
+        return `Headset · ${headset}\nSpare battery in base · ${spare}`;
     }
 
     function update(line: string): void {

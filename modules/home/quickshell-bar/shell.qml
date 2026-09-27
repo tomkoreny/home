@@ -39,6 +39,12 @@ ShellRoot {
     property real aiUsageUpdatedAt: 0
     property var timerAnchor: null
     property var headsetAnchor: null
+    property var volumeAnchor: null
+
+    function toggleMute(): void {
+        if (audio)
+            audio.muted = !audio.muted;
+    }
 
     Connections {
         target: Hyprland
@@ -432,6 +438,12 @@ ShellRoot {
         overlayController: overlays
         anchorItem: root.headsetAnchor
     }
+    VolumePopup {
+        id: volumePopup
+
+        overlayController: overlays
+        anchorItem: root.volumeAnchor
+    }
 
 
 
@@ -483,6 +495,14 @@ ShellRoot {
         function settings(): bool {
             headsetPopup.toggle();
             return headsetPopup.shown;
+        }
+    }
+    IpcHandler {
+        target: "volume"
+
+        function popup(): bool {
+            volumePopup.toggle();
+            return volumePopup.shown;
         }
     }
     IpcHandler {
@@ -541,6 +561,7 @@ ShellRoot {
             overlayController: overlays
             timerPopupController: timerPopup
             headsetPopupController: headsetPopup
+            volumePopupController: volumePopup
             timerService: timers
             todoManagerController: todoManager
             todoService: todos

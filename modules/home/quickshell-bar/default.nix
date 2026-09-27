@@ -313,7 +313,6 @@ let
       "cardSurface"
     ])
     // {
-      pavucontrol = lib.getExe pkgs.pavucontrol;
       workProviderLabel = builtins.toJSON cfg.workTasks.label;
       qs = "${pkgs.quickshell}/bin/qs";
     }
@@ -388,6 +387,13 @@ let
     pwPlay = lib.getExe' pkgs.pipewire "pw-play";
     timerSound = "${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga";
   };
+  volumePopup = pkgs.replaceVars ./VolumePopup.qml (
+    (builtins.removeAttrs themeVars [ "cardSurface" ])
+    // {
+      opaqueSurface = "#181825";
+      pavucontrol = lib.getExe pkgs.pavucontrol;
+    }
+  );
   headsetSettingsPopup = pkgs.replaceVars ./HeadsetSettingsPopup.qml (
     (builtins.removeAttrs themeVars [ "cardSurface" ])
     // {
@@ -566,6 +572,7 @@ in
       "quickshell/tom-bar/UpgradeStatusService.qml".source = upgradeStatusService;
       "quickshell/tom-bar/TimerPopup.qml".source = timerPopup;
       "quickshell/tom-bar/HeadsetSettingsPopup.qml".source = headsetSettingsPopup;
+      "quickshell/tom-bar/VolumePopup.qml".source = volumePopup;
       "quickshell/tom-bar/TodoService.qml".source = todoService;
       "quickshell/tom-bar/TodoPanel.qml".source = todoPanel;
       "quickshell/tom-bar/TodoManager.qml".source = todoManager;
