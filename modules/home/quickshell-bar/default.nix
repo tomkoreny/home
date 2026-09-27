@@ -286,6 +286,7 @@ let
       outputs = builtins.toJSON cfg.outputs;
       primaryOutput = builtins.toJSON cfg.primaryOutput;
       videoStatusOutput = builtins.toJSON cfg.videoStatusOutput;
+      headsetFallbackSink = builtins.toJSON cfg.headsetFallbackSink;
       workTasksEnabled = builtins.toJSON cfg.workTasks.enable;
       herdr = lib.getExe herdrPackage;
       hyprctl = lib.getExe' config.wayland.windowManager.hyprland.package "hyprctl";
@@ -447,6 +448,12 @@ in
       description = "Bar output receiving status controls while a sole aspect-benefiting video hides the primary bar; empty disables this mode";
     };
 
+    headsetFallbackSink = lib.mkOption {
+      type = lib.types.str;
+      default = "";
+      description = "PipeWire sink node name that becomes the default while the Arctis Pro Wireless headset is powered off; empty disables switching";
+    };
+
     workTasks = {
       enable = lib.mkEnableOption "independent provider-backed work tasks";
       provider = lib.mkOption {
@@ -538,6 +545,7 @@ in
       "quickshell/tom-bar/Notifications.qml".source = notifications;
       "quickshell/tom-bar/TimerService.qml".source = timerService;
       "quickshell/tom-bar/HeadsetService.qml".source = headsetService;
+      "quickshell/tom-bar/HeadsetAudioSwitch.qml".source = ./HeadsetAudioSwitch.qml;
       "quickshell/tom-bar/UpgradeStatusService.qml".source = upgradeStatusService;
       "quickshell/tom-bar/TimerPopup.qml".source = timerPopup;
       "quickshell/tom-bar/TodoService.qml".source = todoService;

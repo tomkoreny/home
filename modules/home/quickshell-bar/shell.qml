@@ -10,6 +10,7 @@ ShellRoot {
     readonly property var outputs: @outputs@
     readonly property string primaryOutput: @primaryOutput@
     readonly property string videoStatusOutput: @videoStatusOutput@
+    readonly property string headsetFallbackSink: @headsetFallbackSink@
     readonly property int barHeight: 36
     readonly property bool videoMode: videoPolicy.active
         && Quickshell.screens.some(screen => screen.name === root.videoStatusOutput)
@@ -372,6 +373,10 @@ ShellRoot {
     }
     HeadsetService {
         id: headset
+    }
+    HeadsetAudioSwitch {
+        headset: headset
+        fallbackSink: root.headsetFallbackSink
     }
     UpgradeStatusService {
         id: upgradeStatus

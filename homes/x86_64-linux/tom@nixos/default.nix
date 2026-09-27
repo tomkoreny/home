@@ -131,6 +131,7 @@ in
     ];
     primaryOutput = "DP-2";
     videoStatusOutput = "DP-3";
+    headsetFallbackSink = "alsa_output.pci-0000_01_00.1.hdmi-stereo";
     workTasks = {
       enable = true;
       provider = "mantisbt";
