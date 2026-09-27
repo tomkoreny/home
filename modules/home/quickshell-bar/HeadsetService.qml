@@ -12,6 +12,10 @@ Scope {
     property int headsetBars: -1
     property int spareBars: -1
     property string error: ""
+    // Last values sent to the base, keyed by the helper's setting names; the
+    // base cannot report its own, so changes made in its menu are not seen.
+    property var settings: ({})
+    property string settingError: ""
 
     readonly property bool headsetOn: status === "on"
     // The helper keeps its clock on the base's OLED whenever the base answers.
@@ -43,6 +47,15 @@ Scope {
     function update(line: string): void {
         try {
             const report = JSON.parse(line);
+            if (report.settings !== undefined) {
+                settings = report.settings;
+                settingError = "";
+                return;
+            }
+            if (report.settingError !== undefined) {
+                settingError = report.settingError;
+                return;
+            }
             headsetBars = typeof report.headset === "number" ? report.headset : -1;
             spareBars = typeof report.spare === "number" ? report.spare : -1;
             error = report.error ?? "";
@@ -51,6 +64,12 @@ Scope {
             status = "error";
             error = `Unreadable helper output: ${parseError}`;
         }
+    }
+
+    // Applies one base setting now and saves it to the base shortly after.
+    function setSetting(name: string, value: int): void {
+        if (watcher.running)
+            watcher.write(JSON.stringify({ set: name, value: value }) + "\n");
     }
 
     // Shows up to three lines on the base's OLED for `seconds`, then the

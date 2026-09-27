@@ -13,6 +13,7 @@ PanelWindow {
     required property var upgradeStatusService
     required property var overlayController
     required property var timerPopupController
+    required property var headsetPopupController
     required property var timerService
     required property var todoManagerController
     required property var todoService
@@ -37,12 +38,14 @@ PanelWindow {
     readonly property bool statusHost: modelData.name === shellRoot.statusOutput
     readonly property bool videoHidden: primary && shellRoot.videoMode
 
-    function updateTimerAnchor(): void {
-        if (statusHost)
-            shellRoot.timerAnchor = timerHost;
+    function updatePopupAnchors(): void {
+        if (!statusHost)
+            return;
+        shellRoot.timerAnchor = timerHost;
+        shellRoot.headsetAnchor = headsetBattery;
     }
-    onStatusHostChanged: updateTimerAnchor()
-    Component.onCompleted: updateTimerAnchor()
+    onStatusHostChanged: updatePopupAnchors()
+    Component.onCompleted: updatePopupAnchors()
 
     screen: modelData
     visible: !videoHidden
@@ -318,8 +321,10 @@ PanelWindow {
                         font.weight: Font.DemiBold
                     }
 
-                    // Arctis headset battery, on the base's own 4-bar scale.
+                    // Arctis headset battery, on the base's own 4-bar scale;
+                    // clicking it opens the headset settings.
                     Text {
+                        id: headsetBattery
                         visible: headsetService.headsetOn || headsetService.status === "error"
                         text: headsetService.batteryIcon()
                         color: headsetService.batteryLow() ? "@muted@" : "@text@"
@@ -334,11 +339,17 @@ PanelWindow {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: Quickshell.execDetached(["@pavucontrol@"])
+                    onClicked: mouse => {
+                        const point = headsetBattery.mapFromItem(audioMouse, mouse.x, mouse.y);
+                        if (headsetBattery.visible && headsetBattery.contains(point))
+                            headsetPopupController.toggle();
+                        else
+                            Quickshell.execDetached(["@pavucontrol@"]);
+                    }
 
                     HoverPopover {
                         anchorItem: audioMouse
-                        hovered: audioMouse.containsMouse
+                        hovered: audioMouse.containsMouse && !headsetPopupController.shown
                         text: (shellRoot.audioMuted ? `Muted · ${shellRoot.volumePercent}%` : `Volume · ${shellRoot.volumePercent}%`)
                             + (headsetService.headsetOn || headsetService.status === "error" ? `\n${headsetService.tooltip()}` : "")
                         alignRight: true

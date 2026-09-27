@@ -20,6 +20,11 @@ It reads events from stdin, one JSON object per line:
 {"lines": ["header", "text", "text"], "seconds": 6}. An event replaces the
 clock until it expires; a newer event replaces an older one. Everything stays
 PADDING pixels clear of the screen edge.
+
+Settings are sent on stdin as {"set": "eq", "value": 2}; names and ranges are
+in SETTINGS. The base cannot report them, so the helper keeps the last values
+it sent in STATE_FILE and prints them as {"settings": {...}} at start and after
+every change. A rejected change prints {"settingError": "..."}.
 """
 
 import datetime
@@ -45,6 +50,25 @@ QUERY_STATUS = 0x41
 QUERY_SPARE_BATTERY = 0x42
 STATUS_ON = 0x04
 STATUS_OFF = 0x02
+
+# Settings are [command, 0xAA, value] output reports, each checked against the
+# base's own menu. They apply at once but are lost on power loss until SAVE.
+SAVE = 0x09
+SAVE_DELAY = 1.5
+SETTINGS = {
+    "eq": (0x2E, 6),  # preset index in the base menu's order
+    "sidetone": (0x39, 9),  # the menu shows round(value * 10 / 9)
+    "autoOff": (0x3C, 12),  # 10-minute steps, 0 = never
+    "volumeLimiter": (0x27, 1),
+    "micLed": (0x3E, 10),  # tenths of full brightness
+    "oledBrightness": (0x85, 10),
+    "screenMode": (0x89, 2),  # 0 dim, 1 off, 2 screensaver
+}
+STATE_FILE = (
+    Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local" / "state")
+    / "arctis"
+    / "settings.json"
+)
 
 # The draw command is a 1024-byte feature report: command byte, then 8-row
 # pages of one byte per column, least significant bit on top.
@@ -72,13 +96,46 @@ def find_control_node() -> str | None:
     return None
 
 
-def query(fd: int, command: int) -> int:
+def report(command: int, *values: int) -> bytes:
     # Leading 0 is the hidraw report number; this interface has no report IDs.
-    os.write(fd, bytes([0, command, 0xAA]) + bytes(REPORT_SIZE - 2))
+    return bytes([0, command, 0xAA, *values]).ljust(REPORT_SIZE + 1, b"\0")
+
+
+def query(fd: int, command: int) -> int:
+    os.write(fd, report(command))
     ready, _, _ = select.select([fd], [], [], REPLY_TIMEOUT)
     if not ready:
         raise TimeoutError(f"no reply to query 0x{command:02x}")
     return os.read(fd, REPORT_SIZE)[0]
+
+
+def send(node: str, command: int, *values: int) -> None:
+    fd = os.open(node, os.O_RDWR)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        os.write(fd, report(command, *values))
+    finally:
+        os.close(fd)
+
+
+def load_settings() -> dict:
+    # The base cannot report its settings, so this is what was last sent.
+    try:
+        stored = json.loads(STATE_FILE.read_text())
+    except (OSError, ValueError):
+        return {}
+    return {
+        name: value
+        for name, value in stored.items()
+        if name in SETTINGS and isinstance(value, int) and 0 <= value <= SETTINGS[name][1]
+    }
+
+
+def store_settings(settings: dict) -> None:
+    STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    temporary = STATE_FILE.with_suffix(".tmp")
+    temporary.write_text(json.dumps(settings))
+    temporary.replace(STATE_FILE)
 
 
 def battery(value: int) -> int:
@@ -200,25 +257,34 @@ class Renderer:
         return self.pack(image)
 
 
-def read_events(buffer: bytearray, renderer: Renderer) -> tuple[list[tuple[bytes, float]], bool]:
-    """Drain stdin; return rendered events and whether stdin is still open."""
+def read_requests(buffer: bytearray) -> tuple[list[dict], bool]:
+    """Drain stdin; return complete JSON requests and whether stdin is open."""
     chunk = os.read(sys.stdin.fileno(), 65536)
     if not chunk:
         return [], False
     buffer.extend(chunk)
-    events = []
+    requests = []
     while b"\n" in buffer:
         line, _, rest = bytes(buffer).partition(b"\n")
         buffer[:] = rest
         try:
             request = json.loads(line)
-            lines = [str(text) for text in request["lines"]]
-            seconds = float(request["seconds"])
-        except (ValueError, KeyError, TypeError) as error:
-            print(f"arctis: ignoring event {line!r}: {error}", file=sys.stderr)
+            if not isinstance(request, dict):
+                raise ValueError("not an object")
+        except ValueError as error:
+            print(f"arctis: ignoring request {line!r}: {error}", file=sys.stderr)
             continue
-        events.append((renderer.event(lines), seconds))
-    return events, True
+        requests.append(request)
+    return requests, True
+
+
+def setting(request: dict) -> tuple[str, int]:
+    name, value = request["set"], request["value"]
+    if name not in SETTINGS:
+        raise ValueError(f"unknown setting {name!r}")
+    if not isinstance(value, int) or not 0 <= value <= SETTINGS[name][1]:
+        raise ValueError(f"{name} must be 0-{SETTINGS[name][1]}, not {value!r}")
+    return name, value
 
 
 def watch() -> None:
@@ -232,6 +298,9 @@ def watch() -> None:
     shown: bytes | None = None
     stdin_open = True
     stdin_buffer = bytearray()
+    settings = load_settings()
+    save_due: float | None = None
+    print(json.dumps({"settings": settings}), flush=True)
     while True:
         now = time.monotonic()
         if now >= status_due:
@@ -266,18 +335,50 @@ def watch() -> None:
                 except OSError as error:
                     print(f"arctis: draw failed: {error}", file=sys.stderr)
 
+        if save_due is not None and now >= save_due and node is not None:
+            # One save per burst of changes keeps writes to the base's memory low.
+            try:
+                send(node, SAVE)
+                save_due = None
+            except OSError as error:
+                print(f"arctis: save failed: {error}", file=sys.stderr)
+                save_due = now + STATUS_INTERVAL
+
         wall = time.time()
         wakeups = [status_due - now, 60 - wall % 60 + 0.05]
         if event is not None:
             wakeups.append(event_deadline - now)
+        if save_due is not None:
+            wakeups.append(save_due - now)
         timeout = max(0.0, min(wakeups))
         readable = [sys.stdin.fileno()] if stdin_open else []
         ready, _, _ = select.select(readable, [], [], timeout)
-        if ready:
-            events, stdin_open = read_events(stdin_buffer, renderer)
-            if events:
-                event, seconds = events[-1]
+        if not ready:
+            continue
+        requests, stdin_open = read_requests(stdin_buffer)
+        for request in requests:
+            if "lines" in request:
+                try:
+                    lines = [str(text) for text in request["lines"]]
+                    seconds = float(request["seconds"])
+                except (KeyError, TypeError, ValueError) as error:
+                    print(f"arctis: ignoring event {request!r}: {error}", file=sys.stderr)
+                    continue
+                event = renderer.event(lines)
                 event_deadline = time.monotonic() + seconds
+            elif "set" in request:
+                try:
+                    name, value = setting(request)
+                    if node is None or previous.get("state") not in ("on", "off"):
+                        raise OSError("the base station is not connected")
+                    send(node, SETTINGS[name][0], value)
+                except (KeyError, OSError, ValueError) as error:
+                    print(json.dumps({"settingError": str(error)}), flush=True)
+                    continue
+                settings[name] = value
+                store_settings(settings)
+                save_due = time.monotonic() + SAVE_DELAY
+                print(json.dumps({"settings": settings}), flush=True)
 
 
 def main() -> int:

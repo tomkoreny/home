@@ -38,6 +38,7 @@ ShellRoot {
     property bool aiUsageStale: false
     property real aiUsageUpdatedAt: 0
     property var timerAnchor: null
+    property var headsetAnchor: null
 
     Connections {
         target: Hyprland
@@ -424,6 +425,13 @@ ShellRoot {
         overlayController: overlays
         anchorItem: root.timerAnchor
     }
+    HeadsetSettingsPopup {
+        id: headsetPopup
+
+        service: headset
+        overlayController: overlays
+        anchorItem: root.headsetAnchor
+    }
 
 
 
@@ -467,6 +475,14 @@ ShellRoot {
         function popup(): bool {
             timerPopup.toggle();
             return timerPopup.shown;
+        }
+    }
+    IpcHandler {
+        target: "headset"
+
+        function settings(): bool {
+            headsetPopup.toggle();
+            return headsetPopup.shown;
         }
     }
     IpcHandler {
@@ -524,6 +540,7 @@ ShellRoot {
             upgradeStatusService: upgradeStatus
             overlayController: overlays
             timerPopupController: timerPopup
+            headsetPopupController: headsetPopup
             timerService: timers
             todoManagerController: todoManager
             todoService: todos

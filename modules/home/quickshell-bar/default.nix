@@ -388,6 +388,12 @@ let
     pwPlay = lib.getExe' pkgs.pipewire "pw-play";
     timerSound = "${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga";
   };
+  headsetSettingsPopup = pkgs.replaceVars ./HeadsetSettingsPopup.qml (
+    (builtins.removeAttrs themeVars [ "cardSurface" ])
+    // {
+      opaqueSurface = "#181825";
+    }
+  );
   timerPopup = pkgs.replaceVars ./TimerPopup.qml (
     (builtins.removeAttrs themeVars [ "cardSurface" ])
     // {
@@ -559,6 +565,7 @@ in
       "quickshell/tom-bar/HeadsetDisplayFeed.qml".source = ./HeadsetDisplayFeed.qml;
       "quickshell/tom-bar/UpgradeStatusService.qml".source = upgradeStatusService;
       "quickshell/tom-bar/TimerPopup.qml".source = timerPopup;
+      "quickshell/tom-bar/HeadsetSettingsPopup.qml".source = headsetSettingsPopup;
       "quickshell/tom-bar/TodoService.qml".source = todoService;
       "quickshell/tom-bar/TodoPanel.qml".source = todoPanel;
       "quickshell/tom-bar/TodoManager.qml".source = todoManager;
