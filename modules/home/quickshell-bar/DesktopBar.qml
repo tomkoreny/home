@@ -9,6 +9,7 @@ PanelWindow {
     required property var clockService
     required property var launcherController
     required property var notificationService
+    required property var headsetService
     required property var upgradeStatusService
     required property var overlayController
     required property var timerPopupController
@@ -287,6 +288,48 @@ PanelWindow {
                         text: @workProviderLabel@ + (workService.stale
                             ? ` · stale · ${workService.error || "Waiting for refresh"}`
                             : ` · ${workService.actionableCount} actionable tasks assigned to you`)
+                        alignRight: true
+                    }
+                }
+            }
+
+            Rectangle {
+                visible: headsetIndicator.visible
+                width: 1
+                height: 16
+                anchors.verticalCenter: parent.verticalCenter
+                color: "@border@"
+            }
+
+            Item {
+                id: headsetIndicator
+                visible: headsetService.headsetOn || headsetService.status === "error"
+                width: headsetText.implicitWidth + 12
+                height: parent.height
+
+                Text {
+                    id: headsetText
+                    anchors.centerIn: parent
+                    text: headsetService.status === "error"
+                        ? "󰋋 !"
+                        : `󰋋 ${headsetService.headsetBars < 0 ? "--" : `${headsetService.headsetBars * 25}%`}`
+                    color: headsetService.status === "error" || (headsetService.headsetBars >= 0 && headsetService.headsetBars <= 1)
+                        ? "@muted@"
+                        : "@text@"
+                    font.family: "@fontFamily@"
+                    font.pixelSize: 12
+                    font.weight: Font.DemiBold
+                }
+
+                MouseArea {
+                    id: headsetMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+
+                    HoverPopover {
+                        anchorItem: headsetMouse
+                        hovered: headsetMouse.containsMouse
+                        text: headsetService.tooltip()
                         alignRight: true
                     }
                 }

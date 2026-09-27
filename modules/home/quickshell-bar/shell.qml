@@ -370,6 +370,9 @@ ShellRoot {
     TimerService {
         id: timers
     }
+    HeadsetService {
+        id: headset
+    }
     UpgradeStatusService {
         id: upgradeStatus
     }
@@ -509,6 +512,7 @@ ShellRoot {
             clockService: clock
             launcherController: launcher
             notificationService: notifications
+            headsetService: headset
             upgradeStatusService: upgradeStatus
             overlayController: overlays
             timerPopupController: timerPopup

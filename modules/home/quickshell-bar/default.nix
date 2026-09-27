@@ -150,6 +150,14 @@ let
       builtins.readFile ./timer-backend.py
     );
   };
+  arctisHelper = pkgs.writeTextFile {
+    name = "arctis";
+    executable = true;
+    destination = "/bin/arctis";
+    text = builtins.replaceStrings [ "#!/usr/bin/env python3" ] [ "#!${pkgs.python3}/bin/python3" ] (
+      builtins.readFile ./arctis.py
+    );
+  };
 
   notionTodoHelper = pkgs.writeTextFile {
     name = "notion-todos";
@@ -375,6 +383,9 @@ let
       opaqueSurface = "#181825";
     }
   );
+  headsetService = pkgs.replaceVars ./HeadsetService.qml {
+    arctisHelper = lib.getExe arctisHelper;
+  };
   upgradeStatusService = pkgs.replaceVars ./UpgradeStatusService.qml {
     cat = lib.getExe' pkgs.coreutils "cat";
     ghostty = lib.getExe pkgs.ghostty;
@@ -526,6 +537,7 @@ in
       "quickshell/tom-bar/NotificationCard.qml".source = notificationCard;
       "quickshell/tom-bar/Notifications.qml".source = notifications;
       "quickshell/tom-bar/TimerService.qml".source = timerService;
+      "quickshell/tom-bar/HeadsetService.qml".source = headsetService;
       "quickshell/tom-bar/UpgradeStatusService.qml".source = upgradeStatusService;
       "quickshell/tom-bar/TimerPopup.qml".source = timerPopup;
       "quickshell/tom-bar/TodoService.qml".source = todoService;
