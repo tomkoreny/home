@@ -10,22 +10,22 @@ ShellRoot {
     property string mode: "awake"
     property bool inputArmed: false
 
-    function dim(): bool {
-        mode = "awake";
-        inputArmed = false;
-        return true;
-    }
-
     function blank(): bool {
+        // hypridle's own blank stage also fires after Super+L; keep the
+        // running power-off countdown instead of restarting it.
+        if (mode === "blank")
+            return true;
         mode = "blank";
         inputArmed = false;
         armInput.restart();
+        powerOff.restart();
         return true;
     }
 
     function wake(): bool {
         mode = "awake";
         inputArmed = false;
+        powerOff.stop();
         return true;
     }
 
@@ -47,12 +47,16 @@ ShellRoot {
         onTriggered: root.inputArmed = true
     }
 
+    // The clock stage lasts ten minutes however it was entered (idle or
+    // Super+L), then every output powers off.
+    Timer {
+        id: powerOff
+        interval: 600000
+        onTriggered: Quickshell.execDetached(["@oledIdle@", "dpms-off"])
+    }
+
     IpcHandler {
         target: "idle"
-
-        function dim(): bool {
-            return root.dim();
-        }
 
         function blank(): bool {
             return root.blank();
@@ -70,7 +74,8 @@ ShellRoot {
             id: saver
 
             required property var modelData
-            readonly property int clockSlot: Math.floor(clock.date.getTime() / 300000) % 4
+            // Drift the clock to a new spot every minute so no pixels stay lit.
+            readonly property int clockStep: Math.floor(clock.date.getTime() / 60000)
 
             screen: modelData
             visible: root.mode === "blank"
@@ -105,6 +110,7 @@ ShellRoot {
                 MouseArea {
                     anchors.fill: parent
                     hoverEnabled: true
+                    cursorShape: Qt.BlankCursor
                     onPositionChanged: root.requestWake()
                     onPressed: mouse => {
                         mouse.accepted = true;
@@ -113,14 +119,14 @@ ShellRoot {
                 }
 
                 Text {
-                    visible: saver.modelData.name === "DP-3"
-                    x: saver.clockSlot % 2 === 0 ? 48 : parent.width - width - 48
-                    y: saver.clockSlot < 2 ? 64 : parent.height - height - 64
+                    visible: saver.modelData.name === "DP-2"
+                    x: 96 + (saver.clockStep * 7919 % 101) / 100 * (parent.width - width - 192)
+                    y: 96 + (saver.clockStep * 104729 % 89) / 88 * (parent.height - height - 192)
                     text: Qt.formatDateTime(clock.date, "HH:mm")
-                    color: "#6c7086"
+                    color: "#262626"
                     font.family: "@fontFamily@"
-                    font.pixelSize: 28
-                    font.weight: Font.Medium
+                    font.pixelSize: 64
+                    font.weight: Font.Light
                 }
             }
         }

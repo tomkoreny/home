@@ -50,6 +50,7 @@ let
     runtimeInputs = [
       pkgs.coreutils
       pkgs.ddcutil
+      pkgs.jq
       pkgs.util-linux
     ];
     text = ''
@@ -57,14 +58,42 @@ let
       exec 9>"''${XDG_RUNTIME_DIR}/tom-oled-idle.lock"
       flock 9
       serials=(6D12YZ3 W6Z205100322 W6Z210400266)
+      main_output=DP-2
+      side_outputs=(HDMI-A-2 DP-3)
 
       call_idle() {
         ${pkgs.quickshell}/bin/qs -c tom-idle ipc call idle "$1" >/dev/null
       }
       set_dpms() {
         local dispatch
-        printf -v dispatch 'hl.dsp.dpms({ action = "%s" })' "$1"
+        if [[ -n "''${2:-}" ]]; then
+          printf -v dispatch 'hl.dsp.dpms({ action = "%s", monitor = "%s" })' "$1" "$2"
+        else
+          printf -v dispatch 'hl.dsp.dpms({ action = "%s" })' "$1"
+        fi
         "${hyprlandPackage}/bin/hyprctl" dispatch "$dispatch"
+      }
+      monitors_json() {
+        "${hyprlandPackage}/bin/hyprctl" monitors -j
+      }
+      main_is_on() {
+        monitors_json | jq -e --arg name "$main_output" 'any(.[]; .name == $name and .dpmsStatus)' >/dev/null
+      }
+      set_side_dpms() {
+        local monitors output
+        monitors="$(monitors_json)"
+        for output in "''${side_outputs[@]}"; do
+          # Hyprland applies an unmatched monitor selector to every output,
+          # so only address side outputs that are connected.
+          if jq -e --arg name "$output" 'any(.[]; .name == $name)' <<<"$monitors" >/dev/null; then
+            set_dpms "$1" "$output"
+          fi
+        done
+        # Any per-output DPMS off marks the whole compositor as off, and then
+        # every key press or release (including the Super+L release) powers
+        # all outputs back on. Re-asserting the main output clears that flag,
+        # so only the saver's own wake path turns the side outputs back on.
+        set_dpms on "$main_output"
       }
 
 
@@ -117,14 +146,20 @@ let
 
       case "''${1:-}" in
         dim)
-          call_idle dim || true
           capture_brightness
           set_saved_brightness 20
           ;;
         blank)
           call_idle blank
+          set_side_dpms off
           ;;
         wake)
+          # The side outputs are off only during the clock stage. After the
+          # full power-off stage, only a key wakes the displays, through
+          # Hyprland's key_press_enables_dpms.
+          if main_is_on; then
+            set_side_dpms on
+          fi
           call_idle wake || true
           restore_brightness
           ;;
@@ -287,12 +322,15 @@ in
           on-resume = "${oledIdle}/bin/oled-idle wake";
         }
         {
+          # Side outputs go off here; the saver powers every output off ten
+          # minutes later.
           timeout = 300;
           on-timeout = "${oledIdle}/bin/oled-idle blank";
           on-resume = "${oledIdle}/bin/oled-idle wake";
         }
         {
-          timeout = 600;
+          # Backstop in case the Quickshell saver is not running.
+          timeout = 900;
           on-timeout = "${oledIdle}/bin/oled-idle dpms-off";
         }
       ];
