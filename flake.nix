@@ -60,8 +60,14 @@
     # `update_gdk_pixbuf_loaders_cache`), which older brew releases cannot read
     # ("formula is unreadable"). nix-homebrew pins brew itself, so override it
     # and bump this tag whenever homebrew-core/homebrew-cask are updated.
+    #
+    # It must also match the `brew-src` tag in nix-homebrew's own flake.lock:
+    # nix-homebrew's `modules/brew.tail.sh` is a copy of that release's
+    # `bin/brew`, and the two halves of brew are not interchangeable (6.0.18's
+    # Ruby required `HOMEBREW_ORIGINAL_BREW_FILE`, which the 7.0.4 wrapper no
+    # longer exports, so `brew bundle` died during activation).
     brew-src = {
-      url = "github:Homebrew/brew/6.0.18";
+      url = "github:Homebrew/brew/7.0.4";
       flake = false;
     };
     nix-homebrew = {
