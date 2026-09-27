@@ -294,7 +294,6 @@ PanelWindow {
             }
 
             Rectangle {
-                visible: headsetIndicator.visible
                 width: 1
                 height: 16
                 anchors.verticalCenter: parent.verticalCenter
@@ -302,59 +301,32 @@ PanelWindow {
             }
 
             Item {
-                id: headsetIndicator
-                visible: headsetService.headsetOn || headsetService.status === "error"
-                width: headsetText.implicitWidth + 12
+                width: audioRow.implicitWidth + 12
                 height: parent.height
 
-                Text {
-                    id: headsetText
+                Row {
+                    id: audioRow
+
                     anchors.centerIn: parent
-                    text: headsetService.status === "error"
-                        ? "󰋋 !"
-                        : `󰋋 ${headsetService.headsetBars < 0 ? "--" : `${headsetService.headsetBars * 25}%`}`
-                    color: headsetService.status === "error" || (headsetService.headsetBars >= 0 && headsetService.headsetBars <= 1)
-                        ? "@muted@"
-                        : "@text@"
-                    font.family: "@fontFamily@"
-                    font.pixelSize: 12
-                    font.weight: Font.DemiBold
-                }
+                    spacing: 5
 
-                MouseArea {
-                    id: headsetMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-
-                    HoverPopover {
-                        anchorItem: headsetMouse
-                        hovered: headsetMouse.containsMouse
-                        text: headsetService.tooltip()
-                        alignRight: true
+                    Text {
+                        text: `${shellRoot.audioIcon()}  ${shellRoot.volumePercent}%`
+                        color: shellRoot.audioMuted ? "@muted@" : "@text@"
+                        font.family: "@fontFamily@"
+                        font.pixelSize: 12
+                        font.weight: Font.DemiBold
                     }
-                }
-            }
 
-            Rectangle {
-                width: 1
-                height: 16
-                anchors.verticalCenter: parent.verticalCenter
-                color: "@border@"
-            }
-
-            Item {
-                width: audioText.implicitWidth + 12
-                height: parent.height
-
-                Text {
-                    id: audioText
-
-                    anchors.centerIn: parent
-                    text: `${shellRoot.audioIcon()}  ${shellRoot.volumePercent}%`
-                    color: shellRoot.audioMuted ? "@muted@" : "@text@"
-                    font.family: "@fontFamily@"
-                    font.pixelSize: 12
-                    font.weight: Font.DemiBold
+                    // Arctis headset battery, on the base's own 4-bar scale.
+                    Text {
+                        visible: headsetService.headsetOn || headsetService.status === "error"
+                        text: headsetService.batteryIcon()
+                        color: headsetService.batteryLow() ? "@muted@" : "@text@"
+                        font.family: "@fontFamily@"
+                        font.pixelSize: 12
+                        font.weight: Font.DemiBold
+                    }
                 }
 
                 MouseArea {
@@ -367,7 +339,8 @@ PanelWindow {
                     HoverPopover {
                         anchorItem: audioMouse
                         hovered: audioMouse.containsMouse
-                        text: shellRoot.audioMuted ? `Muted · ${shellRoot.volumePercent}%` : `Volume · ${shellRoot.volumePercent}%`
+                        text: (shellRoot.audioMuted ? `Muted · ${shellRoot.volumePercent}%` : `Volume · ${shellRoot.volumePercent}%`)
+                            + (headsetService.headsetOn || headsetService.status === "error" ? `\n${headsetService.tooltip()}` : "")
                         alignRight: true
                     }
                 }

@@ -21,6 +21,18 @@ Scope {
         return bars < 0 ? "unknown" : `${bars}/4 bars`;
     }
 
+    // Nerd Font battery glyphs for the base's 0-4 bars; stretched so each
+    // coarse level reads distinctly.
+    function batteryIcon(): string {
+        if (status === "error")
+            return "󰂃";
+        return ["󰂎", "󰁻", "󰁾", "󰂁", "󰁹"][headsetBars] ?? "󰂎";
+    }
+
+    function batteryLow(): bool {
+        return status === "error" || (headsetBars >= 0 && headsetBars <= 1);
+    }
+
     function tooltip(): string {
         if (status === "error")
             return `Arctis Pro Wireless · ${error}`;
