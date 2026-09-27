@@ -53,6 +53,14 @@ Scope {
         return `In use by ${names.join(", ")}`;
     }
 
+    function chooseSink(node): void {
+        Pipewire.preferredDefaultAudioSink = node;
+    }
+
+    function chooseSource(node): void {
+        Pipewire.preferredDefaultAudioSource = node;
+    }
+
     // Volumes and names are only filled in for tracked nodes.
     PwObjectTracker {
         objects: root.shown ? root.audioNodes : [root.sink, root.source].filter(node => node)
@@ -82,6 +90,11 @@ Scope {
         required property string mutedIcon
         readonly property bool muted: audio ? audio.muted : false
 
+        function toggle(): void {
+            if (audio)
+                audio.muted = !audio.muted;
+        }
+
         width: 28
         height: 28
         radius: 8
@@ -103,10 +116,7 @@ Scope {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: {
-                if (muteButton.audio)
-                    muteButton.audio.muted = !muteButton.audio.muted;
-            }
+            onClicked: muteButton.toggle()
         }
     }
 
@@ -330,7 +340,7 @@ Scope {
                 DeviceList {
                     nodes: root.sinks
                     current: root.sink
-                    onChosen: node => Pipewire.preferredDefaultAudioSink = node
+                    onChosen: node => root.chooseSink(node)
                 }
 
                 Item {
@@ -360,7 +370,7 @@ Scope {
                 DeviceList {
                     nodes: root.sources
                     current: root.source
-                    onChosen: node => Pipewire.preferredDefaultAudioSource = node
+                    onChosen: node => root.chooseSource(node)
                 }
 
                 Item {
