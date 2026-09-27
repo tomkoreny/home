@@ -38,6 +38,12 @@ let
     HINDSIGHT_API_TOKEN="$(${pkgs.coreutils}/bin/cat "$token_file")"
     ${lib.optionalString pkgs.stdenv.hostPlatform.isLinux ''
       export PUPPETEER_EXECUTABLE_PATH=${lib.getExe pkgs.chromium}
+      # OMP voice follows a Mac attached through herdr (common.ompVoice).
+      # libpulse tries the list in order on every new stream, so each
+      # recording or TTS reply picks the Mac while its forwarded socket
+      # accepts connections and NixOS audio once it refuses. Child processes
+      # OMP starts inherit the same routing.
+      export PULSE_SERVER="''${PULSE_SERVER:-unix:${common.ompVoice.nixosSocket} unix:''${XDG_RUNTIME_DIR:-/run/user/$(${pkgs.coreutils}/bin/id -u)}/pulse/native}"
     ''}
     exec ${lib.getExe ompPackage} "$@"
   '';

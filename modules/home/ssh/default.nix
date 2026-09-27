@@ -1,10 +1,14 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 
 let
+  common = import ../../../lib/common { };
+  nixosV6Address = "2a0d:3344:78f0:9f07:c8b8:5c45:e58e:b26e";
+
   # Single source of truth for SSH hosts. Blocks use upstream ssh_config
   # directive names; the attribute name becomes the `Host` pattern.
   # ~/.omp/agent/ssh.json is derived from this set below.
@@ -38,13 +42,28 @@ let
     };
 
     # Global IPv6 address of the same host, reachable from outside the home
-    # network without a VPN. Herdr's saved "nixos" machine targets this alias.
+    # network without a VPN. Herdr's saved "nixos" machine connects to the raw
+    # address (tom@<address>), so the pattern lists it beside the alias.
     # The host-key alias keeps one known_hosts identity across both paths.
-    "nixos-v6" = {
-      HostName = "2a0d:3344:78f0:9f07:c8b8:5c45:e58e:b26e";
+    "nixos-v6 ${nixosV6Address}" = {
+      HostName = nixosV6Address;
       User = "tom";
       AddressFamily = "inet6";
       HostKeyAlias = "nixos.local";
+    }
+    // lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
+      # OMP voice while herdr is attached from the Mac (common.ompVoice): the
+      # Mac's PulseAudio socket appears on NixOS where the omp wrapper looks
+      # first. The forward lives as long as the ControlMaster herdr's bridge
+      # rides on, so the persist window is cut to 60 s: quitting herdr hands
+      # voice back to NixOS within a minute instead of ten.
+      RemoteForward = [
+        {
+          bind.address = common.ompVoice.nixosSocket;
+          host.address = "${common.ompVoice.macRuntimeDir}/native";
+        }
+      ];
+      ControlPersist = "60";
     };
 
     # Attach directly to the persistent NixOS tmux session.

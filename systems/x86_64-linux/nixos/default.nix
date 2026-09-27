@@ -334,6 +334,16 @@ in
         PasswordAuthentication = false;
         KbdInteractiveAuthentication = false;
         X11Forwarding = false;
+        # The Mac reverse-forwards its PulseAudio socket for OMP voice
+        # (common.ompVoice). sshd never removes that socket file when the
+        # session ends, so without unlink the next attach fails to bind.
+        StreamLocalBindUnlink = true;
+        # A sleeping Mac leaves the forwarded socket accepting connections
+        # that never answer, which hangs any OMP recording that starts then.
+        # Drop unresponsive clients after 60 s so the socket goes stale and
+        # OMP falls back to local audio.
+        ClientAliveInterval = 15;
+        ClientAliveCountMax = 4;
       };
     };
 
