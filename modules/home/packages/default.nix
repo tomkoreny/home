@@ -5,7 +5,10 @@
   ...
 }:
 {
-  programs.omp.enable = true;
+  programs.omp = {
+    enable = true;
+    package = lib.mkDefault (import ./omp.nix { inherit inputs lib pkgs; });
+  };
 
   home.packages = [
     pkgs.nerd-fonts.jetbrains-mono

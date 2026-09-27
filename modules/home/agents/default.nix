@@ -25,29 +25,7 @@
 }:
 let
   common = import ../../../lib/common { };
-  # Since 18.3.2 omp refuses to embed a native addon without its post-link
-  # version stamp, but upstream's nix/package.nix builds the addon with plain
-  # cargo and never stamps it, so every Nix build fails. Stamp it between the
-  # cargo build and the Bun compile. Guarded so this is a no-op once upstream's
-  # buildPhase stamps the addon itself; delete it then.
-  upstreamOmp = inputs.omp.packages.${pkgs.stdenv.hostPlatform.system}.omp;
-  ompPackage =
-    if lib.hasInfix "stamp-native-version" upstreamOmp.buildPhase then
-      upstreamOmp
-    else
-      upstreamOmp.overrideAttrs (old: {
-        buildPhase =
-          builtins.replaceStrings
-            [ ''echo "Compiling OMP"'' ]
-            [
-              ''
-                for addon in packages/natives/native/pi_natives.*.node; do
-                  bun scripts/stamp-native-version.ts "$addon"
-                done
-                echo "Compiling OMP"''
-            ]
-            old.buildPhase;
-      });
+  ompPackage = import ../packages/omp.nix { inherit inputs lib pkgs; };
   hyprctl = lib.getExe' config.wayland.windowManager.hyprland.package "hyprctl";
   ompWithHindsight = pkgs.writeShellScriptBin "omp" ''
     set -eu
