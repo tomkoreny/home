@@ -27,6 +27,8 @@ hard-coded visual convention.
 | Direct task capture | `Super + Shift + T` | `TodoManager.qml`, `notion-todos.py` |
 | Work task manager | `Super + W` or click the briefcase count | `WorkTaskManager.qml`, `WorkTaskService.qml`, `work-tasks.py`, `mantis_tasks.py` |
 | Notification centre | `Super + N` or click the bell | `Notifications.qml`, `NotificationCard.qml` |
+| Sound popover | Click the volume in the bar | `VolumePopup.qml` |
+| Arctis headset settings | Click the headset battery icons in the bar | `HeadsetSettingsPopup.qml`, `HeadsetService.qml`, `arctis.py` |
 | Session menu | `Super + Escape` or click the power icon | `modules/home/quickshell-osd/shell.qml` |
 | Volume OSD | Audio volume and mute keys | `modules/home/quickshell-osd/` |
 | Brightness OSD | Monitor brightness keys | `modules/home/quickshell-osd/` |
@@ -65,9 +67,9 @@ follows:
 | AI limits | OpenAI Codex weekly limit and Claude five-hour/weekly limits, including compact reset times | Click to invalidate and refresh OMP usage; hover for every reported limit and exact reset time. |
 | Notion tasks | Today count and, when non-zero, overdue count | Click to open the focused task manager; hover for freshness or cache errors. |
 | Work tasks | Briefcase and actionable assigned count; hidden at zero | Click to open the separate manager; hover for provider and freshness. |
-| Audio | PipeWire default-sink volume and mute state | Click to open `pavucontrol`. |
+| Audio | PipeWire default-sink volume and mute state, then the Arctis headset battery while the headset is on and the spare battery charging in its base | Click the volume to open the sound popover; middle-click to toggle mute; click a battery to open the Arctis settings; hover for the volume and both batteries. |
 | System tray | Quickshell system-tray items | Left click activates, middle click performs secondary activation, and right click opens the nested menu. |
-| Clock | Time and abbreviated date | Click to toggle seconds; hover for the full date. |
+| Clock | Time and abbreviated date; hidden while the Arctis base answers, because its OLED shows the clock | Click to toggle seconds; hover for the full date. |
 | Notifications | Bell/DND state and unread badge | Click to open the notification centre. |
 | Session | Power glyph | Click to open the session menu. |
 
@@ -302,6 +304,91 @@ The installed `work-tasks cache` command is network-free; `work-tasks list`
 refreshes the cache and advances the notification baseline. Do not use `list`
 as passive inspection while the bar is running: it consumes assignment events.
 
+## Sound popover
+
+Click the volume in the bar to open the sound popover. Middle-click the volume
+to toggle mute without opening it.
+
+- **Output** has a mute button, a volume slider, and the output devices.
+  Clicking a device makes it the default sink.
+- **Input** has the same controls for the default source. The line under the
+  slider names the applications recording from it, or says it is not in use.
+- **Apps** lists each application playing audio, with its own mute button and
+  slider. The section is hidden when nothing is playing.
+- **More settings** closes the popover and opens `pavucontrol`.
+
+Drag or click a slider to set a level from 0 to 100 percent, or scroll over it
+to move two percent at a time. Quickshell does not treat
+`Audio/Source/Virtual` nodes as audio devices, so virtual microphones such as
+noise-suppression filters do not appear in the input list.
+
+## Arctis Pro Wireless
+
+The bar talks to the SteelSeries Arctis Pro Wireless base station over its
+vendor HID interface, USB `1038:1290`. `arctis.py` is the only process that
+opens the device; `HeadsetService.qml` runs it as `arctis watch`. The
+`services.udev.packages = [ pkgs.headsetcontrol ]` line in
+`systems/x86_64-linux/nixos/default.nix` gives the logged-in user access to it.
+
+The command bytes come from
+[Chameth's reverse-engineering notes](https://chameth.com/reverse-engineering-arctis-pro-wireless-headset/),
+each checked against the base's own menu. The base answers queries but cannot
+report its settings, and it does not tell the PC when its volume knob turns.
+
+### Batteries and power
+
+The helper asks whether the headset is on every two seconds and reads both
+batteries every minute. Batteries use the base's own four-bar scale. The bar
+shows the headset battery while the headset is on and the spare battery while
+one is charging in the base. A spare reading of zero also means the slot is
+empty, so it is not shown.
+
+`tomkoreny.quickshell-bar.headsetFallbackSink` names the sink that becomes the
+default while the headset is off; on this host it is the VX2705 HDMI output.
+Switching off moves the default there, and switching on moves it back. Each
+move happens only while the sink it leaves is still the default, so an output
+picked by hand is left alone.
+
+### OLED clock
+
+The helper keeps the time, with the day and date under it, on the base's
+128x40 OLED. The block moves to a new spot every minute to spread burn-in, and
+it stays one pixel clear of the edge. A track change from the active MPRIS
+player replaces it for six seconds with the title and artist. Notifications
+are not shown there.
+
+### Settings popover
+
+Click a headset battery icon to change the base's settings:
+
+| Setting | Command | Values |
+| --- | --- | --- |
+| Equalizer preset | `0x2E` | 0 Balanced, 1 Immersion, 2 Performance, 3 Entertainment, 4 Music, 5 Voice, 6 Profile 1 |
+| Sidetone | `0x39` | 0 to 9; the base menu shows about `value * 10 / 9` |
+| Mic mute LED | `0x3E` | 0 to 10, in tenths of full brightness |
+| Auto-off | `0x3C` | 0 for never, otherwise 10-minute steps up to 120 minutes |
+| Volume limiter | `0x27` | 0 off, 1 on |
+| OLED brightness | `0x85` | 0 to 10 |
+| Screen mode | `0x89` | 0 dim, 1 off, 2 screensaver |
+
+Each change applies at once. Changes stay unsaved on the base until the helper
+sends the save command, `0x09`, 1.5 seconds after the last change. HeadsetControl
+uses `0x90` for this model, which does not persist anything on this firmware.
+If the base is unplugged before that save, it drops the change, and the popover
+says so.
+
+Because the base cannot report its settings, the popover shows the values last
+sent from this PC, kept in `~/.local/state/arctis/settings.json`. Changes made
+in the base's own menu do not appear in the popover. There is no known command
+for the base's screen timeout.
+
+Run the helper's regression test with Pillow available:
+
+```bash
+nix shell --impure --expr 'with import <nixpkgs> {}; python3.withPackages (p: [ p.pillow ])' \
+  -c python3 modules/home/quickshell-bar/test_arctis.py
+```
+
 ## Notifications
 
 Quickshell is the notification server while the bar module is enabled; the Mako
@@ -367,6 +454,7 @@ tomkoreny.quickshell-bar = {
   enable = true;
   outputs = [ "DP-1" "DP-2" ];
   primaryOutput = "DP-2";
+  headsetFallbackSink = "alsa_output.pci-0000_01_00.1.hdmi-stereo";
 };
 
 tomkoreny.quickshell-osd = {
@@ -391,6 +479,8 @@ qs -c tom-bar ipc call launcher clipboard
 qs -c tom-bar ipc call launcher herdr
 qs -c tom-bar ipc call launcher cameras
 qs -c tom-bar ipc call timers popup
+qs -c tom-bar ipc call volume popup
+qs -c tom-bar ipc call headset settings
 qs -c tom-bar ipc call todos toggle
 qs -c tom-bar ipc call todos capture
 qs -c tom-bar ipc call workTasks toggle
@@ -429,6 +519,12 @@ does not prove QML interaction, monitor placement, focus, or compositor input.
 | `modules/home/quickshell-bar/LauncherData.qml` | Clipboard, Herdr, camera, and AI provider processes. |
 | `modules/home/quickshell-bar/TimerService.qml` | Timer queue, ticking, expiry notification, and sound. |
 | `modules/home/quickshell-bar/TimerPopup.qml` | Anchored timer creation and management UI. |
+| `modules/home/quickshell-bar/VolumePopup.qml` | Sound popover: volume, mute, device choice, recording apps, and per-app volume. |
+| `modules/home/quickshell-bar/HeadsetService.qml` | Runs `arctis.py`; exposes headset state, batteries, and last-set settings. |
+| `modules/home/quickshell-bar/HeadsetAudioSwitch.qml` | Moves the default sink with the headset's power switch. |
+| `modules/home/quickshell-bar/HeadsetDisplayFeed.qml` | Sends track changes to the base's OLED. |
+| `modules/home/quickshell-bar/HeadsetSettingsPopup.qml` | Arctis base settings popover. |
+| `modules/home/quickshell-bar/arctis.py` | Arctis base HID bridge: status, batteries, OLED drawing, and settings with delayed save. |
 | `modules/home/quickshell-bar/timer-backend.py` | Locked, atomic timer state and duration parsing. |
 | `modules/home/quickshell-bar/TodoService.qml` | Compact-widget data, five-minute refresh, optimistic completion, and undo. |
 | `modules/home/quickshell-bar/TodoPanel.qml` | Persistent Today/Overdue panel. |
