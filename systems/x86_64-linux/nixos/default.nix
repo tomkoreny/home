@@ -403,6 +403,9 @@ in
       "gamemode"
     ];
     packages = [ ];
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFBlOVKsct1Qrd9uKbKr962p0Zv7m2TV5Ggdc+KltH2P moshi"
+    ];
   };
 
   # Maaaybe make this home manager somehow someday
