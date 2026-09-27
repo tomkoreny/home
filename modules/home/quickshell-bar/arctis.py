@@ -118,24 +118,54 @@ def send(node: str, command: int, *values: int) -> None:
         os.close(fd)
 
 
-def load_settings() -> dict:
-    # The base cannot report its settings, so this is what was last sent.
-    try:
-        stored = json.loads(STATE_FILE.read_text())
-    except (OSError, ValueError):
-        return {}
-    return {
-        name: value
-        for name, value in stored.items()
-        if name in SETTINGS and isinstance(value, int) and 0 <= value <= SETTINGS[name][1]
-    }
+class SettingsStore:
+    """Values last sent to the base, and the ones the base has saved.
 
+    The base cannot report its settings, so `current` is what was last sent.
+    Changes stay unsaved on the base until SAVE; if it loses power first, they
+    are gone, and `current` falls back to `saved`.
+    """
 
-def store_settings(settings: dict) -> None:
-    STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    temporary = STATE_FILE.with_suffix(".tmp")
-    temporary.write_text(json.dumps(settings))
-    temporary.replace(STATE_FILE)
+    def __init__(self, path: Path | None = None) -> None:
+        self.path = path or STATE_FILE
+        self.current = self.load()
+        self.saved = dict(self.current)
+        self.save_due: float | None = None
+
+    def load(self) -> dict:
+        try:
+            stored = json.loads(self.path.read_text())
+        except (OSError, ValueError):
+            return {}
+        return {
+            name: value
+            for name, value in stored.items()
+            if name in SETTINGS and isinstance(value, int) and 0 <= value <= SETTINGS[name][1]
+        }
+
+    def store(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = self.path.with_suffix(".tmp")
+        temporary.write_text(json.dumps(self.current))
+        temporary.replace(self.path)
+
+    def changed(self, name: str, value: int, now: float) -> None:
+        self.current[name] = value
+        self.store()
+        self.save_due = now + SAVE_DELAY
+
+    def saved_now(self) -> None:
+        self.saved = dict(self.current)
+        self.save_due = None
+
+    def lose_unsaved(self) -> bool:
+        """Forget changes the base dropped by losing power; True if any."""
+        if self.save_due is None:
+            return False
+        self.current = dict(self.saved)
+        self.store()
+        self.save_due = None
+        return True
 
 
 def battery(value: int) -> int:
@@ -298,9 +328,8 @@ def watch() -> None:
     shown: bytes | None = None
     stdin_open = True
     stdin_buffer = bytearray()
-    settings = load_settings()
-    save_due: float | None = None
-    print(json.dumps({"settings": settings}), flush=True)
+    settings = SettingsStore()
+    print(json.dumps({"settings": settings.current}), flush=True)
     while True:
         now = time.monotonic()
         if now >= status_due:
@@ -308,6 +337,12 @@ def watch() -> None:
             node = find_control_node()
             if node is None:
                 state = {"state": "absent"}
+                # Unplugged inside the save delay: the base dropped those
+                # changes, and there is no device left to save them to.
+                if settings.lose_unsaved():
+                    print(json.dumps({"settings": settings.current}), flush=True)
+                    message = "The base was unplugged before saving, so the last change was lost."
+                    print(json.dumps({"settingError": message}), flush=True)
             else:
                 try:
                     state = read_state(node, now >= batteries_due, previous)
@@ -335,21 +370,21 @@ def watch() -> None:
                 except OSError as error:
                     print(f"arctis: draw failed: {error}", file=sys.stderr)
 
-        if save_due is not None and now >= save_due and node is not None:
+        if settings.save_due is not None and now >= settings.save_due and node is not None:
             # One save per burst of changes keeps writes to the base's memory low.
             try:
                 send(node, SAVE)
-                save_due = None
+                settings.saved_now()
             except OSError as error:
                 print(f"arctis: save failed: {error}", file=sys.stderr)
-                save_due = now + STATUS_INTERVAL
+                settings.save_due = now + STATUS_INTERVAL
 
         wall = time.time()
         wakeups = [status_due - now, 60 - wall % 60 + 0.05]
         if event is not None:
             wakeups.append(event_deadline - now)
-        if save_due is not None:
-            wakeups.append(save_due - now)
+        if settings.save_due is not None:
+            wakeups.append(settings.save_due - now)
         timeout = max(0.0, min(wakeups))
         readable = [sys.stdin.fileno()] if stdin_open else []
         ready, _, _ = select.select(readable, [], [], timeout)
@@ -375,10 +410,8 @@ def watch() -> None:
                 except (KeyError, OSError, ValueError) as error:
                     print(json.dumps({"settingError": str(error)}), flush=True)
                     continue
-                settings[name] = value
-                store_settings(settings)
-                save_due = time.monotonic() + SAVE_DELAY
-                print(json.dumps({"settings": settings}), flush=True)
+                settings.changed(name, value, time.monotonic())
+                print(json.dumps({"settings": settings.current}), flush=True)
 
 
 def main() -> int:
