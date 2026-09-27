@@ -105,15 +105,15 @@
     # Browser-enabled Jellyfin MPV Shim pre-release and the dependency versions
     # it requires. Nixpkgs still packages the older cast-only 2.10.0 release.
     jellyfin-mpv-shim-src = {
-      url = "github:jellyfin/jellyfin-mpv-shim/v3.0.0pre14";
+      url = "github:jellyfin/jellyfin-mpv-shim/v3.0.0";
       flake = false;
     };
     jellyfin-apiclient-python-src = {
-      url = "github:jellyfin/jellyfin-apiclient-python/v1.18.0";
+      url = "github:jellyfin/jellyfin-apiclient-python/v1.19.0";
       flake = false;
     };
     python-mpv-jsonipc-src = {
-      url = "github:iwalton3/python-mpv-jsonipc/v1.3.0";
+      url = "github:iwalton3/python-mpv-jsonipc/v1.4.0";
       flake = false;
     };
     jellyfin-default-shader-pack-src = {

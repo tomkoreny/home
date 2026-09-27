@@ -658,11 +658,11 @@
     "homebrew-cask": {
       "flake": false,
       "locked": {
-        "lastModified": 1790490073,
-        "narHash": "sha256-dCuBuxLeb/XL7viw5cW/q87h42zm4tDUdqAIy6i98uQ=",
+        "lastModified": 1790518578,
+        "narHash": "sha256-1/uQMeC30RlaCSaa4MO53fGH50p+/RRoWWytBbFchyA=",
         "owner": "homebrew",
         "repo": "homebrew-cask",
-        "rev": "1cd6b808b0e7a497b6a503d2877cf1ae546fba77",
+        "rev": "26720c9291f234f4783ffe95ce6813b57e6693b6",
         "type": "github"
       },
       "original": {
@@ -674,11 +674,11 @@
     "homebrew-core": {
       "flake": false,
       "locked": {
-        "lastModified": 1790495502,
-        "narHash": "sha256-mf10SMzW0zXSbJqIdTZtC46Q6bwUODBzQnkmxSjueaE=",
+        "lastModified": 1790516773,
+        "narHash": "sha256-kY4RQ9D7vJt0A1RiTWy//nuTaqNJOjjtz/0TtGr613U=",
         "owner": "homebrew",
         "repo": "homebrew-core",
-        "rev": "ee39085124b6502817b0cb5787f326d655e576f6",
+        "rev": "dcf555aef4dcc5050d0ba1af26949fc3e07d8b3a",
         "type": "github"
       },
       "original": {
@@ -1009,16 +1009,16 @@
     "jellyfin-apiclient-python-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1785457671,
-        "narHash": "sha256-5xiKtV/nRvrRXHjLizY7vOV9bamk1elQmPt55QtA8xc=",
+        "lastModified": 1790447248,
+        "narHash": "sha256-ZyeHkiDWf93B7sSlDqugQZ5H6HxK16DK+NAZIry+EuY=",
         "owner": "jellyfin",
         "repo": "jellyfin-apiclient-python",
-        "rev": "d49f372bdfc801f8c2df9546def83c8a60be3bdd",
+        "rev": "3b4e7ac1a2c6c1aff4c95799c47532b0a418e0fa",
         "type": "github"
       },
       "original": {
         "owner": "jellyfin",
-        "ref": "v1.18.0",
+        "ref": "v1.19.0",
         "repo": "jellyfin-apiclient-python",
         "type": "github"
       }
@@ -1043,16 +1043,16 @@
     "jellyfin-mpv-shim-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1787974844,
-        "narHash": "sha256-XerAY1SXlRGWXjBSyAl8cBadaKs75/ZiAHQWSMPStKs=",
+        "lastModified": 1788816977,
+        "narHash": "sha256-BaZ7AErCe80wHoJ5KFBLVPIu8egFieWX457NgrXDKhs=",
         "owner": "jellyfin",
         "repo": "jellyfin-mpv-shim",
-        "rev": "a903c16d9503c28318c8a0d89794111279e68341",
+        "rev": "9970b2dc4a91f0c96a9fa5a1fcecf6a69331e315",
         "type": "github"
       },
       "original": {
         "owner": "jellyfin",
-        "ref": "v3.0.0pre14",
+        "ref": "v3.0.0",
         "repo": "jellyfin-mpv-shim",
         "type": "github"
       }
@@ -1435,11 +1435,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1790485083,
-        "narHash": "sha256-kTuXN5L+9nYbsPCF6sKJ4Cd/vCemmRqQHFsPRUkBY/4=",
+        "lastModified": 1790517900,
+        "narHash": "sha256-wVaLBy/ySvpfgI+p2K3fDv4oyO6osw1qXbjmNvcqu2o=",
         "owner": "can1357",
         "repo": "oh-my-pi",
-        "rev": "b1a8b875cf81ec2fdc3cc397a2d4b6a9a777543d",
+        "rev": "22269d67cb29a77e5fbf0b2a3918f58a6d682454",
         "type": "github"
       },
       "original": {
@@ -1528,16 +1528,16 @@
     "python-mpv-jsonipc-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1787026460,
-        "narHash": "sha256-i21Pzaidoi2MLb6Le9pA37IRy804MeC0yVV4KONb3mk=",
+        "lastModified": 1788228237,
+        "narHash": "sha256-fSZ2xPWkdkXubSvgT0pGEvTtnQepBkfYHRVlCGoH6Tg=",
         "owner": "iwalton3",
         "repo": "python-mpv-jsonipc",
-        "rev": "7ac24dac31cb20771a59f1eb7737069fb8dda55e",
+        "rev": "c96d823c69be26bfc93a1cca6b658ff4cd3614b4",
         "type": "github"
       },
       "original": {
         "owner": "iwalton3",
-        "ref": "v1.3.0",
+        "ref": "v1.4.0",
         "repo": "python-mpv-jsonipc",
         "type": "github"
       }
@@ -1723,11 +1723,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1790247521,
-        "narHash": "sha256-TNfgoHsqsYYvaJImlWctfRkh4PseTagzegU1Dgdbehw=",
+        "lastModified": 1790498116,
+        "narHash": "sha256-rs9meAYxW3zzrh43yaW7htrqCD+X9+pupDPHN86fumI=",
         "owner": "Mic92",
         "repo": "sops-nix",
-        "rev": "2bd00bd9bb35fe6d114888c8f1c2e946c541dd8f",
+        "rev": "5efb5a6f4f5ab192817d28557dd4d650fa14d866",
         "type": "github"
       },
       "original": {

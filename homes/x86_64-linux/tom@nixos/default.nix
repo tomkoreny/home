@@ -28,12 +28,12 @@ let
   };
 
   jellyfinApiClient = python.jellyfin-apiclient-python.overridePythonAttrs (_: {
-    version = "1.18.0";
+    version = "1.19.0";
     src = inputs.jellyfin-apiclient-python-src;
   });
 
   mpvJsonIpc = python.python-mpv-jsonipc.overridePythonAttrs (_: {
-    version = "1.3.0";
+    version = "1.4.0";
     src = inputs.python-mpv-jsonipc-src;
   });
 
@@ -58,7 +58,7 @@ let
   };
 
   jellyfinMpvShim = pkgs.jellyfin-mpv-shim.overridePythonAttrs (old: {
-    version = "3.0.0pre14";
+    version = "3.0.0";
     src = inputs.jellyfin-mpv-shim-src;
     dependencies = [
       jellyfinApiClient
