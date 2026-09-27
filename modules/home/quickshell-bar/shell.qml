@@ -378,6 +378,9 @@ ShellRoot {
         headset: headset
         fallbackSink: root.headsetFallbackSink
     }
+    HeadsetDisplayFeed {
+        headset: headset
+    }
     UpgradeStatusService {
         id: upgradeStatus
     }

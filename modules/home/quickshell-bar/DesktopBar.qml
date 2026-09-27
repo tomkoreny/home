@@ -386,6 +386,7 @@ PanelWindow {
                 overlays: overlayController
             }
             Rectangle {
+                visible: barClock.visible
                 width: 1
                 height: 16
                 anchors.verticalCenter: parent.verticalCenter
@@ -393,6 +394,9 @@ PanelWindow {
             }
 
             Item {
+                id: barClock
+                // The Arctis base's OLED shows the clock while it answers.
+                visible: !headsetService.displayConnected
                 width: clockRows.implicitWidth + 12
                 height: parent.height
 

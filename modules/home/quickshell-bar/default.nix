@@ -154,9 +154,19 @@ let
     name = "arctis";
     executable = true;
     destination = "/bin/arctis";
-    text = builtins.replaceStrings [ "#!/usr/bin/env python3" ] [ "#!${pkgs.python3}/bin/python3" ] (
-      builtins.readFile ./arctis.py
-    );
+    text =
+      builtins.replaceStrings
+        [
+          "#!/usr/bin/env python3"
+          "@fontRegular@"
+          "@fontBold@"
+        ]
+        [
+          "#!${pkgs.python3.withPackages (ps: [ ps.pillow ])}/bin/python3"
+          "${pkgs.terminus_font_ttf}/share/fonts/truetype/TerminusTTF.ttf"
+          "${pkgs.terminus_font_ttf}/share/fonts/truetype/TerminusTTF-Bold.ttf"
+        ]
+        (builtins.readFile ./arctis.py);
   };
 
   notionTodoHelper = pkgs.writeTextFile {
@@ -546,6 +556,7 @@ in
       "quickshell/tom-bar/TimerService.qml".source = timerService;
       "quickshell/tom-bar/HeadsetService.qml".source = headsetService;
       "quickshell/tom-bar/HeadsetAudioSwitch.qml".source = ./HeadsetAudioSwitch.qml;
+      "quickshell/tom-bar/HeadsetDisplayFeed.qml".source = ./HeadsetDisplayFeed.qml;
       "quickshell/tom-bar/UpgradeStatusService.qml".source = upgradeStatusService;
       "quickshell/tom-bar/TimerPopup.qml".source = timerPopup;
       "quickshell/tom-bar/TodoService.qml".source = todoService;

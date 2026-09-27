@@ -14,6 +14,8 @@ Scope {
     property string error: ""
 
     readonly property bool headsetOn: status === "on"
+    // The helper keeps its clock on the base's OLED whenever the base answers.
+    readonly property bool displayConnected: status === "on" || status === "off"
 
     function barsText(bars: int): string {
         return bars < 0 ? "unknown" : `${bars}/4 bars`;
@@ -39,10 +41,18 @@ Scope {
         }
     }
 
+    // Shows up to three lines on the base's OLED for `seconds`, then the
+    // helper returns to its clock. The first line is drawn bold.
+    function showOnBase(lines: var, seconds: real): void {
+        if (watcher.running)
+            watcher.write(JSON.stringify({ lines: lines, seconds: seconds }) + "\n");
+    }
+
     Process {
         id: watcher
         command: ["@arctisHelper@", "watch"]
         running: true
+        stdinEnabled: true
         stdout: SplitParser {
             onRead: line => root.update(line)
         }
