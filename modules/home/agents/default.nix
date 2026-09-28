@@ -302,7 +302,7 @@ in
       };
 
       modelRoles = {
-        default = "anthropic/claude-fable-5-1";
+        default = "anthropic/claude-opus-5-5";
         # Vibe-mode worker tiers: `fast` spawns run @smol, `good` spawns run @task.
         smol = "openai-codex/gpt-6-astra:low";
         task = "openai-codex/gpt-6-astra:high";
@@ -320,8 +320,8 @@ in
         usageReservePct = 10;
         usageReservePolicy = "auto";
         fallbackChains = {
-          "anthropic/claude-fable-5-1" = [ "openai-codex/gpt-6-astra:high" ];
-          "openai-codex/gpt-6-astra" = [ "anthropic/claude-fable-5-1" ];
+          "anthropic/claude-opus-5-5" = [ "openai-codex/gpt-6-astra:high" ];
+          "openai-codex/gpt-6-astra" = [ "anthropic/claude-opus-5-5" ];
         };
       };
       advisor.enabled = true;
