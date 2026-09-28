@@ -46,11 +46,22 @@ let
     };
 
     # Global IPv6 address of the same host, reachable from outside the home
-    # network without a VPN. Herdr's saved "nixos" machine connects to the raw
-    # address (tom@<address>), so the pattern lists it beside the alias.
-    # The host-key alias keeps one known_hosts identity across both paths.
-    "nixos-v6 ${nixosV6Address}" = {
+    # network without a VPN, but only when the client itself has IPv6.
+    # The host-key alias keeps one known_hosts identity across all paths.
+    "nixos-v6" = {
       HostName = nixosV6Address;
+      User = "tom";
+      AddressFamily = "inet6";
+      HostKeyAlias = "nixos.local";
+    };
+
+    # Same host over Yggdrasil (modules/*/privacy-networks). The overlay runs
+    # over IPv4 through public peers, so it works on networks that give the
+    # Mac no IPv6, such as the phone hotspot. Never route this via wg0: that
+    # tunnel is a company VPN.
+    # Herdr's saved "nixos" machine on the Mac connects through this alias.
+    "nixos-ygg" = {
+      HostName = nixosYggAddress;
       User = "tom";
       AddressFamily = "inet6";
       HostKeyAlias = "nixos.local";
@@ -68,17 +79,6 @@ let
         }
       ];
       ControlPersist = "60";
-    };
-
-    # Same host over Yggdrasil (modules/*/privacy-networks). The overlay runs
-    # over IPv4 through public peers, so it works on networks that give the
-    # Mac no IPv6, such as the phone hotspot. Never route this via wg0: that
-    # tunnel is a company VPN.
-    "nixos-ygg" = {
-      HostName = nixosYggAddress;
-      User = "tom";
-      AddressFamily = "inet6";
-      HostKeyAlias = "nixos.local";
     };
 
     # Attach directly to the persistent NixOS tmux session.

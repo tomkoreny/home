@@ -43,6 +43,21 @@ rec {
     nixosSocket = "/run/user/1000/omp-voice-pulse.sock";
   };
 
+  # Public Yggdrasil peers shared by the Mac and NixOS. Both hosts dial the
+  # same nearby nodes, so Mac-to-NixOS traffic crosses one relay close to
+  # both instead of a US node (~270 ms round trip before this list). Picked
+  # from github.com/yggdrasil-network/public-peers by TCP connect time
+  # measured 2026-09-28 (Mac on phone hotspot / NixOS on Starlink):
+  #   Warsaw, Skhron      61 / 15 ms
+  #   Prague, vpsFree     30 / 53 ms
+  #   Vienna, marekjm     42 / 43 ms
+  # `?key=` pins the peer's public key where the list publishes one.
+  yggdrasil.peers = [
+    "tls://waw01.yggdrasil.hosted-by.skhron.eu:8884?key=030602cee88a761c68f5f14e1dad430f25238a703b69dc382321a38f833035b0"
+    "tls://37.205.14.171:993?key=0009e16b9e3afe7b13c3612560410434d3dfc70c8a8a0a63e51e0470cb8124f6"
+    "tls://109.176.250.101:65534"
+  ];
+
   # Split-tunnel WireGuard link to the internal network.
   #
   # Only the two internal prefixes below are pushed through the tunnel, so the

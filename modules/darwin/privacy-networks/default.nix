@@ -58,10 +58,7 @@ in
 
     yggdrasilPeers = lib.mkOption {
       type = with lib.types; listOf str;
-      default = [
-        "tls://marisa.nadeko.net:44442"
-        "tls://ygg-dc.lxak.net:8880"
-      ];
+      default = common.yggdrasil.peers;
       description = "Outbound Yggdrasil peer URIs";
     };
   };
