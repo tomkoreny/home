@@ -1,0 +1,123 @@
+#!@bash@
+# SketchyBar layout mirroring the Quickshell bar: a transparent bar with a
+# front-app island on the left and a status island on the right. Every widget
+# is driven by widgets.py; this file only declares items, order and style.
+
+plugin=@plugin@
+font="@font@"
+sketchybar() { "@sketchybar@" "$@"; }
+
+# topmost=window keeps the bar above application windows: without a tiling
+# window manager nothing reserves the top strip once the native menu bar is
+# auto-hidden, so windows dragged to the very top would otherwise cover it.
+sketchybar --bar \
+  height=36 \
+  notch_display_height=38 \
+  color=0x00000000 \
+  padding_left=6 \
+  padding_right=6 \
+  sticky=on \
+  topmost=window
+
+sketchybar --default \
+  padding_left=3 \
+  padding_right=3 \
+  icon.font="$font" \
+  icon.color=@text@ \
+  icon.padding_left=6 \
+  icon.padding_right=0 \
+  label.font="$font" \
+  label.color=@text@ \
+  label.padding_left=6 \
+  label.padding_right=6 \
+  popup.align=right \
+  popup.height=22 \
+  popup.background.color=@cardSurface@ \
+  popup.background.border_color=@border@ \
+  popup.background.border_width=1 \
+  popup.background.corner_radius=8 \
+  popup.background.padding_left=4 \
+  popup.background.padding_right=4
+
+# Left island: the frontmost application, the closest thing macOS has to the
+# workspace strip.
+sketchybar --add item front_app left \
+  --set front_app icon.padding_left=0 script="$plugin front_app" \
+  --subscribe front_app front_app_switched
+
+sketchybar --add bracket workspace front_app \
+  --set workspace \
+  background.color=@surface@ \
+  background.border_color=@border@ \
+  background.border_width=1 \
+  background.corner_radius=8 \
+  background.height=30
+
+# Right island. SketchyBar adds `right` items from the edge inwards, so this is
+# the Quickshell order reversed: battery, clock, work, todos, AI usage, timers,
+# herdr. `sep.*` are the one-pixel dividers between neighbours.
+add_separator() {
+  sketchybar --add item "sep.$1" right \
+    --set "sep.$1" \
+    width=1 \
+    padding_left=0 \
+    padding_right=0 \
+    label.drawing=off \
+    icon.drawing=off \
+    background.drawing=on \
+    background.color=@border@ \
+    background.height=16
+}
+
+sketchybar --add item battery right \
+  --set battery update_freq=60 script="$plugin battery" \
+  --subscribe battery power_source_change system_woke
+
+add_separator clock
+sketchybar --add item clock right \
+  --set clock update_freq=10 script="$plugin clock" click_script="$plugin clock click" \
+  --subscribe clock mouse.exited.global
+
+add_separator work
+sketchybar --add item work right \
+  --set work drawing=off update_freq=300 script="$plugin work" click_script="$plugin work click"
+
+add_separator todos
+sketchybar --add item todos right \
+  --set todos update_freq=300 script="$plugin todos" click_script="$plugin todos click"
+
+add_separator ai
+# One slot per AI account; widgets.py fills them from `omp usage --json` and
+# hides the unused ones. Only ai.0 polls, its script refreshes every slot.
+for slot in 3 2 1 0; do
+  sketchybar --add item "ai.$slot" right \
+    --set "ai.$slot" \
+    drawing=off \
+    icon=" " \
+    icon.width=22 \
+    icon.padding_left=4 \
+    icon.background.drawing=on \
+    icon.background.image.drawing=on \
+    icon.background.image.scale=0.5 \
+    label.padding_left=2 \
+    click_script="$plugin ai click"
+done
+sketchybar --set ai.0 update_freq=300 script="$plugin ai"
+
+add_separator timers
+sketchybar --add item timers right \
+  --set timers update_freq=1 script="$plugin timers" click_script="$plugin timers click"
+
+add_separator herdr
+sketchybar --add item herdr right \
+  --set herdr update_freq=2 script="$plugin herdr" click_script="$plugin herdr click"
+
+sketchybar --add bracket status battery sep.clock clock sep.work work sep.todos todos sep.ai ai.3 ai.2 ai.1 ai.0 sep.timers timers sep.herdr herdr \
+  --set status \
+  background.color=@surface@ \
+  background.border_color=@border@ \
+  background.border_width=1 \
+  background.corner_radius=8 \
+  background.height=30
+
+sketchybar --update

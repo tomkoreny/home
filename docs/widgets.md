@@ -9,9 +9,11 @@ The desktop shell is split into two Quickshell configurations:
 - `tom-osd` provides volume and brightness indicators, the media popup, and the
   session menu.
 
-Both are Linux-only Home Manager modules. Shared colours and fonts come from
-`lib/common/default.nix`; see [theming.md](theming.md) before adding another
-hard-coded visual convention.
+Both are Linux-only Home Manager modules. The data helpers behind the timers,
+Notion tasks, and work tasks live in `modules/home/bar-backends/` and are
+shared with the macOS bar (see [macOS bar](#macos-bar)). Shared colours and
+fonts come from `lib/common/default.nix`; see [theming.md](theming.md) before
+adding another hard-coded visual convention.
 
 ## Quick reference
 
@@ -286,10 +288,11 @@ The directory is private (`0700`) and the state file is `0600`. State is scoped
 to provider configuration and the notification baseline resets silently when
 the authenticated account changes.
 
-Enable the widget through `tomkoreny.quickshell-bar.workTasks`:
+Enable the widget through `tomkoreny.bar-backends.workTasks` (shared by the
+Linux and macOS bars):
 
 ```nix
-workTasks = {
+tomkoreny.bar-backends.workTasks = {
   enable = true;
   provider = "mantisbt";
   baseUrl = "https://polaris.i2ginfra.cz";
@@ -444,6 +447,42 @@ immediately. Reboot and Shutdown require a second confirmation step. Arrow-key
 focus navigation, Enter, mouse activation, outside click, and Escape are all
 supported.
 
+## macOS bar
+
+`modules/home/sketchybar/` renders the status island on macOS with
+[SketchyBar](https://felixkratz.github.io/SketchyBar/). Quickshell needs
+Wayland layer-shell and Hyprland IPC, so only the data side is shared: the same
+`notion-todos`, `work-tasks`, and `quickshell-timer` helpers from
+`modules/home/bar-backends/` plus `herdr api snapshot` and `omp usage --json`.
+`tomkoreny.sketchybar.enable = true` in `homes/aarch64-darwin/tom@macos`
+turns it on; it enables `tomkoreny.bar-backends` itself and reads
+`tomkoreny.bar-backends.workTasks` for the work provider.
+
+The bar is transparent with a front-app island on the left and the status
+island on the right, ordered herdr, timers, AI usage (one slot per account,
+provider logo plus the same windows as the Linux bar), Notion tasks, work
+tasks, clock, and battery. Every item runs `sketchybar-widgets <widget>`
+(`widgets.py`) on its schedule; a click toggles the item's popup:
+
+| Item | Popup rows | Row actions |
+| --- | --- | --- |
+| herdr | one row per pane: workspace, agent, status, title | click opens it with `herdr-view` in Ghostty |
+| timers | `New timer…` (native text dialog, `20m pasta`), then each timer with its remaining time | click pauses or resumes, right-click cancels |
+| AI usage | update age, account, every limit with reset time, `Refresh usage` | refresh runs `omp usage invalidate` |
+| Notion tasks | counts header, `New task…` (same capture tokens as Linux), then today's and overdue tasks | click completes, right-click opens in Notion |
+| work tasks | provider header, then actionable tasks with their status | click opens the issue |
+
+Timer expiry and newly assigned work issues use macOS notifications through
+`osascript`. Not ported: the task manager and editing views, work status
+transitions, and the launcher.
+
+The module sets the native menu bar to auto-hide (`_HIHideMenuBar`) and draws
+the bar with `topmost=window`, because without a tiling window manager nothing
+reserves the top strip. The native menu bar, Control Center, and app menus
+slide in when the mouse touches the top edge. The launchd agent
+`org.nix-community.home.sketchybar` logs to `~/Library/Logs/sketchybar.log`;
+`sketchybar --reload` re-runs the installed `~/.config/sketchybar/sketchybarrc`.
+
 ## Configuration
 
 The active host config enables the modules in
@@ -513,7 +552,8 @@ does not prove QML interaction, monitor placement, focus, or compositor input.
 
 | File | Responsibility |
 | --- | --- |
-| `modules/home/quickshell-bar/default.nix` | Home Manager options, substitutions, helper packages, installed QML, and `quickshell-bar.service`. |
+| `modules/home/bar-backends/default.nix` | Shared `tomkoreny.bar-backends` options, SOPS secrets, and the `quickshell-timer`, `notion-todos`, and `work-tasks` helper packages. |
+| `modules/home/quickshell-bar/default.nix` | Home Manager options, substitutions, installed QML, and `quickshell-bar.service`. |
 | `modules/home/quickshell-bar/shell.qml` | Bar windows, status widgets, component wiring, and `tom-bar` IPC. |
 | `modules/home/quickshell-bar/Launcher.qml` | Launcher presentation, mode selection, ranking, keyboard behavior, calculator/converter UI. |
 | `modules/home/quickshell-bar/LauncherData.qml` | Clipboard, Herdr, camera, and AI provider processes. |
@@ -525,16 +565,19 @@ does not prove QML interaction, monitor placement, focus, or compositor input.
 | `modules/home/quickshell-bar/HeadsetDisplayFeed.qml` | Sends track changes to the base's OLED. |
 | `modules/home/quickshell-bar/HeadsetSettingsPopup.qml` | Arctis base settings popover. |
 | `modules/home/quickshell-bar/arctis.py` | Arctis base HID bridge: status, batteries, OLED drawing, and settings with delayed save. |
-| `modules/home/quickshell-bar/timer-backend.py` | Locked, atomic timer state and duration parsing. |
+| `modules/home/bar-backends/timer-backend.py` | Locked, atomic timer state and duration parsing. |
 | `modules/home/quickshell-bar/TodoService.qml` | Compact-widget data, five-minute refresh, optimistic completion, and undo. |
 | `modules/home/quickshell-bar/TodoPanel.qml` | Persistent Today/Overdue panel. |
 | `modules/home/quickshell-bar/TodoManager.qml` | Focused task views, capture, editing, assignment, completion, and reopen UI. |
-| `modules/home/quickshell-bar/notion-todos.py` | Notion schema discovery, queries, mutations, caches, and completion journal. |
+| `modules/home/bar-backends/notion-todos.py` | Notion schema discovery, queries, mutations, caches, and completion journal. |
 | `modules/home/quickshell-bar/WorkTaskService.qml` | Independent work cache, refresh, optimistic status changes, and assignment notifications. |
 | `modules/home/quickshell-bar/WorkTaskManager.qml` | Focused work manager, local search, status filter, and workflow action menus. |
-| `modules/home/quickshell-bar/work-tasks.py` | Provider-neutral CLI, atomic snapshot/baseline, and serialized refreshes/writes. |
-| `modules/home/quickshell-bar/mantis_tasks.py` | Mantis REST identity, pagination, workflow/access metadata, ranking, and guarded status-only PATCH. |
+| `modules/home/bar-backends/work-tasks.py` | Provider-neutral CLI, atomic snapshot/baseline, and serialized refreshes/writes. |
+| `modules/home/bar-backends/mantis_tasks.py` | Mantis REST identity, pagination, workflow/access metadata, ranking, and guarded status-only PATCH. |
 | `modules/home/quickshell-bar/Notifications.qml` | Notification server, banners, history, DND, and centre. |
 | `modules/home/quickshell-bar/NotificationCard.qml` | Shared banner/history card presentation and actions. |
 | `modules/home/quickshell-osd/default.nix` | OSD options, `desktop-osd`, and `quickshell-osd.service`. |
 | `modules/home/quickshell-osd/shell.qml` | Volume, brightness, media, and session overlays plus `tom-osd` IPC. |
+| `modules/home/sketchybar/default.nix` | macOS `tomkoreny.sketchybar` module: plugin substitutions, rasterised provider logos, launchd agent, menu bar auto-hide. |
+| `modules/home/sketchybar/sketchybarrc` | SketchyBar layout: islands, item order, separators, fonts, popup style. |
+| `modules/home/sketchybar/widgets.py` | All macOS widgets: data fetch, labels, popup rows, row actions, notifications. |

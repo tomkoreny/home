@@ -4,6 +4,7 @@ import fcntl
 import json
 import os
 import re
+import subprocess
 import tempfile
 import time
 import uuid
@@ -19,7 +20,20 @@ def state_home() -> Path:
 STATE_DIR = state_home() / "quickshell-bar"
 STATE_FILE = STATE_DIR / "timers.json"
 LOCK_FILE = STATE_DIR / "timers.lock"
-BOOT_ID = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+
+
+def boot_id() -> str:
+    """Identify the current boot so timers from a previous one are dropped."""
+    try:
+        return Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+    except FileNotFoundError:
+        # macOS: the boot timestamp is unique per boot and stable within it.
+        return subprocess.run(
+            ["/usr/sbin/sysctl", "-n", "kern.boottime"], capture_output=True, text=True, check=True
+        ).stdout.strip()
+
+
+BOOT_ID = boot_id()
 DURATION_PART = re.compile(r"\s*(\d+)\s*([dhms])", re.IGNORECASE)
 UNIT_SECONDS = {"d": 86400, "h": 3600, "m": 60, "s": 1}
 
@@ -65,8 +79,11 @@ def locked_state():
         os.chmod(LOCK_FILE, 0o600)
         fcntl.flock(lock, fcntl.LOCK_EX)
         state = load_state()
+        before = json.dumps(state, sort_keys=True)
         yield state
-        save_state(state)
+        # The macOS bar ticks every second; only touch the file on real changes.
+        if json.dumps(state, sort_keys=True) != before or not STATE_FILE.exists():
+            save_state(state)
 
 
 def parse_timer(query: str) -> tuple[int, str]:

@@ -9,19 +9,10 @@ let
   cfg = config.tomkoreny.quickshell-bar;
   common = import ../../../lib/common { };
   fontFamily = (common.stylix.fonts pkgs inputs).sansSerif.name;
-  notionTodoAssigneeId = "c3045b6d-8e81-4f7a-a5fe-ebf07f041fef";
+  backends = config.tomkoreny.bar-backends;
   herdrPackage = inputs.herdr.packages.${pkgs.stdenv.hostPlatform.system}.default;
   aspectTiling = pkgs.callPackage ../hyprland/aspect-tiling.nix { };
-  providerLogoSources = {
-    anthropic = pkgs.fetchurl {
-      url = "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.94.0/icons/anthropic.svg";
-      hash = "sha256-6DP9+n5xh6hqBbhwklBnVWpQbc1COQia7XPh5YyTZqM=";
-    };
-    openai = pkgs.fetchurl {
-      url = "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.94.0/icons/openai.svg";
-      hash = "sha256-pZXfa0I5IMZ6f49zwGPkv7ctQVlICXtsrAY6I2a7UYY=";
-    };
-  };
+  providerLogoSources = import ../bar-backends/provider-logos.nix pkgs;
   providerLogos = pkgs.runCommand "quickshell-provider-logos" { } ''
     mkdir -p "$out"
     substitute ${providerLogoSources.anthropic} "$out/anthropic.svg" \
@@ -142,14 +133,6 @@ let
       esac
     '';
   };
-  timerHelper = pkgs.writeTextFile {
-    name = "quickshell-timer";
-    executable = true;
-    destination = "/bin/quickshell-timer";
-    text = builtins.replaceStrings [ "#!/usr/bin/env python3" ] [ "#!${pkgs.python3}/bin/python3" ] (
-      builtins.readFile ./timer-backend.py
-    );
-  };
   arctisHelper = pkgs.writeTextFile {
     name = "arctis";
     executable = true;
@@ -168,40 +151,6 @@ let
         ]
         (builtins.readFile ./arctis.py);
   };
-
-  notionTodoHelper = pkgs.writeTextFile {
-    name = "notion-todos";
-    executable = true;
-    destination = "/bin/notion-todos";
-    text =
-      builtins.replaceStrings
-        [
-          "#!/usr/bin/env python3"
-          "/run/secrets/notion-todos"
-          "@notion-todos-assignee-id@"
-        ]
-        [
-          "#!${pkgs.python3}/bin/python3"
-          config.sops.secrets.notion-todos.path
-          notionTodoAssigneeId
-        ]
-        (builtins.readFile ./notion-todos.py);
-  };
-
-  workConfig = pkgs.writeText "work-tasks-config.json" (
-    builtins.toJSON {
-      inherit (cfg.workTasks) provider baseUrl label;
-      tokenFile = if cfg.workTasks.enable then config.sops.secrets.work-tasks.path else "";
-    }
-  );
-  workTaskHelper = pkgs.runCommand "work-tasks" { nativeBuildInputs = [ pkgs.makeWrapper ]; } ''
-    mkdir -p "$out/lib/work-tasks" "$out/bin"
-    substitute ${./work-tasks.py} "$out/lib/work-tasks/work-tasks.py" \
-      --replace-fail '@workConfig@' '${workConfig}'
-    cp ${./mantis_tasks.py} "$out/lib/work-tasks/mantis_tasks.py"
-    makeWrapper ${pkgs.python3}/bin/python3 "$out/bin/work-tasks" \
-      --add-flags "$out/lib/work-tasks/work-tasks.py"
-  '';
   workNotify = pkgs.writeShellApplication {
     name = "work-task-notify";
     runtimeInputs = [
@@ -297,7 +246,7 @@ let
       primaryOutput = builtins.toJSON cfg.primaryOutput;
       videoStatusOutput = builtins.toJSON cfg.videoStatusOutput;
       headsetFallbackSink = builtins.toJSON cfg.headsetFallbackSink;
-      workTasksEnabled = builtins.toJSON cfg.workTasks.enable;
+      workTasksEnabled = builtins.toJSON backends.workTasks.enable;
       herdr = lib.getExe herdrPackage;
       hyprctl = lib.getExe' config.wayland.windowManager.hyprland.package "hyprctl";
       omp = lib.getExe config.programs.omp.package;
@@ -313,7 +262,7 @@ let
       "cardSurface"
     ])
     // {
-      workProviderLabel = builtins.toJSON cfg.workTasks.label;
+      workProviderLabel = builtins.toJSON backends.workTasks.label;
       qs = "${pkgs.quickshell}/bin/qs";
     }
   );
@@ -382,7 +331,7 @@ let
     launcherAi = lib.getExe launcherAi;
   };
   timerService = pkgs.replaceVars ./TimerService.qml {
-    timerHelper = lib.getExe timerHelper;
+    timerHelper = lib.getExe backends.helpers.timer;
     notifySend = lib.getExe pkgs.libnotify;
     pwPlay = lib.getExe' pkgs.pipewire "pw-play";
     timerSound = "${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga";
@@ -418,7 +367,7 @@ let
     uwsm = lib.getExe pkgs.uwsm;
   };
   todoService = pkgs.replaceVars ./TodoService.qml {
-    todoHelper = lib.getExe notionTodoHelper;
+    todoHelper = lib.getExe backends.helpers.notion;
     xdgOpen = lib.getExe' pkgs.xdg-utils "xdg-open";
   };
   todoPanel = pkgs.replaceVars ./TodoPanel.qml (
@@ -430,12 +379,12 @@ let
   todoManager = pkgs.replaceVars ./TodoManager.qml (
     themeVars
     // {
-      todoHelper = lib.getExe notionTodoHelper;
+      todoHelper = lib.getExe backends.helpers.notion;
       xdgOpen = lib.getExe' pkgs.xdg-utils "xdg-open";
     }
   );
   workTaskService = pkgs.replaceVars ./WorkTaskService.qml {
-    workHelper = "${workTaskHelper}/bin/work-tasks";
+    workHelper = "${backends.helpers.work}/bin/work-tasks";
     workNotify = lib.getExe workNotify;
     xdgOpen = lib.getExe' pkgs.xdg-utils "xdg-open";
   };
@@ -475,30 +424,6 @@ in
       default = "";
       description = "PipeWire sink node name that becomes the default while the Arctis Pro Wireless headset is powered off; empty disables switching";
     };
-
-    workTasks = {
-      enable = lib.mkEnableOption "independent provider-backed work tasks";
-      provider = lib.mkOption {
-        type = lib.types.enum [ "mantisbt" ];
-        default = "mantisbt";
-        description = "Work task provider adapter";
-      };
-      baseUrl = lib.mkOption {
-        type = lib.types.str;
-        default = "";
-        description = "HTTPS root URL of the work task provider";
-      };
-      label = lib.mkOption {
-        type = lib.types.str;
-        default = "Work provider";
-        description = "Provider name shown in the work count tooltip";
-      };
-      sopsFile = lib.mkOption {
-        type = lib.types.nullOr lib.types.path;
-        default = null;
-        description = "SOPS-encrypted JSON containing the personal API token under token";
-      };
-    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -521,34 +446,11 @@ in
           || (cfg.videoStatusOutput != cfg.primaryOutput && lib.elem cfg.videoStatusOutput cfg.outputs);
         message = "videoStatusOutput must be a different configured bar output.";
       }
-      {
-        assertion = !cfg.workTasks.enable || cfg.workTasks.sopsFile != null;
-        message = "Work tasks require a SOPS-encrypted token file.";
-      }
-      {
-        assertion = !cfg.workTasks.enable || lib.hasPrefix "https://" cfg.workTasks.baseUrl;
-        message = "Work tasks require an HTTPS provider base URL.";
-      }
     ];
 
-    sops.secrets.notion-todos = {
-      sopsFile = ../../../secrets/notion/todos.json;
-      format = "binary";
-      mode = "0400";
-    };
-    sops.secrets.work-tasks = lib.mkIf cfg.workTasks.enable {
-      sopsFile = cfg.workTasks.sopsFile;
-      format = "json";
-      key = "token";
-      mode = "0400";
-    };
+    tomkoreny.bar-backends.enable = true;
 
-    home.packages = [
-      pkgs.quickshell
-      timerHelper
-      notionTodoHelper
-    ]
-    ++ lib.optional cfg.workTasks.enable workTaskHelper;
+    home.packages = [ pkgs.quickshell ];
 
     xdg.configFile = {
       "quickshell/tom-bar/shell.qml".source = shell;

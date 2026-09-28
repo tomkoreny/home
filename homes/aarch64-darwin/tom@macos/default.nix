@@ -14,6 +14,15 @@ in
   home.homeDirectory = "/Users/tom";
 
   tomkoreny.komai.enable = true;
+  # Status island in the menu bar: Notion todos, Polaris tasks, timers, herdr, AI usage.
+  tomkoreny.sketchybar.enable = true;
+  tomkoreny.bar-backends.workTasks = {
+    enable = true;
+    provider = "mantisbt";
+    baseUrl = "https://polaris.i2ginfra.cz";
+    label = "Polaris";
+    sopsFile = ../../../secrets/polaris/work-tasks.json;
+  };
   home.packages = [
     pkgs.raycast
   ];

@@ -132,13 +132,14 @@ in
     primaryOutput = "DP-2";
     videoStatusOutput = "DP-3";
     headsetFallbackSink = "alsa_output.pci-0000_01_00.1.hdmi-stereo";
-    workTasks = {
-      enable = true;
-      provider = "mantisbt";
-      baseUrl = "https://polaris.i2ginfra.cz";
-      label = "Polaris";
-      sopsFile = ../../../secrets/polaris/work-tasks.json;
-    };
+  };
+  # Notion todos, Polaris work tasks and timers: shared with the macOS bar.
+  tomkoreny.bar-backends.workTasks = {
+    enable = true;
+    provider = "mantisbt";
+    baseUrl = "https://polaris.i2ginfra.cz";
+    label = "Polaris";
+    sopsFile = ../../../secrets/polaris/work-tasks.json;
   };
 
   tomkoreny.komai.enable = true;
