@@ -8,6 +8,10 @@
 let
   common = import ../../../lib/common { };
   nixosV6Address = "2a0d:3344:78f0:9f07:c8b8:5c45:e58e:b26e";
+  # Yggdrasil overlay address of the same host, derived from its key in
+  # secrets/yggdrasil/nixos-private.pem (`yggdrasil -useconf -address`).
+  # Stable for as long as that key is.
+  nixosYggAddress = "204:f4f4:6226:ebeb:780b:1c4a:847e:4bbc";
 
   # Single source of truth for SSH hosts. Blocks use upstream ssh_config
   # directive names; the attribute name becomes the `Host` pattern.
@@ -64,6 +68,17 @@ let
         }
       ];
       ControlPersist = "60";
+    };
+
+    # Same host over Yggdrasil (modules/*/privacy-networks). The overlay runs
+    # over IPv4 through public peers, so it works on networks that give the
+    # Mac no IPv6, such as the phone hotspot. Never route this via wg0: that
+    # tunnel is a company VPN.
+    "nixos-ygg" = {
+      HostName = nixosYggAddress;
+      User = "tom";
+      AddressFamily = "inet6";
+      HostKeyAlias = "nixos.local";
     };
 
     # Attach directly to the persistent NixOS tmux session.
