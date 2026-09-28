@@ -97,10 +97,15 @@
     # nixpkgs-unstable breaks (appstream link failure on darwin) and defeats
     # the lan-mouse.cachix.org binary cache, which is keyed to upstream's pin.
     lan-mouse.url = "github:feschber/lan-mouse";
-    # Note: no `inputs.nixpkgs.follows` here — mac-app-util is Common Lisp and
-    # breaks with SBCL >= 2.6 from unstable (hraban/mac-app-util#42); upstream
-    # deliberately pins nixos-26.05.
-    mac-app-util.url = "github:hraban/mac-app-util";
+    # Follows our nixpkgs for SBCL >= 2.6.6: upstream's nixos-26.05 pin ships
+    # SBCL 2.6.4, whose fixed static-space address cannot be mapped on
+    # macOS 27 ("failed to allocate 1048576 bytes at 0x300100000"), which
+    # aborted darwin activation at sync-trampolines. The SBCL 2.6 build
+    # failure (hraban/mac-app-util#42) is fixed upstream.
+    mac-app-util = {
+      url = "github:hraban/mac-app-util";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     puma-rails.url = "github:puma/homebrew-puma";
     puma-rails.flake = false;
     sikarugir-tap = {
