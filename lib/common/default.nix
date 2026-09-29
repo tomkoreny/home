@@ -51,11 +51,15 @@ rec {
   #   Warsaw, Skhron      61 / 15 ms
   #   Prague, vpsFree     30 / 53 ms
   #   Vienna, marekjm     42 / 43 ms
+  # Falkenstein (mkg20001) listens on 443, so the overlay still comes up on
+  # networks that only allow web ports (2026-09-29: a Wi-Fi that blocked
+  # 8884, 993 and 65534 left the Mac with no peer and Herdr reconnecting).
   # `?key=` pins the peer's public key where the list publishes one.
   yggdrasil.peers = [
     "tls://waw01.yggdrasil.hosted-by.skhron.eu:8884?key=030602cee88a761c68f5f14e1dad430f25238a703b69dc382321a38f833035b0"
     "tls://37.205.14.171:993?key=0009e16b9e3afe7b13c3612560410434d3dfc70c8a8a0a63e51e0470cb8124f6"
     "tls://109.176.250.101:65534"
+    "tls://ygg.mkg20001.io:443"
   ];
 
   # Split-tunnel WireGuard link to the internal network.
