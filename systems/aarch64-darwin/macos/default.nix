@@ -29,7 +29,8 @@ let
   # nix-homebrew reads the brew version from *its own* flake.lock, so with
   # `inputs.brew-src.follows` the label would describe the wrong tree. Derive it
   # from our lock instead.
-  brewVersion = (builtins.fromJSON (builtins.readFile ../../../flake.lock)).nodes.brew-src.original.ref;
+  brewVersion =
+    (builtins.fromJSON (builtins.readFile ../../../flake.lock)).nodes.brew-src.original.ref;
 
   # nix-homebrew embeds that version with `sed -e 's/^HOMEBREW_VERSION=.*/…/'`,
   # but brew 6 only assigns HOMEBREW_VERSION indented inside a conditional, so
@@ -143,6 +144,13 @@ in
         show-recents = false;
         tilesize = 44;
       };
+      # AeroSpace (modules/home/aerospace) hides windows on inactive
+      # workspaces in a screen corner; grouping by app keeps Mission Control
+      # usable with those windows, per the AeroSpace guide.
+      dock.expose-group-apps = true;
+      # "Displays have separate Spaces" off: AeroSpace's guide reports focus
+      # and performance bugs with it on. Takes effect after the next logout.
+      spaces.spans-displays = true;
       menuExtraClock = {
         Show24Hour = true;
         ShowAMPM = false;
@@ -351,6 +359,10 @@ in
       "raspberry-pi-imager"
       "prusaslicer"
       "scroll-reverser"
+      # Caps Lock as the AeroSpace modifier (config in modules/home/aerospace).
+      # The cask runs upstream's installer; nix-darwin's module rebuilds the
+      # driver layout by hand instead.
+      "karabiner-elements"
     ];
     masApps = {
       "DaVinci Resolve" = 571213070;

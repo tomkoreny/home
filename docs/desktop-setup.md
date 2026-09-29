@@ -123,6 +123,39 @@ The keyboard layout is explicitly US, matching the QMK/Hyprland setup.
 After connecting a new keyboard, run `systemctl --user restart espanso`;
 Espanso's Wayland backend discovers devices at startup.
 
+## macOS: AeroSpace tiling
+
+`tomkoreny.aerospace.enable` (in `homes/aarch64-darwin/tom@macos`) runs
+[AeroSpace](https://nikitabobko.github.io/AeroSpace/guide) from
+`modules/home/aerospace/` as the launchd agent
+`org.nix-community.home.aerospace` (log `~/Library/Logs/aerospace.log`), with
+the Hyprland binds above mirrored. Super becomes a held **Caps Lock**:
+Karabiner-Elements (Homebrew cask, rule in `~/.config/karabiner/karabiner.json`)
+turns it into Ctrl+Alt+Cmd, which leaves Shift for the "move" variants.
+
+| Keys                     | Action                                         |
+| ------------------------ | ---------------------------------------------- |
+| `Caps + 1…0`             | Workspace 1–10                                 |
+| `Caps + Shift + 1…0`     | Move window to workspace 1–10                  |
+| `Caps + S` / `+ Shift`   | Workspace S (Hyprland's special workspace) / move there |
+| `Caps + arrows`          | Focus left/right/up/down                       |
+| `Caps + Shift + arrows`  | Move window left/right/up/down                 |
+| `Caps + Q` / `B` / `E`   | New Ghostty window / Helium window / Finder    |
+| `Caps + C`               | Close window                                   |
+| `Caps + F` / `V` / `J`   | Fullscreen / float toggle / split orientation  |
+| `Caps + H` / `T` / `W`   | Herdr / Notion tasks / work tasks bar popups   |
+| `Caps + Shift + T`       | Capture a Notion task                          |
+| `Caps + L`               | Sleep the displays                             |
+
+The SketchyBar left island shows each monitor's occupied or visible
+workspaces (see [widgets.md](widgets.md#macos-bar)). First-run approvals are
+macOS privacy state, so they are granted by hand once: Accessibility for
+AeroSpace, and the driver extension plus Input Monitoring for Karabiner. The
+nixpkgs AeroSpace build is ad-hoc signed, so its Accessibility grant has to be
+renewed after AeroSpace updates. `system.defaults.spaces.spans-displays`
+(Displays have separate Spaces off, as the AeroSpace guide recommends) takes
+effect after a logout.
+
 ## Gotcha: new files must be git-tracked
 
 This is a flake on a git repo, so **Nix ignores untracked files**. After adding

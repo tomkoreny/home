@@ -16,6 +16,8 @@ in
   tomkoreny.komai.enable = true;
   # Status island in the menu bar: Notion todos, Polaris tasks, timers, herdr, AI usage.
   tomkoreny.sketchybar.enable = true;
+  # Tiling with Caps Lock as Super, mirroring the Hyprland binds.
+  tomkoreny.aerospace.enable = true;
   tomkoreny.bar-backends.workTasks = {
     enable = true;
     provider = "mantisbt";

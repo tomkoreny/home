@@ -32,12 +32,17 @@ OMP = "@omp@"
 # <provider>-<tone>.png for every provider id and COLOR key: SketchyBar cannot
 # tint images, so the logos are pre-rendered in each status colour.
 LOGO_DIR = "@logoDir@"
+AEROSPACE = "@aerospace@"  # empty when AeroSpace is disabled
 COLOR = {
     "accent": "@accent@",
+    "accentSurface": "@accentSurface@",
     "muted": "@muted@",
     "subdued": "@subdued@",
     "text": "@text@",
 }
+
+# Must match the space.* items in sketchybarrc and the AeroSpace bindings.
+WORKSPACES = [str(number) for number in range(1, 11)] + ["S"]
 
 AI_SLOTS = 4
 AI_PROVIDERS = {"openai-codex": ("Codex", ["7d"]), "anthropic": ("Claude", ["5h", "7d"])}
@@ -196,6 +201,45 @@ def toggle_popup(name: str) -> bool:
     if opened:
         sketchybar("--set", name, "popup.drawing=on")
     return opened
+
+
+# --- AeroSpace workspace strip -----------------------------------------------
+
+
+def aerospace_lines(*args: str) -> list[list[str]]:
+    result = subprocess.run([AEROSPACE, *args], capture_output=True, text=True, timeout=10, check=False)
+    if result.returncode != 0:
+        return []
+    return [line.split("\t") for line in result.stdout.splitlines() if line]
+
+
+def spaces(args: list[str]) -> None:
+    """Show each monitor's occupied or visible workspaces, like WorkspaceStrip.qml."""
+    if args[:1] == ["click"]:
+        subprocess.run([AEROSPACE, "workspace", os.environ.get("NAME", "").removeprefix("space.")], check=False)
+    workspaces = []
+    if AEROSPACE:
+        workspaces = aerospace_lines(
+            "list-workspaces", "--monitor", "all",
+            "--format", "%{workspace}%{tab}%{monitor-appkit-nsscreen-screens-id}%{tab}%{workspace-is-visible}",
+        )
+    occupied = {line[0] for line in aerospace_lines("list-workspaces", "--monitor", "all", "--empty", "no")} if AEROSPACE else set()
+    state = {line[0]: (line[1], line[2] == "true") for line in workspaces if len(line) == 3}
+
+    commands = []
+    for name in WORKSPACES:
+        item = f"space.{name}"
+        display, visible = state.get(name, ("", False))
+        if not display or not (visible or name in occupied):
+            commands += ["--set", item, "drawing=off"]
+            continue
+        commands += [
+            "--set", item, "drawing=on", f"display={display}",
+            f"background.drawing={'on' if visible else 'off'}",
+            f"icon.color={COLOR['accent'] if visible else COLOR['subdued']}",
+        ]
+    commands += ["--set", "sep.front_app", f"drawing={'on' if state else 'off'}"]
+    sketchybar(*commands)
 
 
 # --- front app / clock / battery ---------------------------------------------
@@ -594,6 +638,7 @@ def work(args: list[str]) -> None:
 
 
 WIDGETS = {
+    "spaces": spaces,
     "front_app": front_app,
     "clock": clock,
     "battery": battery,

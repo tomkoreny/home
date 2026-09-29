@@ -21,6 +21,7 @@ let
   # SketchyBar takes ARGB hex; these are the Quickshell theme values.
   theme = {
     accent = "0xff219fff";
+    accentSurface = "0x33219fff";
     border = "0x66219fff";
     cardSurface = "0xf21e1e2e";
     muted = "0xfff38ba8";
@@ -77,7 +78,9 @@ let
           "@herdrView@"
           "@omp@"
           "@logoDir@"
+          "@aerospace@"
           "@accent@"
+          "@accentSurface@"
           "@muted@"
           "@subdued@"
           "@text@"
@@ -93,7 +96,9 @@ let
           "${config.home.profileDirectory}/bin/herdr-view"
           (lib.getExe config.programs.omp.package)
           "${providerLogos}"
+          (lib.optionalString config.tomkoreny.aerospace.enable (lib.getExe pkgs.aerospace))
           theme.accent
+          theme.accentSurface
           theme.muted
           theme.subdued
           theme.text
@@ -111,6 +116,8 @@ let
       font = "${fontFamily}:Semibold:12.0";
       smallFont = "${fontFamily}:Semibold:9.0";
       inherit (theme)
+        accent
+        accentSurface
         border
         cardSurface
         surface

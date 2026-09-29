@@ -40,13 +40,54 @@ sketchybar --default \
   popup.background.padding_left=4 \
   popup.background.padding_right=4
 
-# Left island: the frontmost application, the closest thing macOS has to the
-# workspace strip.
+# Left island: AeroSpace workspaces as in WorkspaceStrip.qml (each monitor
+# shows its occupied or visible workspaces, the visible one highlighted),
+# then the frontmost application. The hidden `spaces` item refreshes the
+# whole strip; AeroSpace triggers aerospace_workspace_change on switches
+# and moves (modules/home/aerospace).
+sketchybar --add event aerospace_workspace_change \
+  --add item spaces left \
+  --set spaces drawing=off script="$plugin spaces" \
+  --subscribe spaces aerospace_workspace_change front_app_switched space_windows_change display_change system_woke
+
+for ws in 1 2 3 4 5 6 7 8 9 10 S; do
+  sketchybar --add item "space.$ws" left \
+    --set "space.$ws" \
+    drawing=off \
+    padding_left=1 \
+    padding_right=1 \
+    icon="$ws" \
+    icon.width=26 \
+    icon.align=center \
+    icon.padding_left=0 \
+    icon.padding_right=0 \
+    label.drawing=off \
+    background.drawing=off \
+    background.height=26 \
+    background.corner_radius=13 \
+    background.color=@accentSurface@ \
+    background.border_width=1 \
+    background.border_color=@accent@ \
+    click_script="$plugin spaces click"
+done
+
+sketchybar --add item sep.front_app left \
+  --set sep.front_app \
+  drawing=off \
+  width=1 \
+  padding_left=4 \
+  padding_right=0 \
+  label.drawing=off \
+  icon.drawing=off \
+  background.drawing=on \
+  background.color=@border@ \
+  background.height=16
+
 sketchybar --add item front_app left \
   --set front_app icon.padding_left=0 script="$plugin front_app" \
   --subscribe front_app front_app_switched
 
-sketchybar --add bracket workspace front_app \
+sketchybar --add bracket workspace space.1 space.2 space.3 space.4 space.5 space.6 space.7 space.8 space.9 space.10 space.S sep.front_app front_app \
   --set workspace \
   background.color=@surface@ \
   background.border_color=@border@ \

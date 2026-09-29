@@ -458,11 +458,15 @@ Wayland layer-shell and Hyprland IPC, so only the data side is shared: the same
 turns it on; it enables `tomkoreny.bar-backends` itself and reads
 `tomkoreny.bar-backends.workTasks` for the work provider.
 
-The bar is transparent with a front-app island on the left and the status
-island on the right, ordered herdr, timers, AI usage (one slot per account:
-the provider logo, tinted by the lowest limit, beside the same windows as the
-Linux bar, one 9 pt line each), Notion tasks, work
-tasks, clock, and battery. Every item runs `sketchybar-widgets <widget>`
+The bar is transparent. The left island shows the AeroSpace workspaces of
+that monitor (occupied or visible ones, the visible one highlighted; click to
+switch; hidden when AeroSpace is off, see
+[desktop-setup.md](desktop-setup.md#macos-aerospace-tiling)) followed by the
+front app name. The status island on the right holds, in order, herdr,
+timers, AI usage (one slot per account: the provider logo, tinted by the
+lowest limit, beside the same windows as the Linux bar, one 9 pt line each),
+Notion tasks, work tasks, clock, and battery. Every item runs
+`sketchybar-widgets <widget>`
 (`widgets.py`) on its schedule; a click toggles the item's popup:
 
 | Item | Popup rows | Row actions |
