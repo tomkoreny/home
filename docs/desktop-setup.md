@@ -147,6 +147,10 @@ turns it into Ctrl+Alt+Cmd, which leaves Shift for the "move" variants.
 | `Caps + Shift + T`       | Capture a Notion task                          |
 | `Caps + L`               | Sleep the displays                             |
 
+Windows start directly under the bar. AeroSpace has no smart gaps, so outer
+gaps are 0 everywhere: a lone window fills the screen below the bar, and
+several windows keep only a 4 pt gap between each other.
+
 The SketchyBar left island shows each monitor's occupied or visible
 workspaces (see [widgets.md](widgets.md#macos-bar)). First-run approvals are
 macOS privacy state, so they are granted by hand once: Accessibility for

@@ -111,18 +111,24 @@ in
         default-root-container-orientation = "auto";
         on-focused-monitor-changed = [ "move-mouse monitor-lazy-center" ];
 
-        # Hyprland: gaps_in 2 per side, gaps_out 10, below a 36pt bar. The
-        # built-in display's bar is 38pt tall around the notch.
+        # AeroSpace has no smart gaps (gaps cannot depend on the window
+        # count), so outer gaps are 0 and a lone window fills the area below
+        # the bar edge to edge, like Hyprland's single-window rule. Several
+        # windows keep a 4pt gap between them (Hyprland gaps_in 2 per side).
+        # The top gap counts from the usable area, which on the notched
+        # built-in display starts 32pt down (measured) under a 38pt bar. On
+        # external displays it is assumed to start at 0 with the menu bar
+        # hidden (not measured), under the 36pt bar.
         gaps = {
           inner.horizontal = 4;
           inner.vertical = 4;
           outer = {
-            left = 10;
-            right = 10;
-            bottom = 10;
+            left = 0;
+            right = 0;
+            bottom = 0;
             top = [
-              { monitor."built-in" = 48; }
-              46
+              { monitor."built-in" = 6; }
+              36
             ];
           };
         };
@@ -139,11 +145,11 @@ in
 
         mode.main.binding = {
           "${mod}-q" = "exec-and-forget ${newTerminal}";
-          "${mod}-c" = "close";
+          "${mod}-c" = [ "close" ] ++ notifyBar;
           "${mod}-e" = "exec-and-forget open ~";
           # Chromium hands --new-window to the running instance.
           "${mod}-b" = "exec-and-forget /Applications/Helium.app/Contents/MacOS/Helium --new-window";
-          "${mod}-v" = "layout floating tiling";
+          "${mod}-v" = [ "layout floating tiling" ] ++ notifyBar;
           "${mod}-j" = "layout tiles horizontal vertical";
           "${mod}-f" = "fullscreen";
           "${mod}-l" = "exec-and-forget pmset displaysleepnow";

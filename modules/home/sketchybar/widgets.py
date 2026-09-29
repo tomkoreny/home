@@ -36,6 +36,7 @@ AEROSPACE = "@aerospace@"  # empty when AeroSpace is disabled
 COLOR = {
     "accent": "@accent@",
     "accentSurface": "@accentSurface@",
+    "surface": "@surface@",
     "muted": "@muted@",
     "subdued": "@subdued@",
     "text": "@text@",
@@ -88,25 +89,55 @@ def row_command(widget: str, *args: str) -> str:
 
 
 def rebuild_popup(owner: str, rows: list[dict]) -> None:
-    """Replace the popup rows of `owner` with `rows` in one sketchybar call.
+    """Show `rows` in the popup of `owner` in one sketchybar call.
 
     Each row is {"label", "color"?, "icon"?, "click"?}; rows without a click
-    command are inert headers.
+    command are inert headers. Rows are updated in place and surplus ones
+    hidden, never removed: removing a popup's last item closes its window,
+    and on SketchyBar 2.24 the window that comes back after re-adding rows
+    stays below other windows (measured), so an open popup vanished on the
+    first periodic refresh.
     """
-    args = ["--remove", f"/{re.escape(owner)}\\.row\\..*/"]
+    existing = set(query(owner).get("popup", {}).get("items") or [])
+    args = []
     for index, row in enumerate(rows):
         name = f"{owner}.row.{index}"
-        args += ["--add", "item", name, f"popup.{owner}"]
+        if name not in existing:
+            args += ["--add", "item", name, f"popup.{owner}"]
         args += [
             "--set",
             name,
+            "drawing=on",
             f"label={row['label']}",
             f"label.color={row.get('color', COLOR['text'])}",
             f"icon={row.get('icon', '')}",
             f"icon.color={row.get('color', COLOR['text'])}",
             f"click_script={row.get('click', '')}",
         ]
+    for name in existing:
+        suffix = name.removeprefix(f"{owner}.row.")
+        if suffix.isdigit() and int(suffix) >= len(rows):
+            args += ["--set", name, "drawing=off"]
     sketchybar(*args)
+    mark_popup_change()
+
+
+# Creating or resizing a popup window makes SketchyBar fire a burst of
+# mouse.exited.global/entered.global events (measured: seven within 55ms, with
+# the pointer nowhere near the bar). Exits inside this window are ignored so a
+# popup opened from the keyboard is not closed by its own appearance.
+POPUP_SETTLE_SECONDS = 1.0
+
+
+def mark_popup_change() -> None:
+    cache_path("popup-changed").touch()
+
+
+def popup_settling() -> bool:
+    try:
+        return time.time() - cache_path("popup-changed").stat().st_mtime < POPUP_SETTLE_SECONDS
+    except FileNotFoundError:
+        return False
 
 
 def notify(title: str, body: str, sound: bool = False) -> None:
@@ -200,6 +231,7 @@ def toggle_popup(name: str) -> bool:
     sketchybar("--set", "/.*/", "popup.drawing=off")
     if opened:
         sketchybar("--set", name, "popup.drawing=on")
+        mark_popup_change()
     return opened
 
 
@@ -239,6 +271,28 @@ def spaces(args: list[str]) -> None:
             f"icon.color={COLOR['accent'] if visible else COLOR['subdued']}",
         ]
     commands += ["--set", "sep.front_app", f"drawing={'on' if state else 'off'}"]
+
+    # DesktopBar.qml's singleWindowMode: one tiled window on the focused
+    # workspace turns the bar solid black and flattens both islands into it.
+    # SketchyBar has one bar for all displays, so the focused monitor decides.
+    tiled = [line for line in aerospace_lines("list-windows", "--workspace", "focused", "--format", "%{window-layout}")
+             if line[0] != "floating"] if AEROSPACE else []
+    single = len(tiled) == 1
+    # Only touch the bar and islands when the mode flips: these handlers run
+    # on every focus change, and a `--bar` update is suspected (not isolated)
+    # of closing open popups.
+    current = int(str(query("bar").get("color", "0x0")), 16)
+    if (current == 0xFF000000) == single:
+        sketchybar(*commands)
+        return
+    commands += ["--bar", f"color={'0xff000000' if single else '0x00000000'}"]
+    for island in ("workspace", "status"):
+        commands += [
+            "--set", island,
+            f"background.color={'0x00000000' if single else COLOR['surface']}",
+            f"background.border_width={0 if single else 1}",
+            f"background.corner_radius={0 if single else 8}",
+        ]
     sketchybar(*commands)
 
 
@@ -655,7 +709,8 @@ def main() -> None:
         print(f"usage: widgets.py {{{'|'.join(WIDGETS)}}} [action ...]", file=sys.stderr)
         sys.exit(2)
     if os.environ.get("SENDER") == "mouse.exited.global":
-        sketchybar("--set", "/.*/", "popup.drawing=off")
+        if not popup_settling():
+            sketchybar("--set", "/.*/", "popup.drawing=off")
         return
     WIDGETS[sys.argv[1]](sys.argv[2:])
 

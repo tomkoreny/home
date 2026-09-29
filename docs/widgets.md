@@ -462,7 +462,10 @@ The bar is transparent. The left island shows the AeroSpace workspaces of
 that monitor (occupied or visible ones, the visible one highlighted; click to
 switch; hidden when AeroSpace is off, see
 [desktop-setup.md](desktop-setup.md#macos-aerospace-tiling)) followed by the
-front app name. The status island on the right holds, in order, herdr,
+front app name. When the focused workspace has exactly one tiled window, the
+bar turns solid black and both islands go flat (no border, square corners),
+like `singleWindowMode` on Linux; SketchyBar has one bar for all displays, so
+the focused monitor decides. The status island on the right holds, in order, herdr,
 timers, AI usage (one slot per account: the provider logo, tinted by the
 lowest limit, beside the same windows as the Linux bar, one 9 pt line each),
 Notion tasks, work tasks, clock, and battery. Every item runs

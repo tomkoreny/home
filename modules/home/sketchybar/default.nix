@@ -81,6 +81,7 @@ let
           "@aerospace@"
           "@accent@"
           "@accentSurface@"
+          "@surface@"
           "@muted@"
           "@subdued@"
           "@text@"
@@ -99,6 +100,7 @@ let
           (lib.optionalString config.tomkoreny.aerospace.enable (lib.getExe pkgs.aerospace))
           theme.accent
           theme.accentSurface
+          theme.surface
           theme.muted
           theme.subdued
           theme.text
@@ -113,8 +115,10 @@ let
       bash = lib.getExe pkgs.bash;
       sketchybar = lib.getExe cfg.package;
       plugin = lib.getExe plugin;
-      font = "${fontFamily}:Semibold:12.0";
-      smallFont = "${fontFamily}:Semibold:9.0";
+      # The SF Pro Display Nerd Font family lists only Regular and Bold faces
+      # (`fc-list`); Semibold rendered thin in the bar, Bold reads clearly.
+      font = "${fontFamily}:Bold:12.0";
+      smallFont = "${fontFamily}:Bold:9.0";
       inherit (theme)
         accent
         accentSurface
