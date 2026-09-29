@@ -5,6 +5,7 @@
 
 plugin=@plugin@
 font="@font@"
+small_font="@smallFont@"
 sketchybar() { "@sketchybar@" "$@"; }
 
 # topmost=window keeps the bar above application windows: without a tiling
@@ -89,17 +90,41 @@ sketchybar --add item todos right \
 add_separator ai
 # One slot per AI account; widgets.py fills them from `omp usage --json` and
 # hides the unused ones. Only ai.0 polls, its script refreshes every slot.
+# Each slot is a logo (ai.N) and the limit windows stacked on two 9pt lines
+# like the Quickshell bar: ai.N.top is zero-width and anchored at the right
+# edge of ai.N.bot, so it draws over it; widgets.py equalises their widths.
+ai_text() {
+  sketchybar --add item "$1" right \
+    --set "$1" \
+    drawing=off \
+    padding_left=0 \
+    padding_right="$2" \
+    icon.drawing=off \
+    label.font="$small_font" \
+    label.align=left \
+    label.padding_left=0 \
+    label.padding_right=0 \
+    click_script="$plugin ai click"
+}
 for slot in 3 2 1 0; do
+  # widgets.py gives both text items the 6pt gap to the separator; the
+  # zero-width top item does not push the bottom one, so they end aligned.
+  ai_text "ai.$slot.top" 0
+  sketchybar --set "ai.$slot.top" width=0
+  ai_text "ai.$slot.bot" 0
   sketchybar --add item "ai.$slot" right \
     --set "ai.$slot" \
     drawing=off \
+    padding_left=6 \
+    padding_right=4 \
     icon=" " \
-    icon.width=22 \
-    icon.padding_left=4 \
+    icon.width=14 \
+    icon.padding_left=0 \
+    icon.padding_right=0 \
     icon.background.drawing=on \
     icon.background.image.drawing=on \
     icon.background.image.scale=0.5 \
-    label.padding_left=2 \
+    label.drawing=off \
     click_script="$plugin ai click"
 done
 sketchybar --set ai.0 update_freq=300 script="$plugin ai"
@@ -112,7 +137,9 @@ add_separator herdr
 sketchybar --add item herdr right \
   --set herdr update_freq=2 script="$plugin herdr" click_script="$plugin herdr click"
 
-sketchybar --add bracket status battery sep.clock clock sep.work work sep.todos todos sep.ai ai.3 ai.2 ai.1 ai.0 sep.timers timers sep.herdr herdr \
+sketchybar --add bracket status battery sep.clock clock sep.work work sep.todos todos sep.ai \
+  ai.3.top ai.3.bot ai.3 ai.2.top ai.2.bot ai.2 ai.1.top ai.1.bot ai.1 ai.0.top ai.0.bot ai.0 \
+  sep.timers timers sep.herdr herdr \
   --set status \
   background.color=@surface@ \
   background.border_color=@border@ \

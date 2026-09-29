@@ -459,8 +459,9 @@ turns it on; it enables `tomkoreny.bar-backends` itself and reads
 `tomkoreny.bar-backends.workTasks` for the work provider.
 
 The bar is transparent with a front-app island on the left and the status
-island on the right, ordered herdr, timers, AI usage (one slot per account,
-provider logo plus the same windows as the Linux bar), Notion tasks, work
+island on the right, ordered herdr, timers, AI usage (one slot per account:
+the provider logo, tinted by the lowest limit, beside the same windows as the
+Linux bar, one 9 pt line each), Notion tasks, work
 tasks, clock, and battery. Every item runs `sketchybar-widgets <widget>`
 (`widgets.py`) on its schedule; a click toggles the item's popup:
 
@@ -476,13 +477,15 @@ Timer expiry and newly assigned work issues use macOS notifications through
 `osascript`. Not ported: the task manager and editing views, work status
 transitions, and the launcher.
 
-The module sets the native menu bar to auto-hide (`_HIHideMenuBar`) and draws
-the bar with `topmost=window`, because without a tiling window manager nothing
-reserves the top strip. macOS only reads that default at login or when it gets
-`AppleInterfaceMenuBarHidingChangedNotification`, so the `applyMenuBarHiding`
-activation step posts it; without it the native bar keeps covering SketchyBar
-until the next login. The native menu bar, Control Center, and app menus
-slide in when the mouse touches the top edge. The launchd agent
+The module sets the native menu bar to auto-hide (`_HIHideMenuBar`), turns on
+its background (`SLSMenuBarUseBlurredAppearance`, System Settings' "Show menu
+bar background") so the revealed bar covers SketchyBar instead of drawing its
+text over it, and draws the bar with `topmost=window`, because without a tiling
+window manager nothing reserves the top strip. macOS only reads those defaults
+at login, so the `applyMenuBarHiding` activation step applies them live: it
+posts `AppleInterfaceMenuBarHidingChangedNotification` and calls SkyLight's
+`SLSSetMenuBarUseBlurredAppearance`. The native menu bar, Control Center, and
+app menus slide in when the mouse touches the top edge. The launchd agent
 `org.nix-community.home.sketchybar` logs to `~/Library/Logs/sketchybar.log`;
 `sketchybar --reload` re-runs the installed `~/.config/sketchybar/sketchybarrc`.
 

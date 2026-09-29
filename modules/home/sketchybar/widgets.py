@@ -29,7 +29,9 @@ TIMER = "@timer@"
 HERDR = "@herdr@"
 HERDR_VIEW = "@herdrView@"
 OMP = "@omp@"
-LOGOS = {"openai-codex": "@openaiLogo@", "anthropic": "@anthropicLogo@"}
+# <provider>-<tone>.png for every provider id and COLOR key: SketchyBar cannot
+# tint images, so the logos are pre-rendered in each status colour.
+LOGO_DIR = "@logoDir@"
 COLOR = {
     "accent": "@accent@",
     "muted": "@muted@",
@@ -380,18 +382,54 @@ def ai_window(account: dict, window_id: str) -> dict:
     return {"remaining": None, "resetsAt": None}
 
 
-def ai_color(remaining: float | None) -> str:
+def ai_tone(remaining: float | None) -> str:
     if remaining is None:
-        return COLOR["subdued"]
+        return "subdued"
     if remaining <= 10:
-        return COLOR["muted"]
+        return "muted"
     if remaining <= 25:
-        return COLOR["accent"]
-    return COLOR["text"]
+        return "accent"
+    return "text"
+
+
+def label_width(name: str) -> int:
+    """Rendered width of an item whose label is its only content."""
+    rects = query(name).get("bounding_rects") or {}
+    return max((int(rect["size"][0]) for rect in rects.values()), default=0)
+
+
+def stack_lines(slot: int, lines: list[tuple[str, str]]) -> None:
+    """Draw one or two lines in the ai.N.top/ai.N.bot pair, left-aligned.
+
+    SketchyBar labels are single-line, so the top line is a zero-width item
+    anchored at the bottom item's right edge that draws leftward over it; both
+    labels then get the wider of the two measured widths. The zero-width top
+    item does not push the bottom one, so both carry the same 6pt gap to the
+    separator and end at the same x.
+    """
+    top, bottom = f"ai.{slot}.top", f"ai.{slot}.bot"
+    if len(lines) == 1:
+        text, tone = lines[0]
+        sketchybar(
+            "--set", top, "drawing=off",
+            "--set", bottom, "drawing=on", "padding_right=6", f"label={text}", f"label.color={COLOR[tone]}",
+            "label.y_offset=0", "label.width=dynamic",
+        )
+        return
+    (first, first_tone), (second, second_tone) = lines
+    sketchybar(
+        "--set", top, "drawing=on", "padding_right=6", f"label={first}", f"label.color={COLOR[first_tone]}",
+        "label.y_offset=5", "label.width=dynamic",
+        "--set", bottom, "drawing=on", "padding_right=6", f"label={second}", f"label.color={COLOR[second_tone]}",
+        "label.y_offset=-5", "label.width=dynamic",
+    )
+    width = max(label_width(top), label_width(bottom))
+    sketchybar("--set", top, f"label.width={width}", "--set", bottom, f"label.width={width}")
 
 
 def ai_usage(args: list[str]) -> None:
-    name = os.environ.get("NAME", "ai.0")
+    # Clicks can land on the logo (ai.N) or either text line (ai.N.top/bot).
+    name = ".".join(os.environ.get("NAME", "ai.0").split(".")[:2])
     if args[:1] == ["refresh"]:
         subprocess.run([OMP, "usage", "invalidate"], capture_output=True, check=False)
         sketchybar("--set", "/.*/", "popup.drawing=off")
@@ -414,29 +452,25 @@ def ai_usage(args: list[str]) -> None:
     for slot in range(AI_SLOTS):
         item = f"ai.{slot}"
         if slot >= len(accounts):
-            show(item, False)
+            sketchybar(*[arg for part in (item, f"{item}.top", f"{item}.bot") for arg in ("--set", part, "drawing=off")])
             continue
         account = accounts[slot]
         provider_label, windows = AI_PROVIDERS[account["provider"]]
-        parts = []
+        lines = []
         worst = None
         for window_id in windows:
             window = ai_window(account, window_id)
             icon = ICON_TIMER if window_id == "5h" else ICON_CALENDAR
             if window["remaining"] is None:
-                parts.append(f"{icon} --")
+                lines.append([f"{icon} --", "subdued"])
             else:
                 reset = format_duration((window["resetsAt"] - now) // 60_000) if window["resetsAt"] else "--"
-                parts.append(f"{icon} {round(window['remaining'])}% {reset}")
+                lines.append([f"{icon} {round(window['remaining'])}% {reset}", ai_tone(window["remaining"])])
                 worst = window["remaining"] if worst is None else min(worst, window["remaining"])
-        label = "  ".join(parts) + (" !" if stale else "")
-        show(
-            item,
-            True,
-            f"label={label}",
-            f"label.color={ai_color(worst)}",
-            f"icon.background.image={LOGOS[account['provider']]}",
-        )
+        if stale:
+            lines[-1][0] += f" {ICON_CLOSE}"
+        show(item, True, f"icon.background.image={LOGO_DIR}/{account['provider']}-{ai_tone(worst)}.png")
+        stack_lines(slot, [tuple(line) for line in lines])
         if opened_name != item:
             continue
         age = format_duration((now - generated) // 60_000)

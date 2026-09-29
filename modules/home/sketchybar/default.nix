@@ -29,17 +29,36 @@ let
     text = "0xffcdd6f4";
   };
 
-  # SketchyBar renders bitmap images only; rasterise the provider SVGs at 2x
-  # for the Retina bar (scaled back down with image.scale in sketchybarrc).
+  # SketchyBar renders bitmap images only and cannot tint them, so rasterise
+  # each provider SVG once per status colour, at 2x for the Retina bar (scaled
+  # back down with image.scale in sketchybarrc). Files are named after the omp
+  # provider id, <provider>-<tone>.png, as widgets.py expects.
+  logoTones = [
+    "accent"
+    "muted"
+    "subdued"
+    "text"
+  ];
   providerLogos =
     pkgs.runCommand "sketchybar-provider-logos" { nativeBuildInputs = [ pkgs.resvg ]; }
-      ''
-        mkdir -p "$out"
-        substitute ${providerLogoSources.anthropic} anthropic.svg --replace-fail currentColor "#ffffff"
-        substitute ${providerLogoSources.openai} openai.svg --replace-fail currentColor "#ffffff"
-        resvg -w 36 -h 36 anthropic.svg "$out/anthropic.png"
-        resvg -w 36 -h 36 openai.svg "$out/openai.png"
-      '';
+      (
+        ''
+          mkdir -p "$out"
+        ''
+        + lib.concatMapStrings (
+          tone:
+          let
+            # 0xAARRGGBB -> #RRGGBB
+            hex = "#" + builtins.substring 4 6 theme.${tone};
+          in
+          ''
+            substitute ${providerLogoSources.anthropic} anthropic.svg --replace-fail currentColor "${hex}"
+            substitute ${providerLogoSources.openai} openai.svg --replace-fail currentColor "${hex}"
+            resvg -w 28 -h 28 anthropic.svg "$out/anthropic-${tone}.png"
+            resvg -w 28 -h 28 openai.svg "$out/openai-codex-${tone}.png"
+          ''
+        ) logoTones
+      );
 
   plugin = pkgs.writeTextFile {
     name = "sketchybar-widgets";
@@ -57,8 +76,7 @@ let
           "@herdr@"
           "@herdrView@"
           "@omp@"
-          "@openaiLogo@"
-          "@anthropicLogo@"
+          "@logoDir@"
           "@accent@"
           "@muted@"
           "@subdued@"
@@ -74,8 +92,7 @@ let
           (lib.getExe herdrPackage)
           "${config.home.profileDirectory}/bin/herdr-view"
           (lib.getExe config.programs.omp.package)
-          "${providerLogos}/openai.png"
-          "${providerLogos}/anthropic.png"
+          "${providerLogos}"
           theme.accent
           theme.muted
           theme.subdued
@@ -92,6 +109,7 @@ let
       sketchybar = lib.getExe cfg.package;
       plugin = lib.getExe plugin;
       font = "${fontFamily}:Semibold:12.0";
+      smallFont = "${fontFamily}:Semibold:9.0";
       inherit (theme)
         border
         cardSurface
@@ -151,12 +169,19 @@ in
       };
     };
 
-    targets.darwin.defaults.NSGlobalDomain._HIHideMenuBar = true;
-    # macOS reads _HIHideMenuBar only at login or when System Settings posts
-    # this notification, so without it the native bar keeps drawing over
-    # SketchyBar until the next login. Posting it applies the change live.
+    targets.darwin.defaults.NSGlobalDomain = {
+      _HIHideMenuBar = true;
+      # System Settings > Menu Bar > "Show menu bar background". Without it the
+      # revealed menu bar is transparent and its text draws over SketchyBar.
+      SLSMenuBarUseBlurredAppearance = true;
+    };
+    # macOS reads both defaults only at login or when System Settings applies
+    # them, so without this the native bar keeps drawing over SketchyBar until
+    # the next login. The notification re-reads the hiding setting, and
+    # SkyLight's SLSSetMenuBarUseBlurredAppearance applies the background.
     home.activation.applyMenuBarHiding = lib.hm.dag.entryAfter [ "setDarwinDefaults" ] ''
       run /usr/bin/osascript -l JavaScript -e 'ObjC.import("Foundation"); $.NSDistributedNotificationCenter.defaultCenter.postNotificationNameObjectUserInfoDeliverImmediately("AppleInterfaceMenuBarHidingChangedNotification", $(), $(), true)'
+      run /usr/bin/osascript -l JavaScript -e 'ObjC.bindFunction("dlopen", ["void*", ["char*", "int"]]); $.dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", 1); ObjC.bindFunction("SLSSetMenuBarUseBlurredAppearance", ["int", ["bool"]]); $.SLSSetMenuBarUseBlurredAppearance(true)' >/dev/null
     '';
   };
 }
