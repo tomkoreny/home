@@ -478,7 +478,10 @@ transitions, and the launcher.
 
 The module sets the native menu bar to auto-hide (`_HIHideMenuBar`) and draws
 the bar with `topmost=window`, because without a tiling window manager nothing
-reserves the top strip. The native menu bar, Control Center, and app menus
+reserves the top strip. macOS only reads that default at login or when it gets
+`AppleInterfaceMenuBarHidingChangedNotification`, so the `applyMenuBarHiding`
+activation step posts it; without it the native bar keeps covering SketchyBar
+until the next login. The native menu bar, Control Center, and app menus
 slide in when the mouse touches the top edge. The launchd agent
 `org.nix-community.home.sketchybar` logs to `~/Library/Logs/sketchybar.log`;
 `sketchybar --reload` re-runs the installed `~/.config/sketchybar/sketchybarrc`.

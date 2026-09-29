@@ -152,5 +152,11 @@ in
     };
 
     targets.darwin.defaults.NSGlobalDomain._HIHideMenuBar = true;
+    # macOS reads _HIHideMenuBar only at login or when System Settings posts
+    # this notification, so without it the native bar keeps drawing over
+    # SketchyBar until the next login. Posting it applies the change live.
+    home.activation.applyMenuBarHiding = lib.hm.dag.entryAfter [ "setDarwinDefaults" ] ''
+      run /usr/bin/osascript -l JavaScript -e 'ObjC.import("Foundation"); $.NSDistributedNotificationCenter.defaultCenter.postNotificationNameObjectUserInfoDeliverImmediately("AppleInterfaceMenuBarHidingChangedNotification", $(), $(), true)'
+    '';
   };
 }
