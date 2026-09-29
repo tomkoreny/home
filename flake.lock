@@ -605,16 +605,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1789583424,
-        "narHash": "sha256-N6+kprfWRyh0AkAiopkGsNXUGGORyPVFHEaDHCpGQs8=",
+        "lastModified": 1790687447,
+        "narHash": "sha256-sqi7i9J4zGYQ4eL8jf82w0SSdAgLt6zjadWGtiO56GU=",
         "owner": "herdrdev",
         "repo": "herdr",
-        "rev": "065ef9d6a531c49fb8bee7e818ef837065b21ee9",
+        "rev": "48292af8e33a08c8030b7f1512c8d0da739f5ab1",
         "type": "github"
       },
       "original": {
         "owner": "herdrdev",
-        "ref": "v0.9.1",
+        "ref": "v0.9.2",
         "repo": "herdr",
         "type": "github"
       }
@@ -658,11 +658,11 @@
     "homebrew-cask": {
       "flake": false,
       "locked": {
-        "lastModified": 1790669776,
-        "narHash": "sha256-6zBj809XpBvlsHt1MOVzMZpgJFAQ1Gw88m/wxE+voFA=",
+        "lastModified": 1790690780,
+        "narHash": "sha256-cEffxCEzCEhfKBMML5fxd3+VdgXgkjsnmBkhyN6R388=",
         "owner": "homebrew",
         "repo": "homebrew-cask",
-        "rev": "de473c90ec196aeba4ab508d847552083f0808d0",
+        "rev": "7c8dd52d476e947091567fd68e7d56213c197879",
         "type": "github"
       },
       "original": {
@@ -674,11 +674,11 @@
     "homebrew-core": {
       "flake": false,
       "locked": {
-        "lastModified": 1790670478,
-        "narHash": "sha256-XzyRPv+VD8Fckr5nxMI+upNuK0WjFF1O5RA4fiFTDv0=",
+        "lastModified": 1790695632,
+        "narHash": "sha256-ZLElBkHOWTQ3O39pW4OZ76jLF24pzeIdDBsZcqe9WLc=",
         "owner": "homebrew",
         "repo": "homebrew-core",
-        "rev": "a84189588e8aa4cc3b21cf8d0c95640881f7898d",
+        "rev": "704d1c827537ecb2d6e22cbde28cfc8007091889",
         "type": "github"
       },
       "original": {
@@ -1421,11 +1421,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1790655000,
-        "narHash": "sha256-PgzBMyNVQ4+7CSOs86UTV7sytU3cxLHTGh+LdY0RuJ0=",
+        "lastModified": 1790697235,
+        "narHash": "sha256-QNMS2wh6FHpQPtJqefFuTZj63gNkKlY1LbQhDvJJykE=",
         "owner": "can1357",
         "repo": "oh-my-pi",
-        "rev": "d1932a6ff85613dde1160b87a73ddcdc3beb01f6",
+        "rev": "984fa8bcc5d49463d2d5fe5be0e2cb86542ae507",
         "type": "github"
       },
       "original": {
