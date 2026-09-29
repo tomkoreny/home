@@ -24,15 +24,14 @@ let
   workspaceKey = name: if name == "10" then "0" else name;
 
   # Ghostty 1.2 on macOS has neither `+new-window` nor an AppleScript
-  # dictionary, so a new window is Cmd-N sent to the running app.
+  # dictionary. Opening a folder with the running app opens a new window
+  # there; a Cmd-N keystroke would need Accessibility and Automation grants
+  # for AeroSpace on top.
   newTerminal = pkgs.writeShellScript "aerospace-new-terminal" ''
     if /usr/bin/pgrep -xq ghostty; then
-      /usr/bin/osascript \
-        -e 'tell application "Ghostty" to activate' \
-        -e 'tell application "System Events" to keystroke "n" using command down'
-    else
-      /usr/bin/open -a Ghostty
+      exec /usr/bin/open -a Ghostty "$HOME"
     fi
+    exec /usr/bin/open -a Ghostty
   '';
 
   karabinerConfig = {
