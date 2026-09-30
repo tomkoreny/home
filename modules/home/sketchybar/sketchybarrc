@@ -11,6 +11,8 @@ sketchybar() { "@sketchybar@" "$@"; }
 # topmost=window keeps the bar above application windows: without a tiling
 # window manager nothing reserves the top strip once the native menu bar is
 # auto-hidden, so windows dragged to the very top would otherwise cover it.
+# display=main: the Waveshare bar panel is only 480pt tall, and Chromium's
+# minimum window height already exceeds that, so a bar there only hides tabs.
 sketchybar --bar \
   height=36 \
   notch_display_height=38 \
@@ -18,7 +20,8 @@ sketchybar --bar \
   padding_left=6 \
   padding_right=6 \
   sticky=on \
-  topmost=window
+  topmost=window \
+  display=main
 
 sketchybar --default \
   padding_left=3 \

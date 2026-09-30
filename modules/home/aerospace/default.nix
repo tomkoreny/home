@@ -155,9 +155,9 @@ in
         # the bar edge to edge, like Hyprland's single-window rule. Several
         # windows keep a 4pt gap between them (Hyprland gaps_in 2 per side).
         # The top gap counts from the usable area, which on the notched
-        # built-in display starts 32pt down (measured) under a 38pt bar. On
-        # external displays it is assumed to start at 0 with the menu bar
-        # hidden (not measured), under the 36pt bar.
+        # built-in display starts 32pt down (measured) under a 38pt bar. The
+        # SketchyBar module shows the bar on the main display only, so other
+        # displays get no top gap.
         gaps = {
           inner.horizontal = 4;
           inner.vertical = 4;
@@ -167,7 +167,7 @@ in
             bottom = 0;
             top = [
               { monitor."built-in" = 6; }
-              36
+              0
             ];
           };
         };
