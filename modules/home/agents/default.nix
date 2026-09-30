@@ -234,12 +234,12 @@ in
       github.enabled = true;
 
       modelRoles = {
-        default = "anthropic/claude-opus-5-5";
-        slow = "anthropic/claude-opus-5-5";
-        plan = "anthropic/claude-opus-5-5";
+        default = "anthropic/claude-opus-5-5:xhigh";
+        slow = "anthropic/claude-opus-5-5:xhigh";
+        plan = "anthropic/claude-opus-5-5:xhigh";
         # Vibe-mode worker tiers: `fast` spawns run @smol, `good` spawns run @task.
         smol = "openai-codex/gpt-6.1-sol:high";
-        task = "anthropic/claude-opus-5-5";
+        task = "anthropic/claude-opus-5-5:xhigh";
         # Second model reviewing every primary turn; it can inject a note or
         # interrupt with a blocker.
         advisor = "openai-codex/gpt-6.1-sol:xhigh";
@@ -261,7 +261,7 @@ in
         usageReservePolicy = "auto";
         fallbackChains = {
           "anthropic/claude-opus-5-5" = [ "openai-codex/gpt-6.1-sol:high" ];
-          "openai-codex/gpt-6.1-sol" = [ "anthropic/claude-opus-5-5" ];
+          "openai-codex/gpt-6.1-sol" = [ "anthropic/claude-opus-5-5:xhigh" ];
         };
       };
       advisor.enabled = true;
