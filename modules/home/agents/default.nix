@@ -306,12 +306,20 @@ in
 
       modelRoles = {
         default = "anthropic/claude-opus-5-5";
+        slow = "anthropic/claude-opus-5-5";
+        plan = "anthropic/claude-opus-5-5";
         # Vibe-mode worker tiers: `fast` spawns run @smol, `good` spawns run @task.
-        smol = "openai-codex/gpt-6-astra:low";
-        task = "openai-codex/gpt-6-astra:high";
+        smol = "openai-codex/gpt-6.1-sol:high";
+        task = "anthropic/claude-opus-5-5";
         # Second model reviewing every primary turn; it can inject a note or
         # interrupt with a blocker.
-        advisor = "openai-codex/gpt-6-astra:medium";
+        advisor = "openai-codex/gpt-6.1-sol:xhigh";
+        # Routine helpers use Sol; model-kind roles do not take thinking suffixes.
+        commit = "openai-codex/gpt-6.1-sol:high";
+        tiny = "openai-codex/gpt-6.1-sol:high";
+        memory = "openai-codex/gpt-6.1-sol:high";
+        vision = "openai-codex/gpt-6.1-sol:xhigh";
+        judge = "openai-codex/gpt-6.1-sol";
       };
       # Provider quota is finite and unpredictable per plan. Model-keyed fallback
       # chains (keys containing "/") follow the model wherever it is active,
@@ -323,8 +331,8 @@ in
         usageReservePct = 10;
         usageReservePolicy = "auto";
         fallbackChains = {
-          "anthropic/claude-opus-5-5" = [ "openai-codex/gpt-6-astra:high" ];
-          "openai-codex/gpt-6-astra" = [ "anthropic/claude-opus-5-5" ];
+          "anthropic/claude-opus-5-5" = [ "openai-codex/gpt-6.1-sol:high" ];
+          "openai-codex/gpt-6.1-sol" = [ "anthropic/claude-opus-5-5" ];
         };
       };
       advisor.enabled = true;
