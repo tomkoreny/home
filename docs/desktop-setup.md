@@ -192,6 +192,22 @@ Press `Esc` during boot to see Plymouth's text details. To debug the splash
 itself, add `plymouth.debug` to the kernel command line once; the log lands in
 `/var/log/plymouth-debug.log`.
 
+## OMP model routing
+
+`modules/home/agents/default.nix` configures Tom's OMP model roles on macOS
+and NixOS. Opus 5.5 handles the default conversation, deep reasoning,
+planning, and the `good` vibe-mode workers at the existing `high` effort.
+GPT-6.1 Sol handles the `fast` workers, commit messages, session titles,
+memory helpers, and lightweight judgments at `high` effort. The advisor,
+which reviews the main agent's turns, and image analysis use Sol at `xhigh`.
+These roles do not add a token cap. The `judge` model-kind role has no
+thinking suffix; the other Sol roles specify their effort in the selector.
+
+The model-keyed quota fallback chains cross between Opus 5.5 and Sol.
+Opus falls back to Sol at `high` effort. Sol falls back to Opus.
+This also applies to workers, and OMP returns to the preferred model after
+the provider cooldown expires.
+
 ## Gotcha: new files must be git-tracked
 
 This is a flake on a git repo, so **Nix ignores untracked files**. After adding
