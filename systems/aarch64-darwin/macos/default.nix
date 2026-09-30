@@ -104,6 +104,13 @@ in
         "com.apple.Siri" = {
           StatusMenuVisible = false;
         };
+        # Square window corners (undocumented AppKit override; 0.1 is the
+        # value reported to give square corners). Measured square after a
+        # relaunch: Notes, Finder, Element (Electron). Apps pick it up only
+        # when relaunched.
+        NSGlobalDomain = {
+          NSConvolutionOverride1 = 0.1;
+        };
         "com.apple.Spotlight" = {
           MenuItemHidden = true;
         };
