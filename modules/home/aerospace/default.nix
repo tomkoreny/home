@@ -81,6 +81,10 @@ in
 
     xdg.configFile."karabiner/karabiner.json".text = builtins.toJSON karabinerConfig;
 
+    # AeroSpace tiles and closes windows from the keyboard, so Ghostty's
+    # traffic lights are dead chrome. Applies to newly opened windows.
+    programs.ghostty.settings.macos-window-buttons = "hidden";
+
     # Not Home Manager's programs.aerospace: it always writes
     # after-login-command, which AeroSpace flags as deprecated since 0.19.
     home.packages = [ aerospace ];
