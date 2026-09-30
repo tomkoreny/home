@@ -47,7 +47,7 @@ sketchybar --default \
 # and moves (modules/home/aerospace).
 sketchybar --add event aerospace_workspace_change \
   --add item spaces left \
-  --set spaces drawing=off script="$plugin spaces" \
+  --set spaces drawing=off updates=on update_freq=5 script="$plugin spaces" \
   --subscribe spaces aerospace_workspace_change front_app_switched space_windows_change display_change system_woke
 
 for ws in 1 2 3 4 5 6 7 8 9 10 S; do
@@ -84,8 +84,8 @@ sketchybar --add item sep.front_app left \
   background.height=16
 
 sketchybar --add item front_app left \
-  --set front_app icon.padding_left=0 script="$plugin front_app" \
-  --subscribe front_app front_app_switched
+  --set front_app icon.padding_left=0 update_freq=10 script="$plugin front_app" \
+  --subscribe front_app front_app_switched system_woke
 
 sketchybar --add bracket workspace space.1 space.2 space.3 space.4 space.5 space.6 space.7 space.8 space.9 space.10 space.S sep.front_app front_app \
   --set workspace \

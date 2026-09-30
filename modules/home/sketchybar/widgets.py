@@ -249,13 +249,20 @@ def spaces(args: list[str]) -> None:
     """Show each monitor's occupied or visible workspaces, like WorkspaceStrip.qml."""
     if args[:1] == ["click"]:
         subprocess.run([AEROSPACE, "workspace", os.environ.get("NAME", "").removeprefix("space.")], check=False)
-    workspaces = []
-    if AEROSPACE:
-        workspaces = aerospace_lines(
-            "list-workspaces", "--monitor", "all",
-            "--format", "%{workspace}%{tab}%{monitor-appkit-nsscreen-screens-id}%{tab}%{workspace-is-visible}",
-        )
-    occupied = {line[0] for line in aerospace_lines("list-workspaces", "--monitor", "all", "--empty", "no")} if AEROSPACE else set()
+    if not AEROSPACE:
+        sketchybar(*[arg for name in WORKSPACES for arg in ("--set", f"space.{name}", "drawing=off")],
+                   "--set", "sep.front_app", "drawing=off")
+        return
+    workspaces = aerospace_lines(
+        "list-workspaces", "--monitor", "all",
+        "--format", "%{workspace}%{tab}%{monitor-appkit-nsscreen-screens-id}%{tab}%{workspace-is-visible}",
+    )
+    if not workspaces:
+        # AeroSpace always lists its workspaces, so an empty answer means it
+        # is not reachable (e.g. restarting during an upgrade). Keep the strip
+        # as it is; the 5s routine run in sketchybarrc redraws it once it is.
+        return
+    occupied = {line[0] for line in aerospace_lines("list-workspaces", "--monitor", "all", "--empty", "no")}
     state = {line[0]: (line[1], line[2] == "true") for line in workspaces if len(line) == 3}
 
     commands = []
@@ -275,8 +282,11 @@ def spaces(args: list[str]) -> None:
     # DesktopBar.qml's singleWindowMode: one tiled window on the focused
     # workspace turns the bar solid black and flattens both islands into it.
     # SketchyBar has one bar for all displays, so the focused monitor decides.
+    # Only tiling layouts count: floating windows and macOS-native ones
+    # (hidden apps, minimized, native fullscreen) report "floating" or a
+    # "macos_native_*" layout.
     tiled = [line for line in aerospace_lines("list-windows", "--workspace", "focused", "--format", "%{window-layout}")
-             if line[0] != "floating"] if AEROSPACE else []
+             if line[0] != "floating" and not line[0].startswith("macos_native")]
     single = len(tiled) == 1
     # Only touch the bar and islands when the mode flips: these handlers run
     # on every focus change, and a `--bar` update is suspected (not isolated)
@@ -302,14 +312,17 @@ def spaces(args: list[str]) -> None:
 def front_app(args: list[str]) -> None:
     name = os.environ.get("INFO", "")
     if not name:
-        result = subprocess.run(
-            ["/usr/bin/osascript", "-e", 'tell application "System Events" to get name of first process whose frontmost is true'],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        name = result.stdout.strip()
-    sketchybar("--set", "front_app", f"label={name}")
+        # Routine and startup runs have no $INFO. lsappinfo needs no Automation
+        # permission, unlike asking System Events through osascript; its first
+        # line is `"<display name>" ASN:...`.
+        front = subprocess.run(["/usr/bin/lsappinfo", "front"], capture_output=True, text=True, check=False).stdout.strip()
+        info = subprocess.run(["/usr/bin/lsappinfo", "info", "-only", "name", front],
+                              capture_output=True, text=True, check=False).stdout
+        match = re.match(r'"(.+?)" ASN:', info)
+        name = match.group(1) if match else ""
+    if name:
+        # A failed lookup keeps the previous name instead of blanking it.
+        sketchybar("--set", "front_app", f"label={name}")
 
 
 def clock(args: list[str]) -> None:
@@ -323,9 +336,11 @@ def clock(args: list[str]) -> None:
 
 def battery(args: list[str]) -> None:
     result = subprocess.run(["/usr/bin/pmset", "-g", "batt"], capture_output=True, text=True, check=False)
-    match = re.search(r"(\d+)%;\s*([a-z ]+?);", result.stdout)
+    # The state between the percentage and the next `;` is lowercase
+    # ("charging", "discharging", "charged") or "AC attached" while the
+    # battery is held on the charger, which the old [a-z ] pattern rejected.
+    match = re.search(r"(\d+)%;\s*([^;]+);", result.stdout)
     if not match:
-        show("battery", False)
         return
     percent = int(match.group(1))
     state = match.group(2).strip()
