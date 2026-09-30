@@ -164,15 +164,17 @@ effect after a logout.
 
 `modules/home/agents/default.nix` configures Tom's OMP model roles on macOS
 and NixOS. Opus 5.5 handles the default conversation, deep reasoning,
-planning, and the `good` vibe-mode workers at the existing `high` effort.
+planning, and the `good` vibe-mode workers at `xhigh` effort.
 GPT-6.1 Sol handles the `fast` workers, commit messages, session titles,
-memory helpers, and lightweight judgments at `high` effort. The advisor,
-which reviews the main agent's turns, and image analysis use Sol at `xhigh`.
-These roles do not add a token cap. The `judge` model-kind role has no
-thinking suffix; the other Sol roles specify their effort in the selector.
+and memory helpers at `high` effort. The advisor, which reviews the main
+agent's turns, and image analysis use Sol at `xhigh`.
+No new token cap is configured. Lightweight judgments also use Sol, but
+OMP's judgment backend disables reasoning and retains its built-in
+4096-token output cap. The `judge` model-kind role has no thinking suffix;
+the other Sol roles specify their effort in the selector.
 
 The model-keyed quota fallback chains cross between Opus 5.5 and Sol.
-Opus falls back to Sol at `high` effort. Sol falls back to Opus.
+Opus falls back to Sol at `high` effort. Sol falls back to Opus at `xhigh`.
 This also applies to workers, and OMP returns to the preferred model after
 the provider cooldown expires.
 
