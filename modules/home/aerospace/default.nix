@@ -69,7 +69,35 @@ let
   };
 in
 {
-  options.tomkoreny.aerospace.enable = lib.mkEnableOption "AeroSpace tiling with a Caps Lock modifier on macOS";
+  options.tomkoreny.aerospace = {
+    enable = lib.mkEnableOption "AeroSpace tiling with a Caps Lock modifier on macOS";
+    parkedMonitors = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      example = [ "WaveShsare" ];
+      description = ''
+        Monitor name patterns (AeroSpace monitor-pattern regexes) that only
+        exist to host a BetterDisplay stream of a virtual screen. They keep the
+        parking workspace P so numbered workspaces, and the windows moved to
+        them, never land on a display nobody can see.
+      '';
+    };
+    workspaceMonitors = lib.mkOption {
+      type = lib.types.attrsOf (lib.types.listOf lib.types.str);
+      default = { };
+      example = {
+        "6" = [
+          "WSMirror"
+          "built-in"
+        ];
+      };
+      description = ''
+        Workspace to monitor-pattern assignments (first matching pattern wins),
+        like Hyprland's fixed workspace columns. Unlisted workspaces follow
+        AeroSpace's default and live on the main monitor.
+      '';
+    };
+  };
 
   config = lib.mkIf cfg.enable {
     assertions = [
@@ -117,6 +145,11 @@ in
         default-root-container-orientation = "auto";
         on-focused-monitor-changed = [ "move-mouse monitor-lazy-center" ];
 
+        # Every workspace gets a home so a reload or monitor change never
+        # parks a numbered workspace on a display that is only a stream target.
+        workspace-to-monitor-force-assignment =
+          cfg.workspaceMonitors // lib.optionalAttrs (cfg.parkedMonitors != [ ]) { P = cfg.parkedMonitors; };
+
         # AeroSpace has no smart gaps (gaps cannot depend on the window
         # count), so outer gaps are 0 and a lone window fills the area below
         # the bar edge to edge, like Hyprland's single-window rule. Several
@@ -160,12 +193,22 @@ in
           "${mod}-f" = "fullscreen";
           "${mod}-l" = "exec-and-forget pmset displaysleepnow";
 
-          "${mod}-left" = "focus left";
-          "${mod}-right" = "focus right";
+          # Left/right cross to the neighbouring monitor at the edge, like
+          # Hyprland's movefocus/movewindow. Up/down stay inside the workspace
+          # so a parked monitor sitting below is never a target. `move` refuses
+          # floating windows, so those fall back to move-node-to-monitor.
+          "${mod}-left" = "focus --boundaries all-monitors-outer-frame left";
+          "${mod}-right" = "focus --boundaries all-monitors-outer-frame right";
           "${mod}-up" = "focus up";
           "${mod}-down" = "focus down";
-          "${mod}-shift-left" = "move left";
-          "${mod}-shift-right" = "move right";
+          "${mod}-shift-left" = [
+            "move --boundaries all-monitors-outer-frame left || move-node-to-monitor --focus-follows-window left"
+          ]
+          ++ notifyBar;
+          "${mod}-shift-right" = [
+            "move --boundaries all-monitors-outer-frame right || move-node-to-monitor --focus-follows-window right"
+          ]
+          ++ notifyBar;
           "${mod}-shift-up" = "move up";
           "${mod}-shift-down" = "move down";
 

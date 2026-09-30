@@ -18,6 +18,17 @@ in
   tomkoreny.sketchybar.enable = true;
   # Tiling with Caps Lock as Super, mirroring the Hyprland binds.
   tomkoreny.aerospace.enable = true;
+  # The Waveshare bar panel to the left shows a BetterDisplay stream of the
+  # WSMirror virtual screen; its own 740x160 display is covered by that stream.
+  # Workspaces 1-5 and S stay on the MacBook, 6-10 live on the panel (and come
+  # home when it is unplugged), like the Hyprland workspace columns.
+  tomkoreny.aerospace.parkedMonitors = [ "WaveShsare" ];
+  tomkoreny.aerospace.workspaceMonitors =
+    lib.genAttrs [ "1" "2" "3" "4" "5" "S" ] (_: [ "built-in" ])
+    // lib.genAttrs [ "6" "7" "8" "9" "10" ] (_: [
+      "WSMirror"
+      "built-in"
+    ]);
   tomkoreny.bar-backends.workTasks = {
     enable = true;
     provider = "mantisbt";
