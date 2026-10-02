@@ -7,8 +7,8 @@
 # this file should be deleted.
 final: prev:
 let
-  broken = ''sed -re 's/-rpath [^ ]+//g')'';
-  fixed = ''sed -re 's/-rpath [^ ]+//g' | sed -re 's/(^ *| *$)//g;')'';
+  broken = "sed -re 's/-rpath [^ ]+//g')";
+  fixed = "sed -re 's/-rpath [^ ]+//g' | sed -re 's/(^ *| *$)//g;')";
   fixLazarus =
     package:
     package.overrideAttrs (old: {

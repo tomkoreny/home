@@ -115,6 +115,8 @@ in
     # (openfortivpn, clawdbot-node)
   ];
 
+  nixpkgs.overlays = [ (import ../../../overlays/lazarus.nix) ];
+
   # Configure swap file
   swapDevices = [
     {
