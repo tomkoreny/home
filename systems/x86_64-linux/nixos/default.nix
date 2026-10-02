@@ -53,6 +53,10 @@ in
     # Protect's Enhanced H.265 streams play in mpv because Helium has no HEVC
     # decoder. Inventory and stream URLs come from the local Integration API.
     unifi-cameras.enable = true;
+
+    # After a driver bump, keep new apps on the loaded module's GPU libraries
+    # until reboot instead of falling back to CPU rendering.
+    nvidia-driver-match.enable = true;
   };
 
   # Pull the latest pushed config and rebuild (CI keeps flake.lock fresh).
