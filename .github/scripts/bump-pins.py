@@ -72,6 +72,21 @@ def github_latest_tag(repo: str):
     return fetch
 
 
+def github_latest_prefixed(repo: str, prefix: str):
+    """For monorepos whose releases/latest may belong to a different product."""
+    def fetch() -> str:
+        tags = subprocess.run(
+            ["gh", "api", f"repos/{repo}/releases?per_page=100", "--jq",
+             ".[] | select(.draft == false and .prerelease == false) | .tag_name"],
+            check=True, capture_output=True, text=True,
+        ).stdout.split()
+        versions = [tag.removeprefix(prefix) for tag in tags if re.fullmatch(rf"{re.escape(prefix)}\d+(\.\d+)*", tag)]
+        if not versions:
+            raise RuntimeError(f"{repo} has no stable {prefix} releases")
+        return max(versions, key=lambda v: [int(n) for n in v.split(".")])
+    return fetch
+
+
 def betterbird_latest() -> str:
     request = urllib.request.Request(
         "https://www.betterbird.eu/downloads/", headers={"User-Agent": "tomkoreny-home-ci"}
@@ -142,6 +157,14 @@ PINS = [
         {"modules/home/moshi-hook/package.nix": [Source(
             "cdn.getmoshi.app/hook",
             "https://cdn.getmoshi.app/hook/v{version}/moshi-hook_Linux_x86_64.tar.gz",
+        )]},
+    ),
+    Pin(
+        "bitwarden-browser", "auto", github_latest_prefixed("bitwarden/clients", "browser-v"),
+        {"modules/home/agents/default.nix": r'^  bitwardenRelayVersion = "([^"]+)";'},
+        {"modules/home/agents/default.nix": [Source(
+            "dist-chrome-",
+            "https://github.com/bitwarden/clients/releases/download/browser-v{version}/dist-chrome-{version}.zip",
         )]},
     ),
     Pin("herdr", "auto", github_latest("herdrdev/herdr"), {"flake.nix": flake_tag("herdrdev/herdr")}),

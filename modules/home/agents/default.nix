@@ -51,12 +51,16 @@ let
     export HOME="$TMPDIR"
     ${lib.getExe ompPackage} browser-relay install --dir "$out"
   '';
-  bitwardenRelayCrx = pkgs.fetchurl {
-    url = "https://clients2.google.com/service/update2/crx?response=redirect&prodversion=152.0.0.0&acceptformat=crx3&x=id%3Dnngceckbapebfimnlniiiahkandclblb%26uc";
-    hash = "sha256-0aWULZwjTQM4LamSeZMgVQZMquejLMmxV5QMhjFl1Z8=";
+  # The Web Store "latest" redirect serves whatever Bitwarden published last,
+  # so a hash pinned against it breaks on every release. The GitHub release zip
+  # is immutable per version; .github/scripts/bump-pins.py moves the version.
+  bitwardenRelayVersion = "2026.9.3";
+  bitwardenRelayZip = pkgs.fetchurl {
+    url = "https://github.com/bitwarden/clients/releases/download/browser-v${bitwardenRelayVersion}/dist-chrome-${bitwardenRelayVersion}.zip";
+    hash = "sha256-cYW6101EsdfoGz3JhYoga/nev/Jy1+W/x/VqS52ULKA=";
   };
   bitwardenRelayExtension =
-    pkgs.runCommand "bitwarden-browser-extension-2026.8.0"
+    pkgs.runCommand "bitwarden-browser-extension-${bitwardenRelayVersion}"
       {
         nativeBuildInputs = [
           pkgs.jq
@@ -65,8 +69,7 @@ let
       }
       ''
         mkdir -p "$out"
-        dd if='${bitwardenRelayCrx}' of="$TMPDIR/bitwarden.zip" bs=1 skip=1322 status=none
-        unzip -q "$TMPDIR/bitwarden.zip" -d "$out"
+        unzip -q '${bitwardenRelayZip}' -d "$out"
         jq --arg key 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmqKbvreshyXRuN2gikeR1idqR6KL0Di89JZcMyD4bjJRZVmQO7aznSGSALIHzSAUGYocUYBNDOP5QAhImxXyQ1qG8+goXs93v9GzrNJETdVuCEhqBggC4/DFabryJZDiKvZ2Jl0DM7MsWdoybZPwrj70V3aJ/nVNOMkf868scNTMliwitCqqjT5baTANsG0DkZWQExD4lSXzSZHH9MEO8q0iZ7RRlNuGRBAkZgNV8FwZRsPKm/rwQ9dy3VpgLcmLp5GiMt+kAEncqKAkuRYnhVXXBsKqIyYTMjHSLkLnpfFySyOPLBdS617i/PGNiP/MT6Xy6z//v5NozUgaAZ4gJQIDAQAB' \
           '.key = $key' "$out/manifest.json" > "$out/manifest.json.tmp"
         mv "$out/manifest.json.tmp" "$out/manifest.json"
