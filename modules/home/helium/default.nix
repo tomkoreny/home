@@ -128,7 +128,7 @@ let
   # names selected below, or the generator fails in a much less obvious way.
   catppuccinStylusExport = pkgs.fetchurl {
     url = "https://github.com/catppuccin/userstyles/releases/download/all-userstyles-export/import.json";
-    hash = "sha256-uV3vq5NXiJ68oOc7TK8bSsvhYosgKZizNJjUNVMnS7k=";
+    hash = "sha256-JcgPbDd4R/uZIyjUbPuQEqnq5ee7I21GjsI8dzSc0N0=";
   };
   # Upstream migrated the standard library to a versioned path and left
   # lib/lib.less as a two-line shim that imports this file. The shim is a moving
