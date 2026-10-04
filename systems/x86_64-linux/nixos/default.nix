@@ -45,9 +45,12 @@ in
       displayName = "NixOS Desktop";
     };
 
-    # Second seat (Terka): AMD iGPU + her USB ports, Hyprland autologin.
-    # Hardware specifics (PCI/USB paths) live in the module's option defaults.
+    # Second seat (Terka): AMD iGPU + her USB ports. Hardware specifics
+    # (PCI/USB paths) live in the module's option defaults.
     multiseat.enable = true;
+    # Unused for now and no monitor is attached, so the autologin session
+    # would crash-loop. Her user, home, and seat hardware split are kept.
+    multiseat.autologin = false;
 
     # Super+U opens connected Protect cameras in the Quickshell launcher.
     # Protect's Enhanced H.265 streams play in mpv because Helium has no HEVC

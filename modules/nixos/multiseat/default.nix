@@ -89,6 +89,16 @@ in
       description = "User that owns the seat1 session (created by this module).";
     };
 
+    autologin = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Start the Hyprland autologin session on seat1. Turn this off while no
+        monitor is attached: the service otherwise restarts every few seconds.
+        The user, the hardware seat split, and the home directory stay.
+      '';
+    };
+
     gpuPciPath = lib.mkOption {
       type = lib.types.str;
       default = "pci-0000:11:00.0";
@@ -162,17 +172,19 @@ in
     # Minimal PAM stack for the autologin session: no authentication (that is
     # what autologin means — same trust model as getty/greetd autologin), but
     # a full session setup so logind registers the session on seat1.
-    security.pam.services.hyprland-seat1.text = ''
-      auth     required pam_succeed_if.so user = ${cfg.user} quiet_success
-      auth     required pam_permit.so
-      account  required pam_unix.so
-      session  required pam_env.so conffile=${pamEnv} readenv=0
-      session  required pam_unix.so
-      session  required pam_loginuid.so
-      session  required ${config.systemd.package}/lib/security/pam_systemd.so class=user type=wayland desktop=Hyprland
-    '';
+    security.pam.services.hyprland-seat1 = lib.mkIf cfg.autologin {
+      text = ''
+        auth     required pam_succeed_if.so user = ${cfg.user} quiet_success
+        auth     required pam_permit.so
+        account  required pam_unix.so
+        session  required pam_env.so conffile=${pamEnv} readenv=0
+        session  required pam_unix.so
+        session  required pam_loginuid.so
+        session  required ${config.systemd.package}/lib/security/pam_systemd.so class=user type=wayland desktop=Hyprland
+      '';
+    };
 
-    systemd.services.hyprland-seat1 = {
+    systemd.services.hyprland-seat1 = lib.mkIf cfg.autologin {
       description = "Hyprland session for ${cfg.user} on seat1 (autologin)";
       # A flake update often changes the script or Hyprland store path in this
       # unit. Do not let `nixos-rebuild switch` restart the live compositor and
