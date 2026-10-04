@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Geometry is the homepage's canonical TK mark (homepage src/app/tk-mark.json)
+     with its -7° expressive rotation baked in. The viewBox is the rotated mark's
+     bounding box plus a little room for antialiasing, so the face and the
+     underprint render on identical canvases and the theme offsets them. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="2 -7 320 226">
+  <g transform="rotate(-7 160 110)" fill="@fill@">
+    <path d="M14 21 247 5l10 52-88 7 25 135-70 14L97 69l-73 7Z"/>
+    <path d="M145 108 262 20 307 55 178 136Z"/>
+    <path d="M169 119 314 171 287 215 142 145Z"/>
+  </g>
+</svg>

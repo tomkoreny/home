@@ -60,6 +60,9 @@ in
     # After a driver bump, keep new apps on the loaded module's GPU libraries
     # until reboot instead of falling back to CPU rendering.
     nvidia-driver-match.enable = true;
+
+    # Quiet boot with the TK Plymouth splash (true black, accent mark).
+    boot-splash.enable = true;
   };
 
   # Pull the latest pushed config and rebuild (CI keeps flake.lock fresh).
@@ -133,18 +136,14 @@ in
   ];
 
   boot = {
-    # Keep the normal boot path graphical; errors still surface on the console.
-    consoleLogLevel = 3;
-    initrd.verbose = false;
-    plymouth = {
-      enable = true;
-      theme = lib.mkForce "rings";
-      themePackages = [
-        (pkgs.adi1090x-plymouth-themes.override {
-          selected_themes = [ "rings" ];
-        })
-      ];
-    };
+    # Load the NVIDIA driver in the initrd. Plymouth ignores the firmware
+    # framebuffer, so without this the splash only appeared once stage 2
+    # loaded the driver ~10 s in, and then switched modes mid-animation.
+    initrd.kernelModules = [
+      "nvidia"
+      "nvidia_modeset"
+      "nvidia_drm"
+    ];
     loader = {
       systemd-boot.enable = lib.mkForce false;
       systemd-boot.configurationLimit = 5;
@@ -167,11 +166,6 @@ in
       };
     };
     kernelParams = [
-      "quiet"
-      "rd.systemd.show_status=auto"
-      "systemd.show_status=auto"
-      "rd.udev.log_level=3"
-      "udev.log_level=3"
       # THESE 2 LINES ARE FIX FOR SHITTY NETWORK CARD, thanks intel
       "pcie_port_pm=off"
       "pcie_aspm.policy=performance"
@@ -298,7 +292,9 @@ in
           # hyprland.desktop session file execs (Hyprland >= 0.55 warns
           # otherwise). HYPRLAND_CONFIG preserves the Home Manager symlink;
           # --config canonicalizes it and pins reloads to the login generation.
-          command = "env HYPRLAND_CONFIG=/home/${name}/.config/hypr/hyprland.lua start-hyprland";
+          # systemd-cat sends Hyprland's startup log to the journal; on the VT
+          # it flashed a screen of text between the splash and the desktop.
+          command = "${config.systemd.package}/bin/systemd-cat --identifier=hyprland env HYPRLAND_CONFIG=/home/${name}/.config/hypr/hyprland.lua start-hyprland";
           user = name;
         };
         # Also autologin after logout/session exit (no greeter on this box;

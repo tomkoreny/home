@@ -1,0 +1,151 @@
+# TK boot splash: the homepage's TK mark on the desktop's true-black field.
+#
+# The face is the shared system accent and the underprint is the brand's
+# signal orange. On start the underprint slides out from under the face, the
+# same misregistration the homepage mark carries, and then drifts slightly so
+# the screen is visibly alive. A hairline under the mark shows boot progress
+# in the accent with a short orange strike at its head, echoing the top bar.
+# Colours and sizes arrive from Nix through the @...@ placeholders.
+
+Window.SetBackgroundTopColor(0, 0, 0);
+Window.SetBackgroundBottomColor(0, 0, 0);
+
+FPS = 50;
+INTRO_FADE = 0.35;
+INTRO_SLIDE_START = 0.12;
+INTRO_SLIDE = 0.75;
+DRIFT_PERIOD = 3.6;
+DRIFT_AMOUNT = 0.22;
+# Underprint offset in mark units: the brand's translate(8 7), rotated -7°.
+UNDER_DX = 8.793;
+UNDER_DY = 5.973;
+
+mark_widths = [@markWidths@];
+
+track_pixel = Image("track.png");
+fill_pixel = Image("accent.png");
+strike_pixel = Image("orange.png");
+
+under.sprite = Sprite();
+face.sprite = Sprite();
+track.sprite = Sprite();
+fill.sprite = Sprite();
+strike.sprite = Sprite();
+under.sprite.SetZ(10);
+face.sprite.SetZ(20);
+track.sprite.SetZ(10);
+fill.sprite.SetZ(20);
+strike.sprite.SetZ(30);
+
+time = 0;
+progress = 0;
+shown_progress = 0;
+fill_width = -1;
+boot_mode = Plymouth.GetMode() == "boot";
+
+fun round(value) {
+  return Math.Int(value + 0.5);
+}
+
+fun ease_out_cubic(x) {
+  x = Math.Clamp(x, 0, 1) - 1;
+  return x * x * x + 1;
+}
+
+# Settles slightly past the target and back, like a print pass landing.
+fun ease_out_back(x) {
+  x = Math.Clamp(x, 0, 1) - 1;
+  return 1 + 2.2 * x * x * x + 1.2 * x * x;
+}
+
+# Size from the smallest display: every display shows the same centred scene,
+# so a mark sized for the largest one would crowd the others.
+fun layout() {
+  smallest = Window.GetHeight(0);
+  for (index = 1; Window.GetHeight(index); index++)
+    smallest = Math.Min(smallest, Window.GetHeight(index));
+  if (!smallest)
+    smallest = Window.GetHeight();
+
+  # Prerendered widths keep the edges crisp; take the largest that fits.
+  target = smallest * @markScale@;
+  width = mark_widths[0];
+  for (index = 0; mark_widths[index]; index++)
+    if (mark_widths[index] <= target)
+      width = mark_widths[index];
+
+  if (global.mark_width != width) {
+    global.mark_width = width;
+    global.face_image = Image("face-" + width + ".png");
+    global.under_image = Image("under-" + width + ".png");
+    face.sprite.SetImage(face_image);
+    under.sprite.SetImage(under_image);
+  }
+
+  unit = width / 320;
+  global.mark_unit = unit;
+  global.mark_x = round(Window.GetX() + Window.GetWidth() / 2 - width / 2);
+  global.mark_y = round(Window.GetY() + Window.GetHeight() / 2 - face_image.GetHeight() / 2 - smallest * 0.02);
+
+  # The hairline starts under the T's left edge and spans the mark.
+  global.line_x = mark_x + round(6 * unit);
+  global.line_y = mark_y + face_image.GetHeight() + round(smallest * 0.045);
+  global.line_width = round(300 * unit);
+  global.line_height = Math.Max(2, round(3.5 * unit));
+  global.strike_width = round(30 * unit);
+
+  track.sprite.SetImage(track_pixel.Scale(line_width, line_height));
+  strike.sprite.SetImage(strike_pixel.Scale(strike_width, line_height));
+  track.sprite.SetPosition(line_x, line_y, 10);
+  global.fill_width = -1;
+}
+
+fun refresh() {
+  global.time += 1 / FPS;
+
+  fade = ease_out_cubic(time / INTRO_FADE);
+  slide = ease_out_back((time - INTRO_SLIDE_START) / INTRO_SLIDE);
+  # The drift fades in after the slide so the landing reads cleanly.
+  drift_weight = ease_out_cubic((time - INTRO_SLIDE_START - INTRO_SLIDE) / 1.2);
+  drift = 1 + DRIFT_AMOUNT * drift_weight * Math.Sin(2 * Math.Pi * time / DRIFT_PERIOD);
+  offset = slide * drift;
+
+  face.sprite.SetPosition(mark_x, mark_y, 20);
+  face.sprite.SetOpacity(fade);
+  under.sprite.SetPosition(mark_x + round(UNDER_DX * mark_unit * offset), mark_y + round(UNDER_DY * mark_unit * offset), 10);
+  under.sprite.SetOpacity(fade * Math.Clamp(slide * 4, 0, 1));
+
+  line_fade = ease_out_cubic((time - 0.3) / 0.6);
+  track.sprite.SetOpacity(line_fade);
+
+  if (boot_mode) {
+    # Plymouth's estimate moves in steps; ease toward it instead of jumping.
+    global.shown_progress += (progress - shown_progress) * 0.06;
+    width = round(line_width * Math.Clamp(shown_progress, 0, 1));
+    if (width != fill_width) {
+      global.fill_width = width;
+      if (width > 0)
+        fill.sprite.SetImage(fill_pixel.Scale(width, line_height));
+    }
+    fill.sprite.SetPosition(line_x, line_y, 20);
+    fill.sprite.SetOpacity(line_fade * Math.Min(1, width));
+    head = line_x + Math.Max(0, width - strike_width);
+  } else {
+    # Shutdown has no progress estimate: the strike sweeps the track instead.
+    fill.sprite.SetOpacity(0);
+    sweep = (1 - Math.Cos(2 * Math.Pi * time / 2.4)) / 2;
+    head = line_x + round((line_width - strike_width) * sweep);
+  }
+  strike.sprite.SetPosition(head, line_y, 30);
+  strike.sprite.SetOpacity(line_fade);
+}
+
+fun boot_progress(duration, value) {
+  global.progress = value;
+}
+
+layout();
+Plymouth.SetRefreshRate(FPS);
+Plymouth.SetRefreshFunction(refresh);
+Plymouth.SetBootProgressFunction(boot_progress);
+Plymouth.SetDisplayHotplugFunction(layout);

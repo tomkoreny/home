@@ -160,6 +160,31 @@ renewed after AeroSpace updates. `system.defaults.spaces.spans-displays`
 (Displays have separate Spaces off, as the AeroSpace guide recommends) takes
 effect after a logout.
 
+## Boot splash and quiet boot
+
+`modules/nixos/boot-splash/` draws the homepage's TK mark on true black: the
+face is the shared accent, the underprint is the brand's signal orange, and a
+hairline under the mark tracks Plymouth's boot-progress estimate. On shutdown
+the orange strike sweeps the hairline instead. The script is `tk.script`; the
+mark is rendered from `tk-mark.svg` at build time.
+
+The rest of the module keeps text off the screen. The kernel console log level
+is 0, systemd prints only failures, and the `plymouth-quit` unit clears
+Plymouth's status override before quitting, which used to leave "Finished
+Terminate Plymouth Boot Screen" on the console. On the desktop host, the
+NVIDIA driver loads in the initrd so the splash appears early, and greetd
+starts Hyprland through `systemd-cat`, so its startup log goes to
+`journalctl -t hyprland` instead of the VT.
+
+The kernel's "RDSEED32 is broken" line is hidden, not fixed. The Ryzen 9800X3D
+runs BIOS microcode 0x0b404023. linux-firmware ships the fixed 0x0b404035, but
+the kernel has no SHA-256 digest for it and will not load it. A board BIOS
+update with the fixed microcode removes the notice and re-enables `RDSEED`.
+
+Press `Esc` during boot to see Plymouth's text details. To debug the splash
+itself, add `plymouth.debug` to the kernel command line once; the log lands in
+`/var/log/plymouth-debug.log`.
+
 ## Gotcha: new files must be git-tracked
 
 This is a flake on a git repo, so **Nix ignores untracked files**. After adding
