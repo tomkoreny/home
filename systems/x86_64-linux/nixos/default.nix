@@ -579,4 +579,29 @@ in
     VDPAU_DRIVER = "nvidia";
     NVD_BACKEND = "direct";
   };
+
+  # [DEBUG-shutdown] Temporary: the end of shutdown runs after journald has
+  # stopped. Save the final kernel log to the ESP, and replay it into the
+  # journal on the next boot as `journalctl -t debug-shutdown`.
+  systemd.shutdown.debug-shutdown-log = pkgs.writeShellScript "debug-shutdown-log" ''
+    PATH=${lib.makeBinPath [ pkgs.util-linux pkgs.coreutils ]}
+    mount -t vfat -o rw /dev/disk/by-uuid/13D0-AE5F /boot || exit 0
+    { echo "verb=$1 uptime=$(cut -d' ' -f1 /proc/uptime)"; dmesg | tail -n 800; } > /boot/debug-shutdown.txt
+    sync
+    umount /boot
+  '';
+  systemd.services.debug-shutdown-log = {
+    wantedBy = [ "multi-user.target" ];
+    unitConfig.RequiresMountsFor = "/boot";
+    serviceConfig = {
+      Type = "oneshot";
+      SyslogIdentifier = "debug-shutdown";
+    };
+    script = ''
+      if [ -f /boot/debug-shutdown.txt ]; then
+        cat /boot/debug-shutdown.txt
+        rm /boot/debug-shutdown.txt
+      fi
+    '';
+  };
 }

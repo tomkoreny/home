@@ -300,6 +300,14 @@ in
       # agent-state "omp finished" toast (the one the Quickshell bar reconciles
       # and dismisses per pane). Ask/error notifications are not gated by this.
       completion.notify = "off";
+      # OMP's default sleep prevention takes a logind `idle` block lock while
+      # an agent works. On Linux, logind's IdleAction is `ignore`, so the lock
+      # prevents no suspend; hypridle reads it as user activity and skips the
+      # OLED dim, clock saver and DPMS-off stages for the whole agent run.
+      # macOS keeps the default, where the lock is a real `caffeinate -i`.
+      power = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
+        sleepPrevention = "off";
+      };
       browser = {
         headless = false;
       };
