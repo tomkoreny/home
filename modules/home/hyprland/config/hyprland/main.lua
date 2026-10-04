@@ -7,9 +7,10 @@ hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
 hl.env("LIBVA_DRIVER_NAME", "nvidia")
 hl.env("NVD_BACKEND", "direct")
 hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
--- The connected displays are on this NVIDIA DRM node. AQ_DRM_DEVICES uses
--- ':' as a separator, so the PCI by-path symlink cannot be used here.
-hl.env("AQ_DRM_DEVICES", "/dev/dri/card2")
+-- The connected displays are on the NVIDIA card. Its cardN number changes
+-- with driver load order, and AQ_DRM_DEVICES splits on ':', so the PCI
+-- by-path link is unusable; the host's udev rule adds this stable name.
+hl.env("AQ_DRM_DEVICES", "/dev/dri/nvidia-dgpu")
 hl.env("HYPRCURSOR_THEME", "BreezeX-RosePine-Linux")
 hl.env("HYPRCURSOR_SIZE", "32")
 hl.env("XCURSOR_THEME", "BreezeX-RosePine-Linux")

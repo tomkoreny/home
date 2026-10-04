@@ -171,10 +171,17 @@ mark is rendered from `tk-mark.svg` at build time.
 The rest of the module keeps text off the screen. The kernel console log level
 is 0, systemd prints only failures, and the `plymouth-quit` unit clears
 Plymouth's status override before quitting, which used to leave "Finished
-Terminate Plymouth Boot Screen" on the console. On the desktop host, the
-NVIDIA driver loads in the initrd so the splash appears early, and greetd
-starts Hyprland through `systemd-cat`, so its startup log goes to
-`journalctl -t hyprland` instead of the VT.
+Terminate Plymouth Boot Screen" on the console. Plymouth starts on the
+firmware framebuffer and moves to the NVIDIA driver when stage 2 loads it. On
+the desktop host, greetd starts Hyprland through `systemd-cat`, so its startup
+log goes to `journalctl -t hyprland` instead of the VT.
+
+Do not load the NVIDIA driver in the initrd. Connector names come from a
+counter shared by all GPUs, so NVIDIA registering before amdgpu turns
+`DP-2`/`HDMI-A-2`/`DP-3` into `DP-1`/`HDMI-A-1`/`DP-2`, and the monitor, bar,
+and wallpaper config refer to the old names. Hyprland opens the card through
+the udev symlink `/dev/dri/nvidia-dgpu`, because `cardN` also follows load
+order.
 
 The kernel's "RDSEED32 is broken" line is hidden, not fixed. The Ryzen 9800X3D
 runs BIOS microcode 0x0b404023. linux-firmware ships the fixed 0x0b404035, but

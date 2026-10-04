@@ -86,10 +86,17 @@ in
         enable = true;
         theme = "tk";
         themePackages = [ theme ];
-        # Draw in device pixels on every display. The script sizes the mark
-        # itself, and Plymouth's HiDPI guess would upscale it on the 4K panel.
+        # DeviceScale=1: draw in device pixels on every display. The script
+        # sizes the mark itself, and Plymouth's HiDPI guess would upscale it
+        # on the 4K panel.
+        # UseSimpledrm=1: start on the firmware framebuffer and move to the
+        # GPU driver once it loads. Loading NVIDIA in the initrd instead would
+        # also start the splash early, but it registers NVIDIA's connectors
+        # before amdgpu's, which renames DP-2/HDMI-A-2/DP-3 that the desktop
+        # config refers to.
         extraConfig = ''
           DeviceScale=1
+          UseSimpledrm=1
         '';
       };
 

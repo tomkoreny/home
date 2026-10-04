@@ -136,14 +136,6 @@ in
   ];
 
   boot = {
-    # Load the NVIDIA driver in the initrd. Plymouth ignores the firmware
-    # framebuffer, so without this the splash only appeared once stage 2
-    # loaded the driver ~10 s in, and then switched modes mid-animation.
-    initrd.kernelModules = [
-      "nvidia"
-      "nvidia_modeset"
-      "nvidia_drm"
-    ];
     loader = {
       systemd-boot.enable = lib.mkForce false;
       systemd-boot.configurationLimit = 5;
@@ -465,9 +457,13 @@ in
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
   system.stateVersion = "24.05";
-  # Disable USB autosuspend for Logitech C920 webcam (prevents white/blank frames)
   services.udev.extraRules = ''
+    # Disable USB autosuspend for Logitech C920 webcam (prevents white/blank frames)
     ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="046d", ATTR{idProduct}=="08e5", ATTR{power/autosuspend}="-1", ATTR{power/control}="on"
+    # Stable name for the NVIDIA card that drives the desktop, for Hyprland's
+    # AQ_DRM_DEVICES. cardN follows driver load order, so a hard-coded node
+    # breaks Hyprland's start when that order changes.
+    SUBSYSTEM=="drm", KERNEL=="card*", KERNELS=="0000:01:00.0", SYMLINK+="dri/nvidia-dgpu"
   '';
   # Grants the logged-in user hidraw access to the Arctis Pro Wireless base
   # (1038:1290), which the Quickshell bar's arctis helper queries.
