@@ -120,7 +120,7 @@
       flake = false;
     };
     jellyfin-apiclient-python-src = {
-      url = "github:jellyfin/jellyfin-apiclient-python/v1.19.0";
+      url = "github:jellyfin/jellyfin-apiclient-python/v1.20.0";
       flake = false;
     };
     python-mpv-jsonipc-src = {
