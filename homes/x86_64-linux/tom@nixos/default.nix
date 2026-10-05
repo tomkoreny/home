@@ -58,7 +58,7 @@ let
   };
 
   jellyfinMpvShim = pkgs.jellyfin-mpv-shim.overridePythonAttrs (old: {
-    version = "3.0.0";
+    version = "3.1.0";
     src = inputs.jellyfin-mpv-shim-src;
     dependencies = [
       jellyfinApiClient

@@ -626,11 +626,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1791153770,
-        "narHash": "sha256-+IqnyJotwLNMkhyqa3F3YtX58W2HrUBqRz++RGt42SM=",
+        "lastModified": 1791163078,
+        "narHash": "sha256-DiuwfdoZtEqVRsWuAhXcHa+cfvkr0t/xWW8ugkcxNyI=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "6807ee9587ecc28f7f05509e2043d68efa7fe0f4",
+        "rev": "f53f3267f5d009dd8f99443505e609389d7ff267",
         "type": "github"
       },
       "original": {
@@ -658,11 +658,11 @@
     "homebrew-cask": {
       "flake": false,
       "locked": {
-        "lastModified": 1791161077,
-        "narHash": "sha256-BYaiVxEbISwsLFLJU5GiJ5Ik80UVxddcKdCkJvCUI3k=",
+        "lastModified": 1791180765,
+        "narHash": "sha256-LZEgU4eN263uOodl89twV2WylW1mrejTVysPAjL9PCA=",
         "owner": "homebrew",
         "repo": "homebrew-cask",
-        "rev": "769f4db50c79d3da4855e8c1e60d4ad720911b49",
+        "rev": "3b47307c76fe0479076b94f739be88a0468a7e7f",
         "type": "github"
       },
       "original": {
@@ -674,11 +674,11 @@
     "homebrew-core": {
       "flake": false,
       "locked": {
-        "lastModified": 1791161302,
-        "narHash": "sha256-md+6aK+PxN5yoeBSjpNbJBhq3lU3sDQO5UymFVUta5w=",
+        "lastModified": 1791182020,
+        "narHash": "sha256-H/NvwpymzznHgB18ZfobK6DXLG3yIOLWylaDa5PNquc=",
         "owner": "homebrew",
         "repo": "homebrew-core",
-        "rev": "def692a6adf4bf672631a0c3abee279633a8772f",
+        "rev": "aa268f53adabaf514e6f8d3d4a398ac9be4f6f68",
         "type": "github"
       },
       "original": {
@@ -1072,16 +1072,16 @@
     "jellyfin-mpv-shim-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1788816977,
-        "narHash": "sha256-BaZ7AErCe80wHoJ5KFBLVPIu8egFieWX457NgrXDKhs=",
+        "lastModified": 1791164766,
+        "narHash": "sha256-Re9qYQp+Z7GHdL75YrJNHCvI5G0uHss3CJsA1AIj+UA=",
         "owner": "jellyfin",
         "repo": "jellyfin-mpv-shim",
-        "rev": "9970b2dc4a91f0c96a9fa5a1fcecf6a69331e315",
+        "rev": "7e9fd292459358dde12f054c24f79642ab5ec98f",
         "type": "github"
       },
       "original": {
         "owner": "jellyfin",
-        "ref": "v3.0.0",
+        "ref": "v3.1.0",
         "repo": "jellyfin-mpv-shim",
         "type": "github"
       }
@@ -1182,11 +1182,11 @@
         "treefmt-nix": "treefmt-nix_3"
       },
       "locked": {
-        "lastModified": 1791159248,
-        "narHash": "sha256-ehhRufG37vDruU5yA7yuCLCW1hB9HO96khjD7/XBAqA=",
+        "lastModified": 1791175671,
+        "narHash": "sha256-1szYaEAFYPApOgy2HGLbqtVys8SIqk5mlvz9agPFLr0=",
         "owner": "numtide",
         "repo": "nix-ai-tools",
-        "rev": "8202284fa5c5aeec7f18d58d18ad2575e7c87b7e",
+        "rev": "ba24820b562c0e1ff95d283a2e2e1debcbcbad83",
         "type": "github"
       },
       "original": {
