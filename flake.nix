@@ -67,7 +67,7 @@
     # Ruby required `HOMEBREW_ORIGINAL_BREW_FILE`, which the 7.0.4 wrapper no
     # longer exports, so `brew bundle` died during activation).
     brew-src = {
-      url = "github:Homebrew/brew/7.0.7";
+      url = "github:Homebrew/brew/7.0.8";
       flake = false;
     };
     nix-homebrew = {
