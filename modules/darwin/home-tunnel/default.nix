@@ -110,6 +110,9 @@ in
       serviceConfig = {
         RunAtLoad = true;
         KeepAlive = true;
+        # Stopping removes its routes and restarts openfortivpn gracefully,
+        # which waits up to 20 s; launchd's default 20 s would cut that short.
+        ExitTimeOut = 45;
         StandardOutPath = "/var/log/home-tunnel-failover.log";
         StandardErrorPath = "/var/log/home-tunnel-failover.log";
       };

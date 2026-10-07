@@ -111,10 +111,14 @@ provide IPv6. The last entry in `yggdrasil.peers` is the homelab gateway
 (`ygg.tomkoreny.com`); WireGuard interface `home` (10.72.72.2) runs over
 Yggdrasil to it and routes nothing on its own. The
 `home-tunnel-ipv4-failover` daemon probes IPv4 on the physical uplink every
-5 s. After two failed rounds it routes `0.0.0.0/1` and `128.0.0.0/1` into the
-tunnel and pins the IPv4 Yggdrasil peers to the physical gateway. After three
-good rounds it removes those routes. Every switch restarts the daemons listed
-in `restartOnSwitch`.
+5 s; tunnel interfaces such as openfortivpn's `ppp0` never count as the
+uplink. After two failed rounds it routes `0.0.0.0/1` and `128.0.0.0/1` into
+the tunnel, pins the IPv4 Yggdrasil peers to the physical gateway, adds a
+scoped default for the uplink so the probe keeps testing the local path, and
+moves other programs' static host pins on the uplink (openfortivpn's route to
+its gateway) into the tunnel. After three good rounds it undoes all of that.
+Every switch stops the daemons listed in `restartOnSwitch` with SIGTERM, so
+they remove their own routes, and starts them again.
 
 ```console
 sudo tail -f /var/log/home-tunnel-failover.log
