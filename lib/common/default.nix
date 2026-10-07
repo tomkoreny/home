@@ -55,12 +55,43 @@ rec {
   # networks that only allow web ports (2026-09-29: a Wi-Fi that blocked
   # 8884, 993 and 65534 left the Mac with no peer and Herdr reconnecting).
   # `?key=` pins the peer's public key where the list publishes one.
+  #
+  # The last entry is the homelab gateway (homeGateway below). Both hosts
+  # peer with it on purpose: it allowlists both keys, gives NixOS a direct
+  # path home and carries the Mac's IPv4 fallback tunnel.
   yggdrasil.peers = [
     "tls://waw01.yggdrasil.hosted-by.skhron.eu:8884?key=030602cee88a761c68f5f14e1dad430f25238a703b69dc382321a38f833035b0"
     "tls://37.205.14.171:993?key=0009e16b9e3afe7b13c3612560410434d3dfc70c8a8a0a63e51e0470cb8124f6"
     "tls://109.176.250.101:65534"
     "tls://ygg.mkg20001.io:443"
+    homeGateway.yggdrasil.peer
   ];
+
+  # Homelab IPv4 gateway (the ygg-gateway pod). It is a Yggdrasil node that
+  # also runs a WireGuard server on its Yggdrasil address and masquerades the
+  # tunnel's IPv4 out of the home uplink, so the Mac can borrow home IPv4 on
+  # networks that only give it IPv6 (modules/darwin/home-tunnel).
+  homeGateway = {
+    yggdrasil = {
+      # AAAA-only name for the gateway's IPv6 LoadBalancer VIP; UDP 443.
+      peer = "quic://ygg.tomkoreny.com:443?key=3b6a99126b3d672594dec98b059a87de771d294710b4d356c3bec8564328ab01";
+      address = "202:24ab:376c:a614:c6d3:5909:b3a7:d32b";
+    };
+
+    wireguard = {
+      port = 51820;
+      # Reached over Yggdrasil only; the gateway has no public WireGuard port.
+      endpoint = "[${homeGateway.yggdrasil.address}]:${toString homeGateway.wireguard.port}";
+      publicKey = "kc3b2qe9zMbsTa5ymcds2JAuYlD7lP3v6rp7KHB05g4=";
+
+      # Tunnel addresses. The gateway knows the Mac as one peer:
+      #   macos: YimFoZzzpO0Qs74CsWynh30TmcDORM8c9xpHr43+Ki4=
+      addresses = {
+        gateway = "10.72.72.1/24";
+        macos = "10.72.72.2/32";
+      };
+    };
+  };
 
   # Split-tunnel WireGuard link to the internal network.
   #

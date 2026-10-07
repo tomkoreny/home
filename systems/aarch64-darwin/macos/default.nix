@@ -52,6 +52,11 @@ in
   tomkoreny.darwin.vpn.enable = true;
   # Always-on split-tunnel WireGuard link (10.71.71.2, internal routes only).
   tomkoreny.darwin.wireguard.enable = true;
+  # IPv4 via home when the local network has none; openfortivpn re-routes its gateway on each switch.
+  tomkoreny.darwin.home-tunnel = {
+    enable = true;
+    restartOnSwitch = [ "org.nixos.openfortivpn" ];
+  };
   # Local I2P proxies and a stable, sops-backed Yggdrasil identity.
   tomkoreny.darwin.privacy-networks.enable = true;
   # Avoid collisions with pre-existing manual backups like ~/.ssh/config.bak.
