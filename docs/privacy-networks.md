@@ -104,6 +104,24 @@ sudo tail -f /var/log/yggdrasil.log
 The macOS i2pd state is stored in
 `~/Library/Application Support/i2pd`. NixOS stores it in `/var/lib/i2pd`.
 
+## Home IPv4 tunnel (macOS)
+
+`tomkoreny.darwin.home-tunnel` gives the Mac home IPv4 on networks that only
+provide IPv6. The last entry in `yggdrasil.peers` is the homelab gateway
+(`ygg.tomkoreny.com`); WireGuard interface `home` (10.72.72.2) runs over
+Yggdrasil to it and routes nothing on its own. The
+`home-tunnel-ipv4-failover` daemon probes IPv4 on the physical uplink every
+5 s. After two failed rounds it routes `0.0.0.0/1` and `128.0.0.0/1` into the
+tunnel and pins the IPv4 Yggdrasil peers to the physical gateway. After three
+good rounds it removes those routes. Every switch restarts the daemons listed
+in `restartOnSwitch`.
+
+```console
+sudo tail -f /var/log/home-tunnel-failover.log
+sudo wg show "$(sudo cat /var/run/wireguard/home.name)"
+cat /var/run/home-tunnel-failover.state   # routes the daemon installed
+```
+
 ## Rotate a Yggdrasil identity
 
 Each host must have its own private key. Never reuse one key on simultaneously
