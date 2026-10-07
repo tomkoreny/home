@@ -39,15 +39,19 @@ STATE_FILE=/var/run/home-tunnel-failover.state
 ACTIVE=0 FAILS=0 OKS=0 STOP=0
 UPLINK=unset
 PHYS_IF= PHYS_GW= TUN_IF= PEER_SPEC=
-# Installed by us: the utun carrying 0/1 + 128/1, and peer IP -> pin spec
-# ("gw <addr>", "if <ifname>" or "reject").
-SPLIT_IF=
+# Installed by us: the utun carrying 0/1 + 128/1, the uplink's scoped default
+# ("<ifname> <gateway>"), and peer IP -> pin spec ("gw <addr>", "if <ifname>"
+# or "reject").
+SPLIT_IF= SCOPED=
 declare -A HOST_ROUTE=()
+# Other programs' host pins we moved into the tunnel: IP -> original gateway.
+declare -A MOVED=()
 # Wanted while active: IPv4 addresses Yggdrasil may dial.
 declare -A WANT_PEER=()
-# Route table snapshot: interface of the 0/1 and 128/1 routes, and
-# "<gateway> <flags> <netif>" of host routes.
-declare -A SPLIT_ON=() HOST_ON=()
+# Route table snapshot: interface of the 0/1 and 128/1 routes,
+# "<gateway> <flags> <netif>" of host routes, and gateway of each
+# interface-scoped default.
+declare -A SPLIT_ON=() HOST_ON=() SCOPED_ON=()
 # Problems already reported since the last state change.
 declare -A WARNED=()
 
@@ -70,15 +74,16 @@ warn() {
 
 # Snapshot of the IPv4 table. The physical uplink is the first default route
 # that is not interface-scoped (I flag: per-interface duplicates, VPN
-# scopes) and not a utun; that is the choice wg-quick's darwin code makes,
-# minus the tunnels. Columns are located from the header because their
-# number differs between macOS releases. Protocol-cloned routes are not
+# scopes) and not a tunnel: pppd makes ppp0 the primary default whenever the
+# Wi-Fi/hotspot default disappears, and probing through openfortivpn's own
+# link would decide nothing. Columns are located from the header because
+# their number differs between macOS releases. Protocol-cloned routes are not
 # listed without -a, so host entries are static ones.
 read_routes() {
   local -a f
   local i fi_flags= fi_netif= dest gw flags netif
   PHYS_IF= PHYS_GW=
-  SPLIT_ON=() HOST_ON=()
+  SPLIT_ON=() HOST_ON=() SCOPED_ON=()
   while read -r -a f; do
     ((${#f[@]} >= 3)) || continue
     if [[ ${f[0]} == Destination ]]; then
@@ -93,7 +98,9 @@ read_routes() {
     [[ -n $fi_flags && -n $fi_netif ]] || continue
     dest=${f[0]} gw=${f[1]} flags=${f[fi_flags]-} netif=${f[fi_netif]-}
     if [[ $dest == default ]]; then
-      if [[ -z $PHYS_IF && $flags != *I* && $netif != utun* ]]; then
+      if [[ $flags == *I* ]]; then
+        SCOPED_ON[$netif]=$gw
+      elif [[ -z $PHYS_IF && $netif != @(utun|ppp|ipsec|gif|stf)* ]]; then
         PHYS_IF=$netif PHYS_GW=$gw
       fi
     elif [[ $dest =~ ^(0|128)(\.0)*/1$ ]]; then
@@ -220,9 +227,92 @@ del_split() {
   SPLIT_IF=
 }
 
+# A socket bound to the primary interface resolves through the unscoped
+# table, where 0/1 and 128/1 now point at the utun, so a bound probe fails
+# with "Network is unreachable" and the tunnel could never be left again.
+# macOS gives only non-primary interfaces a scoped default; while the
+# tunnel holds IPv4, the uplink gets one from us so the probe keeps testing
+# the real local path.
+add_scoped() {
+  local out
+  [[ -n $PHYS_IF && -z ${SCOPED_ON[$PHYS_IF]-} ]] || return 1
+  if [[ $PHYS_GW == link#* ]]; then
+    out=$("$ROUTE" -n add -inet default -interface "$PHYS_IF" -ifscope "$PHYS_IF" 2>&1)
+  else
+    out=$("$ROUTE" -n add -inet default "$PHYS_GW" -ifscope "$PHYS_IF" 2>&1)
+  fi || {
+    warn "scoped default via $PHYS_IF failed: $out"
+    return 1
+  }
+  SCOPED="$PHYS_IF $PHYS_GW"
+}
+
+# Deletes our scoped default only while the table still holds that route.
+del_scoped() {
+  local netif=${SCOPED%% *} gw=${SCOPED#* }
+  if [[ -n $SCOPED && ${SCOPED_ON[$netif]-} == "$gw" ]]; then
+    "$ROUTE" -n delete -inet default -ifscope "$netif" >/dev/null 2>&1
+  fi
+  SCOPED=
+}
+
+# VPN clients pin their server with a static /32 via the physical gateway.
+# openfortivpn always takes the primary default for it (its route lookup
+# locks onto the first matching interface, so the more specific 0/1 and
+# 128/1 never win), and that pin leads into the dead local path. While IPv4
+# goes home, such foreign pins move into the tunnel; switching back returns
+# them to the uplink. A client that deletes and re-adds its pin (every
+# openfortivpn session) is caught again on the next round.
+move_pins() {
+  local ip gw flags netif tun_addr moved=1
+  local -a target
+  [[ -n $SPLIT_IF && -n $PHYS_IF ]] || return 1
+  # Gateway form via the tunnel's own address: the Forti gateway is also
+  # ppp0's point-to-point peer, so an `-interface` route to it attaches to
+  # ppp0 instead of the utun.
+  tun_addr=$(/sbin/ifconfig "$SPLIT_IF" 2>/dev/null | /usr/bin/awk '$1 == "inet" {print $2; exit}')
+  if [[ -n $tun_addr ]]; then
+    target=("$tun_addr")
+  else
+    target=(-interface "$SPLIT_IF")
+  fi
+  for ip in "${!HOST_ON[@]}"; do
+    [[ -n ${HOST_ROUTE[$ip]-} || -n ${WANT_PEER[$ip]-} ]] && continue
+    read -r gw flags netif <<<"${HOST_ON[$ip]}"
+    [[ $netif == "$PHYS_IF" && $flags == *G* && $flags == *S* ]] || continue
+    # Delete and re-add: `route change` keeps the old interface on the
+    # entry. In between, the /1 halves already carry the address home.
+    "$ROUTE" -n delete -inet -host "$ip" >/dev/null 2>&1
+    if "$ROUTE" -n add -inet -host "$ip" "${target[@]}" >/dev/null 2>&1; then
+      MOVED[$ip]=$gw
+      log "moved the $ip pin (via $gw) into $WG_INTERFACE"
+      moved=0
+    else
+      warn "moving the $ip pin into $WG_INTERFACE failed"
+    fi
+  done
+  return $moved
+}
+
+# Returns moved pins that are still in the tunnel to the uplink (or to their
+# old gateway when there is no uplink); pins their owner removed are just
+# forgotten.
+restore_pins() {
+  local ip gw flags netif
+  for ip in "${!MOVED[@]}"; do
+    read -r gw flags netif <<<"${HOST_ON[$ip]-}"
+    if [[ $netif == utun* ]]; then
+      "$ROUTE" -n delete -inet -host "$ip" >/dev/null 2>&1
+      "$ROUTE" -n add -inet -host "$ip" "${PHYS_GW:-${MOVED[$ip]}}" >/dev/null 2>&1 ||
+        warn "returning the $ip pin to ${PHYS_GW:-${MOVED[$ip]}} failed"
+    fi
+    unset 'MOVED[$ip]'
+  done
+}
+
 save_state() {
   local ip
-  if [[ -z $SPLIT_IF && ${#HOST_ROUTE[@]} -eq 0 ]]; then
+  if [[ -z $SPLIT_IF && -z $SCOPED && ${#HOST_ROUTE[@]} -eq 0 && ${#MOVED[@]} -eq 0 ]]; then
     "$RM" -f "$STATE_FILE"
     return
   fi
@@ -230,8 +320,14 @@ save_state() {
     if [[ -n $SPLIT_IF ]]; then
       printf 'split %s\n' "$SPLIT_IF"
     fi
+    if [[ -n $SCOPED ]]; then
+      printf 'scoped %s\n' "$SCOPED"
+    fi
     for ip in "${!HOST_ROUTE[@]}"; do
       printf 'host %s %s\n' "$ip" "${HOST_ROUTE[$ip]}"
+    done
+    for ip in "${!MOVED[@]}"; do
+      printf 'moved %s %s\n' "$ip" "${MOVED[$ip]}"
     done
   } >"$STATE_FILE"
 }
@@ -242,17 +338,37 @@ load_state() {
   while read -r kind key spec; do
     case $kind in
     split) SPLIT_IF=$key ;;
+    scoped) SCOPED="$key $spec" ;;
     host) HOST_ROUTE[$key]=$spec ;;
+    moved) MOVED[$key]=$spec ;;
     esac
   done <"$STATE_FILE"
 }
 
-# Services that pinned a route to the previous IPv4 path re-resolve it.
+# Services that pinned a route to the previous IPv4 path re-resolve it. Stop
+# them with SIGTERM and wait, so they remove their own routes: `kickstart -k`
+# killed openfortivpn before its cleanup, and its next session then reused the
+# stale /32 pin to its gateway on the dead path. KeepAlive only restarts
+# failed exits, so start the service again once it is gone.
 kickstart() {
-  local label out
+  local label out pid i
   for label in "${RESTART_LABELS[@]}"; do
-    out=$("$LAUNCHCTL" kickstart -k "system/$label" 2>&1) ||
-      log "restarting $label failed: $out"
+    pid=$("$LAUNCHCTL" print "system/$label" 2>/dev/null | /usr/bin/awk '$1 == "pid" {print $3; exit}')
+    if [[ -n $pid ]]; then
+      "$LAUNCHCTL" kill TERM "system/$label" >/dev/null 2>&1
+      for ((i = 0; i < 20; i++)); do
+        /bin/kill -0 "$pid" 2>/dev/null || break
+        "$SLEEP" 1
+      done
+      if /bin/kill -0 "$pid" 2>/dev/null; then
+        log "$label ignored SIGTERM for 20s; killing it"
+        out=$("$LAUNCHCTL" kickstart -k "system/$label" 2>&1) ||
+          log "restarting $label failed: $out"
+        continue
+      fi
+    fi
+    out=$("$LAUNCHCTL" kickstart "system/$label" 2>&1) ||
+      log "starting $label failed: $out"
   done
 }
 
@@ -296,11 +412,28 @@ reconcile() {
         log "IPv4 now goes through $WG_INTERFACE ($TUN_IF); Yggdrasil peers kept outside: ${pinned:-none}"
       fi
     fi
+
+    # Keep the bound probe answerable on the current uplink (see add_scoped);
+    # reinstall it after an uplink change or if something removed it.
+    if [[ -n $SCOPED ]] && [[ $SCOPED != "$PHYS_IF $PHYS_GW" || ${SCOPED_ON[$PHYS_IF]-} != "$PHYS_GW" ]]; then
+      del_scoped
+      changed=1
+    fi
+    [[ -z $SCOPED ]] && add_scoped && changed=1
+    move_pins && changed=1
   else
+    if ((${#MOVED[@]})); then
+      restore_pins
+      changed=1
+    fi
     if [[ -n $SPLIT_IF ]]; then
       del_split
       changed=1 switched=1
       log "IPv4 is back on ${PHYS_IF:-the local network}"
+    fi
+    if [[ -n $SCOPED ]]; then
+      del_scoped
+      changed=1
     fi
     for ip in "${!HOST_ROUTE[@]}"; do
       del_host "$ip"
@@ -327,7 +460,7 @@ teardown() {
 trap 'STOP=1' TERM INT HUP
 
 load_state
-if [[ -n $SPLIT_IF || ${#HOST_ROUTE[@]} -gt 0 ]]; then
+if [[ -n $SPLIT_IF || -n $SCOPED || ${#HOST_ROUTE[@]} -gt 0 || ${#MOVED[@]} -gt 0 ]]; then
   log "removing routes left by a previous run"
   teardown
 fi
