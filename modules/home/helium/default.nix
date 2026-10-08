@@ -90,6 +90,20 @@ let
   # Themed server-side by the homelab repo (apps/services/lemmy/theme), so Dark
   # Reader must leave it alone; see docs/theming.md.
   lemmyHost = "lemmy.tomkoreny.com";
+  # Our own and work sites render as served: neither the global Stylix Fonts
+  # userstyle nor Dark Reader touches these domains or their subdomains.
+  # Site-specific userstyles, such as the Nextcloud theme, still apply.
+  unstyledDomains = [
+    "localhost"
+    "tomkoreny.com"
+    "i2ginfra.cz"
+    "xcarol.cz"
+  ];
+  # Dots as [.] keep the pattern free of backslashes, which usercss strings
+  # would otherwise need escaped twice.
+  unstyledHostPattern = lib.concatMapStringsSep "|" (
+    domain: lib.replaceStrings [ "." ] [ "[.]" ] domain
+  ) unstyledDomains;
 
   externalExtensions = [
     {
@@ -462,11 +476,11 @@ let
         font_source = f"""/* ==UserStyle==
         @name           Stylix Fonts
         @namespace      tomkoreny.com/stylix
-        @version        1.1.0
+        @version        1.2.0
         @description    Apply the shared Stylix fonts to web content
         @author         Tom Koreny
         ==/UserStyle== */
-        @-moz-document regexp("^https?://.*") {{
+        @-moz-document regexp("^https?://(?!(?:[^/:]+[.])?(?:${unstyledHostPattern})(?:[:/]|$)).*") {{
         *:not(pre, pre *, code, [aria-hidden="true"], {icon_selectors}) {{
             font-family: "{sans_serif}" !important;
         }}
@@ -484,7 +498,7 @@ let
             "usercssData": {
                 "name": "Stylix Fonts",
                 "namespace": "tomkoreny.com/stylix",
-                "version": "1.1.0",
+                "version": "1.2.0",
                 "description": "Apply the shared Stylix fonts to web content",
                 "author": "Tom Koreny",
                 "vars": {},
@@ -522,16 +536,18 @@ let
     };
     # Avoid running the dynamic engine over applications which already provide
     # a native dark theme. Reprocessing their dark borders turns subtle neutral
-    # separators into bright blue outlines.
+    # separators into bright blue outlines. A bare domain entry only matches
+    # itself and www, so each unstyled domain also gets a wildcard entry.
     disabledFor = [
       "github.com"
       "youtube.com"
       "notion.so"
-      nextcloudHost
-      lemmyHost
-      "dash.home.tomkoreny.com"
       "teams.cloud.microsoft"
-    ];
+    ]
+    ++ lib.concatMap (domain: [
+      domain
+      "*.${domain}"
+    ]) unstyledDomains;
     syncSettings = false;
     automation = {
       enabled = true;

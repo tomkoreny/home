@@ -51,10 +51,14 @@ generate all browser theme artifacts:
   and it tracks the system appearance, which makes the style track it too.
 - Dark Reader uses the shared background plus the shared accent for selections
   and scrollbars while acting as the fallback for other websites. It is disabled
-  on Homarr (`dash.home.tomkoreny.com`), Teams and `lemmy.tomkoreny.com` because
-  those provide native or generated dark themes; applying its dynamic engine a
-  second time turns subtle separators into prominent blue borders, and on Teams
-  it would fight the userstyle above.
+  on Teams because the userstyle above handles it there, and on sites with
+  native dark themes, because applying its dynamic engine a second time turns
+  subtle separators into prominent blue borders.
+- `unstyledDomains` in `modules/home/helium/default.nix` lists sites that render
+  as served: `localhost`, `tomkoreny.com`, `i2ginfra.cz`, `xcarol.cz`, and all of
+  their subdomains. Dark Reader and the global `Stylix Fonts` userstyle skip
+  them. Site-specific userstyles still apply, so `nextcloud.home.tomkoreny.com`
+  keeps its Catppuccin theme.
 
 The generated GitHub and YouTube styles inline a pinned Catppuccin Less library.
 Their upstream auto-update metadata is deliberately removed so an update cannot
