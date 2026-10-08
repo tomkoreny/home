@@ -1,10 +1,12 @@
 {
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
-    # First rust-overlay revision using the non-deprecated hostPlatform checks.
-    # Herdr, OMP, and Lanzaboote otherwise emit stdenv.is* warnings.
+    # Tracks master so `nix flake update` moves it together with the inputs
+    # that follow it. A frozen revision broke the scheduled update in October
+    # 2026: oh-my-pi started requesting a nightly the pinned overlay predated
+    # ("Nightly 2026-10-06 is not available").
     rust-overlay = {
-      url = "github:oxalica/rust-overlay/892c035d7c2ff75acd5da10424a47ab454e1f3dc";
+      url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
