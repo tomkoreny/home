@@ -36,7 +36,30 @@ let
     fi
     export HINDSIGHT_API_TOKEN
     HINDSIGHT_API_TOKEN="$(${pkgs.coreutils}/bin/cat "$token_file")"
+    # OMP refuses to emit images inside herdr because it cannot tell whether
+    # the attached client renders Kitty graphics. Herdr does (its
+    # `terminal.kitty_graphics` defaults to true) and Ghostty is the outer
+    # terminal on both hosts, so opt in explicitly.
+    if [[ -n "''${HERDR_PANE_ID:-}" ]]; then
+      export PI_FORCE_IMAGE_PROTOCOL="''${PI_FORCE_IMAGE_PROTOCOL:-kitty}"
+    fi
     ${lib.optionalString pkgs.stdenv.hostPlatform.isLinux ''
+      # A herdr server first started over SSH hands every pane an SSH-login
+      # environment without WAYLAND_DISPLAY, so headed Chromium and the
+      # `computer` prelude cannot reach the desktop. Borrow the live Hyprland
+      # session's variables from the systemd user manager, which UWSM fills.
+      if [[ -z "''${WAYLAND_DISPLAY:-}" ]]; then
+        while IFS='=' read -r name value; do
+          case "$name" in
+            WAYLAND_DISPLAY | DISPLAY | HYPRLAND_INSTANCE_SIGNATURE | XDG_CURRENT_DESKTOP)
+              export "$name=$value"
+              ;;
+          esac
+        done < <(${pkgs.systemd}/bin/systemctl --user show-environment 2>/dev/null || true)
+        if [[ -n "''${WAYLAND_DISPLAY:-}" ]]; then
+          export XDG_SESSION_TYPE=wayland
+        fi
+      fi
       export PUPPETEER_EXECUTABLE_PATH=${lib.getExe pkgs.chromium}
       # OMP voice follows a Mac attached through herdr (common.ompVoice).
       # libpulse tries the list in order on every new stream, so each
@@ -290,9 +313,9 @@ in
       ompRelayBrowser
     ];
 
-    # Written to ~/.omp/agent/config.yml as a read-only store symlink: OMP's
-    # own /settings edits apply for the session but revert on the next rebuild,
-    # so change settings here rather than in the TUI.
+    # Copied to ~/.omp/agent/config.yml as a writable file on every switch:
+    # OMP's own /settings edits persist until the next rebuild overwrites
+    # them, so change settings here rather than in the TUI.
     programs.omp.settings = {
       providers.webSearchOrder = [ ];
       # Off: OMP runs inside Herdr panes, and since OMP 18.1.12 this toast is

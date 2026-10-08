@@ -11,5 +11,12 @@
 # SDKROOT, which the nixpkgs stdenv points at apple-sdk 14.4 (no
 # FoundationModels), so the bridge is stubbed out and the on-device Apple
 # model provider is absent from the Nix build.
+#
+# On Linux the build links PipeWire (`withWaylandScreencast`) so the
+# `computer` prelude can capture screenshots through the ScreenCast portal;
+# upstream's default build reports `capture: false` on Wayland.
 { inputs, pkgs, ... }:
-inputs.omp.packages.${pkgs.stdenv.hostPlatform.system}.omp
+let
+  omp = inputs.omp.packages.${pkgs.stdenv.hostPlatform.system}.omp;
+in
+if pkgs.stdenv.hostPlatform.isLinux then omp.override { withWaylandScreencast = true; } else omp

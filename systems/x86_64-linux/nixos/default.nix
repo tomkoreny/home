@@ -272,6 +272,11 @@ in
     };
 
     gnome.gnome-keyring.enable = true;
+    # Accessibility bus for OMP's `computer` prelude, which reads and presses
+    # window controls through AT-SPI. Hyprland has no RemoteDesktop portal,
+    # so these AX actions are the only way it can operate other apps here.
+    # Enabling it also drops NixOS's NO_AT_BRIDGE=1 default.
+    gnome.at-spi2-core.enable = true;
     # Seat0 login: greetd autologin straight into Hyprland. SDDM was replaced
     # when the second seat was added — SDDM starts a greeter on every
     # graphical logind seat and would fight the dedicated seat1 session
