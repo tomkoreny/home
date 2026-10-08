@@ -11,6 +11,9 @@ Adopt the configuration currently on origin/main for this host:
   3. validates every host this machine can evaluate
   4. switches the current host configuration
 
+Validation and activation run even when origin/main has no new commits, so a
+failed activation is retried on the next run.
+
 Flake inputs are owned by .github/workflows/update-flake.yml, which bumps
 flake.lock only after instantiating every host. This script never runs
 `nix flake update` and never pushes, so a machine can only ever adopt a lock
@@ -71,8 +74,6 @@ fi
 # on disk with exec. UPDATE_HOME_PHASE is internal; it is not a documented flag
 # because nothing outside this script should set it.
 if [[ "${UPDATE_HOME_PHASE:-pull}" == "pull" ]]; then
-	starting_revision="$(git rev-parse HEAD)"
-
 	# A conflict would leave the checkout half-rebased and dirty, and every later
 	# run would then refuse to start. Abort it so the checkout stays on the last
 	# working revision and the next run tries again.
@@ -84,10 +85,8 @@ if [[ "${UPDATE_HOME_PHASE:-pull}" == "pull" ]]; then
 		exit 1
 	fi
 
-	if [[ "$(git rev-parse HEAD)" == "$starting_revision" ]]; then
-		echo "Already on the latest validated configuration."
-		exit 0
-	fi
+	# An unchanged checkout does not prove the last activation succeeded.
+	# Always apply it so a failed switch is retried on the next run.
 
 	UPDATE_HOME_PHASE=apply exec "$0" ${original_args[@]+"${original_args[@]}"}
 fi
