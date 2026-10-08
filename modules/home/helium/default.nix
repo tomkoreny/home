@@ -105,26 +105,27 @@ let
     domain: lib.replaceStrings [ "." ] [ "[.]" ] domain
   ) unstyledDomains;
 
-  externalExtensions = [
-    {
-      id = "eimadpbcbfnmbkopoojfekhnkhdbieeh"; # Dark Reader
-      version = "4.9.129";
-      crx = pkgs.fetchurl {
-        url = "https://clients2.googleusercontent.com/crx/blobs/AUU14H9YtxdbklhtavhDLIp6EU8GdmXC3s7q0P0PsnAkubhNGm_yGgKNuLxRPYOpqUQXiTrGZ4gaqFx5ZZNytiwD4IqjQ4eX1gVnkI5BY-Ue8BckMsvs3B2Kf4bFoNOBZGwAxlKa5dIXbQ5C_UZngYeYTTw7KV6YfEFt/EIMADPBCBFNMBKOPOOJFEKHNKHDBIEEH_4_9_129_0.crx";
-        hash = "sha256-ncsb1tytQ4kt3AKP9l+YLfPtuhNammRF5PpxZx43qhM=";
-      };
-    }
-    {
-      id = "clngdbkpkpeebahjckkjfobafhncgmne"; # Stylus
-      version = "2.4.9";
-      crx = pkgs.fetchurl {
-        url = "https://clients2.googleusercontent.com/crx/blobs/AUU14H_L17NKC6GXuvEa7-QEv8MJXZDoFNwg0Q3v_OYxHGy82eeTFxxFbakr0044ifr0NDaK_9SPccGcWMdmgPlfOHmhXx1ZXf6T_nUbpY3XJQNtHlp1dUewhvT4HNnSjPoAxlKa5bPBkddnonM7Y9AgBcA1Ic-YFE9z/CLNGDBKPKPEEBAHJCKKJFOBAFHNCGMNE_2_4_9_0.crx";
-        hash = "sha256-qMU7PiV38+dCIH+NbWv1PA4PoSX3simCQeT4sTqmXGM=";
-      };
-    }
-  ];
+  darkReaderExtension = {
+    id = "eimadpbcbfnmbkopoojfekhnkhdbieeh";
+    version = "4.9.129";
+    crx = pkgs.fetchurl {
+      url = "https://clients2.googleusercontent.com/crx/blobs/AUU14H9YtxdbklhtavhDLIp6EU8GdmXC3s7q0P0PsnAkubhNGm_yGgKNuLxRPYOpqUQXiTrGZ4gaqFx5ZZNytiwD4IqjQ4eX1gVnkI5BY-Ue8BckMsvs3B2Kf4bFoNOBZGwAxlKa5dIXbQ5C_UZngYeYTTw7KV6YfEFt/EIMADPBCBFNMBKOPOOJFEKHNKHDBIEEH_4_9_129_0.crx";
+      hash = "sha256-ncsb1tytQ4kt3AKP9l+YLfPtuhNammRF5PpxZx43qhM=";
+    };
+  };
+  stylusExtension = {
+    id = "clngdbkpkpeebahjckkjfobafhncgmne";
+    version = "2.4.9";
+    crx = pkgs.fetchurl {
+      url = "https://clients2.googleusercontent.com/crx/blobs/AUU14H_L17NKC6GXuvEa7-QEv8MJXZDoFNwg0Q3v_OYxHGy82eeTFxxFbakr0044ifr0NDaK_9SPccGcWMdmgPlfOHmhXx1ZXf6T_nUbpY3XJQNtHlp1dUewhvT4HNnSjPoAxlKa5bPBkddnonM7Y9AgBcA1Ic-YFE9z/CLNGDBKPKPEEBAHJCKKJFOBAFHNCGMNE_2_4_9_0.crx";
+      hash = "sha256-qMU7PiV38+dCIH+NbWv1PA4PoSX3simCQeT4sTqmXGM=";
+    };
+  };
+  # On Linux the helium-browser launcher loads a patched Stylus unpacked
+  # (stylusManaged below), so only Dark Reader comes from an external CRX there.
+  # macOS starts Helium from the Homebrew app, which cannot pass the flag.
   externalExtensionFiles =
-    directory:
+    directory: extensions:
     lib.listToAttrs (
       map (extension: {
         name = "${directory}/External Extensions/${extension.id}.json";
@@ -132,7 +133,7 @@ let
           external_crx = "${extension.crx}";
           external_version = extension.version;
         };
-      }) externalExtensions
+      }) extensions
     );
 
   # `all-userstyles-export` is a rolling release tag that upstream regenerates,
@@ -510,6 +511,101 @@ let
             output.write("\n")
         PY
       '';
+  # Stylus keeps styles in IndexedDB and accepts neither policy nor messages
+  # from other extensions, so this unpacks the pinned CRX and appends
+  # stylus-managed-styles.js to its service worker. That script imports the
+  # generated styles at startup. The manifest gets the CRX's public key so the
+  # unpacked copy keeps the Web Store ID, and with it the existing Stylus data.
+  stylusManaged =
+    pkgs.runCommand "stylus-managed-${stylusExtension.version}"
+      {
+        nativeBuildInputs = [ pkgs.python3 ];
+      }
+      ''
+        python3 - <<'PY'
+        import base64
+        import hashlib
+        import io
+        import json
+        import os
+        import shutil
+        import zipfile
+        from pathlib import Path
+
+
+        def varint(buf, pos):
+            value = shift = 0
+            while True:
+                byte = buf[pos]
+                pos += 1
+                value |= (byte & 0x7F) << shift
+                shift += 7
+                if byte < 0x80:
+                    return value, pos
+
+
+        def length_fields(buf, wanted):
+            # Only the length-delimited fields of a protobuf message matter here.
+            pos = 0
+            while pos < len(buf):
+                key, pos = varint(buf, pos)
+                if key & 7 == 0:
+                    _, pos = varint(buf, pos)
+                    continue
+                if key & 7 != 2:
+                    raise RuntimeError(f"Unexpected CRX header wire type {key & 7}")
+                size, pos = varint(buf, pos)
+                if key >> 3 == wanted:
+                    yield buf[pos:pos + size]
+                pos += size
+
+
+        def extension_id(public_key):
+            digest = hashlib.sha256(public_key).hexdigest()[:32]
+            return "".join(chr(ord("a") + int(c, 16)) for c in digest)
+
+
+        crx = Path("${stylusExtension.crx}").read_bytes()
+        if crx[:4] != b"Cr24" or int.from_bytes(crx[4:8], "little") != 3:
+            raise RuntimeError("Stylus download is not a CRX3 file")
+        header_size = int.from_bytes(crx[8:12], "little")
+        header = crx[12:12 + header_size]
+        # CrxFileHeader.sha256_with_rsa (2) holds AsymmetricKeyProof.public_key (1).
+        keys = [
+            key
+            for proof in length_fields(header, 2)
+            for key in length_fields(proof, 1)
+        ]
+        public_key = next(
+            (key for key in keys if extension_id(key) == "${stylusExtension.id}"),
+            None,
+        )
+        if public_key is None:
+            raise RuntimeError("No CRX key matches the Stylus extension ID")
+
+        out = Path(os.environ["out"])
+        zipfile.ZipFile(io.BytesIO(crx[12 + header_size:])).extractall(out)
+        # Web Store verification data only applies to store installs.
+        shutil.rmtree(out / "_metadata", ignore_errors=True)
+
+        manifest_path = out / "manifest.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest["key"] = base64.b64encode(public_key).decode()
+        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+
+        # The import script relies on these service worker globals; fail the
+        # build instead of shipping a silently inert import after an upgrade.
+        worker_path = out / manifest["background"]["service_worker"]
+        worker = worker_path.read_text()
+        for anchor in ("const API = global.API = {}", "global._busy = "):
+            if anchor not in worker:
+                raise RuntimeError(f"Stylus service worker lacks {anchor!r}")
+        importer = Path("${./stylus-managed-styles.js}").read_text()
+        worker_path.write_text(worker + "\n" + importer)
+
+        shutil.copy("${stylusCatppuccinImport}", out / "managed-styles.json")
+        PY
+      '';
   darkReaderSettings = {
     fetchNews = false;
     theme = {
@@ -555,6 +651,65 @@ let
       behavior = "Scheme";
     };
   };
+  darkReaderSettingsFile = pkgs.writeText "dark-reader-settings.json" (
+    builtins.toJSON darkReaderSettings
+  );
+  # Dark Reader reads its settings as top-level keys of chrome.storage.local,
+  # which Chromium keeps in a LevelDB per profile. Writing the managed keys
+  # there before launch replaces the manual settings import. A running browser
+  # holds the database lock, so the launcher skips seeding in that case.
+  heliumSeedDarkReader =
+    pkgs.writers.writePython3 "helium-seed-dark-reader"
+      {
+        libraries = [ pkgs.python3Packages.plyvel ];
+        flakeIgnore = [ "E501" ];
+      }
+      ''
+        import json
+        import os
+        import socket
+        import sys
+        from pathlib import Path
+
+        import plyvel
+
+        data_dir = Path(sys.argv[1])
+        settings = json.loads(Path("${darkReaderSettingsFile}").read_text())
+
+
+        def browser_running():
+            # Chromium's SingletonLock is a symlink to "<hostname>-<pid>".
+            try:
+                target = os.readlink(data_dir / "SingletonLock")
+            except OSError:
+                return False
+            host, _, pid = target.rpartition("-")
+            if host != socket.gethostname() or not pid.isdigit():
+                return True
+            try:
+                os.kill(int(pid), 0)
+            except ProcessLookupError:
+                return False
+            except PermissionError:
+                return True
+            return True
+
+
+        if not data_dir.is_dir() or browser_running():
+            sys.exit(0)
+
+        for preferences in data_dir.glob("*/Preferences"):
+            store = preferences.parent / "Local Extension Settings" / "${darkReaderExtension.id}"
+            try:
+                db = plyvel.DB(str(store), create_if_missing=True)
+            except plyvel.Error as error:
+                print(f"helium: skipped Dark Reader settings in {store}: {error}", file=sys.stderr)
+                continue
+            with db.write_batch() as batch:
+                for key, value in settings.items():
+                    batch.put(key.encode(), json.dumps(value).encode())
+            db.close()
+      '';
 
   # Helium Browser - privacy-focused Chromium fork
   # Not yet in nixpkgs. Using AppImage for Linux, Homebrew cask for macOS.
@@ -600,10 +755,14 @@ let
   # Native Wayland applies Hyprland's per-monitor fractional scale. XWayland
   # stays unscaled by policy and makes Chromium's UI too small on HiDPI outputs.
   helium-browser = pkgs.writeShellScriptBin "helium-browser" ''
+    ${heliumSeedDarkReader} "''${XDG_CONFIG_HOME:-$HOME/.config}/net.imput.helium" || true
     exec ${lib.getExe heliumAppImage} --ozone-platform=wayland \
       --load-extension=${
         lib.concatStringsSep "," (
-          [ "${browserChromeTheme}" ]
+          [
+            "${browserChromeTheme}"
+            "${stylusManaged}"
+          ]
           ++ lib.optional config.tomkoreny.web-playback.enable "${../web-playback/extension}"
         )
       } "$@"
@@ -620,13 +779,16 @@ in
 
   # Helium has no Home Manager module, but supports Chromium's external-extension
   # manifests. Install Dark Reader as a fallback and Stylus for site-specific
-  # Catppuccin userstyles on both platforms.
+  # Catppuccin userstyles; on Linux Stylus comes from the launcher instead.
   home.file = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin (
-    externalExtensionFiles "Library/Application Support/net.imput.helium"
+    externalExtensionFiles "Library/Application Support/net.imput.helium" [
+      darkReaderExtension
+      stylusExtension
+    ]
   );
   xdg.configFile = {
     "helium/stylus-catppuccin-import.json".source = stylusCatppuccinImport;
-    "helium/dark-reader-settings.json".text = builtins.toJSON darkReaderSettings;
+    "helium/dark-reader-settings.json".source = darkReaderSettingsFile;
     "helium/theme-setup.md".text = ''
       # Helium website theming setup
 
@@ -635,8 +797,11 @@ in
       Change them only through `common.stylix` in `~/home/lib/common/default.nix`; see
       `~/home/docs/theming.md` for propagation and maintenance details.
 
-      The extension installation and import files are declarative. Import them after
-      initial setup and again whenever shared colors, fonts, or pinned userstyles change:
+      The extension installation and import files are declarative. On Linux the
+      `helium-browser` launcher applies both imports itself, so restarting Helium
+      after a rebuild is enough and steps 1 and 2 below do not apply. On macOS,
+      import them after initial setup and again whenever shared colors, fonts, or
+      pinned userstyles change:
 
       1. In Stylus, open **Manage**, select **Import**, and choose
          `~/.config/helium/stylus-catppuccin-import.json`.
@@ -660,7 +825,9 @@ in
       userstyle exists for the current Teams client.
     '';
   }
-  // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux (externalExtensionFiles "net.imput.helium");
+  // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux (
+    externalExtensionFiles "net.imput.helium" [ darkReaderExtension ]
+  );
 
   xdg.dataFile."icons/hicolor/256x256/apps/helium.png" = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
     source = "${heliumContents}/usr/share/icons/hicolor/256x256/apps/helium.png";

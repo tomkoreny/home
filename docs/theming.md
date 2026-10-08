@@ -62,7 +62,8 @@ generate all browser theme artifacts:
 
 The generated GitHub and YouTube styles inline a pinned Catppuccin Less library.
 Their upstream auto-update metadata is deliberately removed so an update cannot
-replace the custom accent. Update the pinned inputs in Nix and re-import instead.
+replace the custom accent. Update the pinned inputs in Nix instead; see
+[Applying a change](#applying-a-change) for how the result reaches Helium.
 
 ## Fonts
 
@@ -89,7 +90,7 @@ to account for Ghostty's 72 DPI macOS baseline versus 96 DPI on Linux.
 Chromium does not expose a managed policy for default font families, and Stylix
 has no Helium target. Browser chrome therefore continues to use the operating
 system UI font (SF Pro on macOS); the generated style controls website content.
-Re-import the Stylus file after changing any shared font.
+See [Applying a change](#applying-a-change) after changing any shared font.
 
 The Linux profiles run on NixOS through either the system-integrated or standalone
 Home Manager entry point. `modules/home/stylix/default.nix` explicitly enables
@@ -330,7 +331,8 @@ theme Teams selects.
 After changing a shared color or font:
 
 1. Apply the configuration with `sw`.
-2. Fully quit and reopen Helium so declarative extension changes are loaded.
+2. Fully quit and reopen Helium. On Linux this is all; the next two steps are
+   only needed on macOS.
 3. Import `~/.config/helium/stylus-catppuccin-import.json` from Stylus's
    **Manage → Import** screen.
 4. Import `~/.config/helium/dark-reader-settings.json` from Dark Reader's
@@ -338,27 +340,37 @@ After changing a shared color or font:
 
 Re-importing the Stylus file updates the existing styles by name.
 
-## Why the extension imports are not automatic
+## How the imports are automated on Linux
 
-The extensions themselves are installed declaratively from pinned CRX files,
-and Nix generates both import files. Applying those imports is not exposed as a
-browser policy or command-line API:
+Neither extension takes settings from a browser policy: neither declares a
+Chromium managed-storage schema, and neither listens for messages from other
+extensions. The `helium-browser` launcher therefore handles each one directly.
 
-- Stylus keeps its styles in extension-owned IndexedDB storage.
-- Dark Reader keeps its settings in isolated extension storage.
-- Neither extension publishes a Chromium managed-storage policy schema for
-  these settings.
+Stylus keeps styles in IndexedDB, which cannot practically be written from
+outside the browser. `stylusManaged` in `modules/home/helium/default.nix`
+instead unpacks the pinned Stylus CRX, bundles the generated import file as
+`managed-styles.json`, and appends `stylus-managed-styles.js` to its service
+worker. On every worker start that script imports the bundled styles through
+Stylus's own `API.styles.importMany`, matching existing styles by name like the
+Import button. It rewrites a style only when its source or variable values
+differ, and it leaves the enabled state alone. Hand-made styles are untouched.
+The launcher loads this copy with `--load-extension`. The manifest carries the
+CRX's public key, so the extension keeps the Web Store ID and its existing data.
+The build fails if a Stylus upgrade removes the service worker globals the
+script relies on (`API` and `_busy`).
 
-Writing their profile databases from Home Manager would require Helium to be
-stopped and would depend on private storage schemas, risking lost settings or a
-corrupted browser profile. UI automation would also be platform-specific and
-fragile, so the configuration intentionally keeps the one-time import manual.
+Dark Reader reads its settings as top-level keys of `chrome.storage.local`,
+which Chromium stores in a LevelDB under each profile's
+`Local Extension Settings/eimadpbcbfnmbkopoojfekhnkhdbieeh`. Before starting
+Helium, the launcher runs `helium-seed-dark-reader`, which writes every key of
+`darkReaderSettings` there. Nix owns those keys: changes made to them in Dark
+Reader's UI, including per-site toggles in `disabledFor`, reset at the next
+launch. When Helium is already running, the profile is locked, so the launcher
+skips seeding and the running browser keeps its settings until it restarts.
 
-A fully automatic alternative would be a small Nix-built browser extension that
-injects the three site styles directly and marks those pages as already themed
-for Dark Reader. That removes the Stylus import but requires maintaining and
-signing our own extension; Dark Reader's own fallback settings would still need
-either a one-time import or a maintained fork.
+macOS starts Helium from the Homebrew app, which cannot pass `--load-extension`
+or run the seeder first, so it keeps the stock Stylus CRX and the manual imports
+above.
 
 ## mpv playback controls
 
