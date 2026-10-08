@@ -7,7 +7,7 @@ Usage: scripts/update-home.sh [--no-switch]
 
 Adopt the configuration currently on origin/main for this host:
   1. requires a clean working tree
-  2. pulls origin/main with rebase
+  2. pulls origin/main with rebase, aborting the rebase if it conflicts
   3. validates every host this machine can evaluate
   4. switches the current host configuration
 
@@ -52,6 +52,18 @@ if ! git diff --quiet || ! git diff --cached --quiet || [[ -n "$(git ls-files --
 	exit 1
 fi
 
+rebase_in_progress() {
+	[[ -d "$(git rev-parse --git-path rebase-merge)" || -d "$(git rev-parse --git-path rebase-apply)" ]]
+}
+
+# A paused rebase can leave a clean tree, so the check above misses it. Refuse
+# it here too: the abort in the pull phase must only ever undo a rebase this
+# run started, never one the user is in the middle of.
+if rebase_in_progress; then
+	echo "error: a rebase is already in progress; refusing to touch it" >&2
+	exit 1
+fi
+
 # The pull below can replace this very file. Bash keeps reading from the open
 # file descriptor, which still points at the old inode, so the remainder of the
 # run would come from the previous version of the script — including code that
@@ -61,7 +73,16 @@ fi
 if [[ "${UPDATE_HOME_PHASE:-pull}" == "pull" ]]; then
 	starting_revision="$(git rev-parse HEAD)"
 
-	git pull --rebase origin main
+	# A conflict would leave the checkout half-rebased and dirty, and every later
+	# run would then refuse to start. Abort it so the checkout stays on the last
+	# working revision and the next run tries again.
+	if ! git pull --rebase origin main; then
+		if rebase_in_progress; then
+			git rebase --abort
+			echo "error: local commits do not rebase cleanly onto origin/main; rebase aborted" >&2
+		fi
+		exit 1
+	fi
 
 	if [[ "$(git rev-parse HEAD)" == "$starting_revision" ]]; then
 		echo "Already on the latest validated configuration."
