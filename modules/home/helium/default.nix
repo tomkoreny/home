@@ -445,24 +445,34 @@ let
 
         sans_serif = "${sansSerifFont}"
         monospace = "${monospaceFont}"
+        icon_selectors = """
+            [class*="fa-"], .fa, .fab, .fad, .fal, .far, .fas,
+            [class*="icon"], [class*="Icon"],
+            [class*="symbol"], [class*="Symbol"],
+            [class*="material-symbol"], [class*="material-icon"]"""
+        # Source code that sites render outside plain pre/code elements:
+        # GitHub's classic diff cells, its file view lines, and the hidden
+        # textarea it overlays on those lines for selection, plus the common
+        # monospace utility classes.
+        code_selectors = """
+            pre, pre *, code, code *, kbd, kbd *, samp, samp *, tt, tt *,
+            .text-mono, .text-mono *, .font-mono, .font-mono *,
+            .blob-code, .blob-code *, .blob-num,
+            .react-code-text, .react-code-text *, #read-only-cursor-text-area"""
         font_source = f"""/* ==UserStyle==
         @name           Stylix Fonts
         @namespace      tomkoreny.com/stylix
-        @version        1.0.0
+        @version        1.1.0
         @description    Apply the shared Stylix fonts to web content
         @author         Tom Koreny
         ==/UserStyle== */
         @-moz-document regexp("^https?://.*") {{
-        *:not(
-            pre, pre *, code, [aria-hidden="true"],
-            [class*="fa-"], .fa, .fab, .fad, .fal, .far, .fas,
-            [class*="icon"], [class*="Icon"],
-            [class*="symbol"], [class*="Symbol"],
-            [class*="material-symbol"], [class*="material-icon"]
-        ) {{
+        *:not(pre, pre *, code, [aria-hidden="true"], {icon_selectors}) {{
             font-family: "{sans_serif}" !important;
         }}
-        pre, pre *, code, kbd, samp, tt {{
+        /* :root plus the ID inside :is() outranks both the rule above and
+           Dark Reader's font rule, whichever stylesheet is injected last. */
+        :root :is({code_selectors}):not({icon_selectors}) {{
             font-family: "{monospace}" !important;
         }}
         }}
@@ -474,7 +484,7 @@ let
             "usercssData": {
                 "name": "Stylix Fonts",
                 "namespace": "tomkoreny.com/stylix",
-                "version": "1.0.0",
+                "version": "1.1.0",
                 "description": "Apply the shared Stylix fonts to web content",
                 "author": "Tom Koreny",
                 "vars": {},

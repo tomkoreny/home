@@ -68,8 +68,11 @@ names:
 
 - Web content uses `SFProDisplay Nerd Font` through the generated `Stylix Fonts`
   userstyle.
-- `pre`, `code`, `kbd`, and similar elements use
-  `JetBrainsMono Nerd Font Mono`.
+- `pre`, `code`, `kbd`, and similar elements, including their children, use
+  `JetBrainsMono Nerd Font Mono`. So do GitHub's diff cells, its file view lines
+  and selection textarea, and the `.text-mono` and `.font-mono` utility classes.
+  This rule outranks Dark Reader's font override, so source code stays fixed-width
+  when both apply.
 - Dark Reader uses the shared sans-serif font on fallback websites.
 - The shared serif family is `NewYork Nerd Font`.
 
