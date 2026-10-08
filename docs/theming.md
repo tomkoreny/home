@@ -362,7 +362,7 @@ of newer generated styles waits for the next launcher start.
 Dark Reader reads its settings as top-level keys of `chrome.storage.local`,
 which Chromium stores in a LevelDB under each profile's
 `Local Extension Settings/eimadpbcbfnmbkopoojfekhnkhdbieeh`. The launcher runs
-`helium-seed-dark-reader` first, which writes every key of `darkReaderSettings`
+`helium-seed-extensions` first, which writes every key of `darkReaderSettings`
 there; on macOS each `darwin-rebuild switch` runs it too. Nix owns those keys:
 changes made to them in Dark Reader's UI, including per-site toggles in
 `disabledFor`, reset at the next launch. When Helium is already running, the
@@ -372,7 +372,31 @@ The patched Stylus is pinned by `stylusVersion`. The scheduled `Update flake
 inputs` workflow bumps it within the current major version through
 `.github/scripts/bump-pins.py`, builds `helium-browser` (and with it the
 patched Stylus), and reverts the bump with an issue if the build fails. The store
-copies of both extensions update themselves from the Web Store.
+copies of the extensions update themselves from the Web Store.
+
+## Bookmark and tab sync
+
+For `tom`, Helium also installs Floccus, which syncs through Karakeep at
+`https://karakeep.home.tomkoreny.com`. Two profiles are seeded the same way as
+Dark Reader, by `helium-seed-extensions` before launch:
+
+- `nix-karakeep-bookmarks` syncs the whole bookmark tree (Chromium root `0`, so
+  the bookmarks bar and Other bookmarks) with the Karakeep list `Floccus`, both
+  ways, every 15 minutes and after bookmark changes.
+- `nix-karakeep-tabs` mirrors the open tabs with the list `FloccusTabs` every
+  5 minutes, both ways: a tab opened on one host opens on the other, and a tab
+  closed on one closes on the other after both have synced.
+
+Both lists predate this setup and were reused. Every synced bookmark and tab is
+an ordinary Karakeep bookmark, so Karakeep crawls and tags it.
+
+The seeder merges only the managed fields into Floccus's `accounts` entry, so
+Floccus's own sync state and any profile created in its UI survive a launch.
+The Karakeep API key (the "Floccus (Helium, nixos2)" key in Karakeep's
+settings) lives sops-encrypted in `secrets/karakeep.yaml` and is read from
+`~/.config/sops-nix/secrets/karakeep-floccus-api-key` at launch, never stored
+in Nix. Do not set a Floccus passphrase: it encrypts stored keys, and the
+seeder then skips Floccus rather than overwrite them.
 
 ## mpv playback controls
 

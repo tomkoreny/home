@@ -132,6 +132,17 @@ let
     url = "https://github.com/openstyles/stylus/releases/download/v${stylusVersion}/stylus-chrome-mv3-v${stylusVersion}-id.zip";
     hash = "sha256-IEqjuoyZ2YtxYHtjTryqQDL4ac6brDKj6lBGYMWxwD0=";
   };
+  # Store copy of Floccus; it updates itself from the Web Store. Its required
+  # host permission (`*://*/*`) already covers Karakeep, so the seeded profiles
+  # need no permission prompt.
+  floccusExtension = {
+    id = "fnaicdffflnofjppbagibeoednhnbjhg";
+    version = "5.11.0";
+    crx = pkgs.fetchurl {
+      url = "https://clients2.googleusercontent.com/crx/blobs/AZPVhcQtNAuUx-HkJEsaOOqPET6IvlB0Jd80b_mSOjT2qLHHen5RyksOVPveQLZAbRNLA9Y4JBiyuLLzHTDOy4NywUjjGb695eDBKAUJEwdk72wxscsuP5RG4e7mOl1J7DP6AMZSmuVdAfCx7HdrN4JSXmBM5mIVBtG88w/FNAICDFFFLNOFJPPBAGIBEOEDNHNBJHG_5_11_0_0.crx";
+      hash = "sha256-G3EFXK1biGmIP0miGpZNmcAvGYb7MHo1dJ5d+hyUL8g=";
+    };
+  };
   externalExtensionFiles =
     directory:
     lib.listToAttrs (
@@ -143,10 +154,13 @@ let
             external_version = extension.version;
           };
         })
-        [
-          darkReaderExtension
-          stylusExtension
-        ]
+        (
+          [
+            darkReaderExtension
+            stylusExtension
+          ]
+          ++ lib.optional floccusEnabled floccusExtension
+        )
     );
 
   # `all-userstyles-export` is a rolling release tag that upstream regenerates,
@@ -624,12 +638,51 @@ let
   darkReaderSettingsFile = pkgs.writeText "dark-reader-settings.json" (
     builtins.toJSON darkReaderSettings
   );
-  # Dark Reader reads its settings as top-level keys of chrome.storage.local,
-  # which Chromium keeps in a LevelDB per profile. Writing the managed keys
-  # there before launch replaces the manual settings import. A running browser
-  # holds the database lock, so the launcher skips seeding in that case.
-  heliumSeedDarkReader =
-    pkgs.writers.writePython3 "helium-seed-dark-reader"
+
+  # Floccus syncs bookmarks and open tabs through Karakeep, for tom only: the
+  # API key is his sops secret. It reuses the lists the earlier hand-made setup
+  # created: `Floccus` holds the whole bookmark tree (root "0", so the bar and
+  # Other bookmarks both sync) and `FloccusTabs` the open tabs, mirrored both
+  # ways between hosts. The key is merged in at launch, never stored in Nix.
+  floccusEnabled = config.home.username == "tom";
+  floccusAccount = {
+    type = "karakeep";
+    url = "https://karakeep.home.tomkoreny.com";
+    strategy = "default";
+    enabled = true;
+    syncIntervalEnabled = true;
+    syncOnStartupEnabled = true;
+    nestedSync = false;
+    failsafe = true;
+    includeCredentials = false;
+    allowRedirects = false;
+    allowNetwork = false;
+    clickCountEnabled = false;
+  };
+  floccusAccountsFile = pkgs.writeText "floccus-accounts.json" (
+    builtins.toJSON {
+      nix-karakeep-bookmarks = floccusAccount // {
+        label = "Karakeep bookmarks";
+        localRoot = "0";
+        serverFolder = "Floccus";
+        syncInterval = 15;
+      };
+      nix-karakeep-tabs = floccusAccount // {
+        label = "Karakeep tabs";
+        localRoot = "tabs";
+        serverFolder = "FloccusTabs";
+        syncInterval = 5;
+      };
+    }
+  );
+  floccusKeyPath = lib.optionalString floccusEnabled config.sops.secrets.karakeep-floccus-api-key.path;
+
+  # Dark Reader and Floccus keep their configuration as top-level keys of
+  # chrome.storage.local, which Chromium stores in a LevelDB per profile.
+  # Writing it there before launch replaces both manual setups. A running
+  # browser holds the database lock, so the launchers skip seeding then.
+  heliumSeedExtensions =
+    pkgs.writers.writePython3 "helium-seed-extensions"
       {
         libraries = [ pkgs.python3Packages.plyvel ];
         flakeIgnore = [ "E501" ];
@@ -644,7 +697,9 @@ let
         import plyvel
 
         data_dir = Path(sys.argv[1])
-        settings = json.loads(Path("${darkReaderSettingsFile}").read_text())
+        dark_reader = json.loads(Path("${darkReaderSettingsFile}").read_text())
+        floccus_accounts = json.loads(Path("${floccusAccountsFile}").read_text())
+        floccus_key_path = "${floccusKeyPath}"
 
 
         def browser_running():
@@ -665,20 +720,69 @@ let
             return True
 
 
+        def open_store(profile, extension_id, what):
+            store = profile / "Local Extension Settings" / extension_id
+            try:
+                return plyvel.DB(str(store), create_if_missing=True)
+            except plyvel.Error as error:
+                print(f"helium: skipped {what} in {store}: {error}", file=sys.stderr)
+                return None
+
+
+        def seed_dark_reader(profile):
+            db = open_store(profile, "${darkReaderExtension.id}", "Dark Reader settings")
+            if db is None:
+                return
+            with db.write_batch() as batch:
+                for key, value in dark_reader.items():
+                    batch.put(key.encode(), json.dumps(value).encode())
+            db.close()
+
+
+        def decode(raw):
+            # Floccus writes its entries as JSON strings inside the JSON value.
+            value = json.loads(raw)
+            while isinstance(value, str):
+                value = json.loads(value)
+            return value
+
+
+        def seed_floccus(profile, api_key):
+            db = open_store(profile, "${floccusExtension.id}", "Floccus accounts")
+            if db is None:
+                return
+            try:
+                locked = db.get(b"accountsLocked")
+                if locked is not None and decode(locked):
+                    # A Floccus passphrase encrypts stored passwords; a plain
+                    # key written over that would break every profile.
+                    print("helium: Floccus accounts are passphrase-locked; not seeding", file=sys.stderr)
+                    return
+                raw = db.get(b"accounts")
+                accounts = decode(raw) if raw is not None else {}
+                # Keep Floccus's own state (lastSync, rootPath, errors) and any
+                # profiles made in its UI; Nix owns the managed fields.
+                for account_id, managed in floccus_accounts.items():
+                    accounts[account_id] = {**accounts.get(account_id, {}), **managed, "password": api_key}
+                db.put(b"accounts", json.dumps(json.dumps(accounts)).encode())
+            finally:
+                db.close()
+
+
         if not data_dir.is_dir() or browser_running():
             sys.exit(0)
 
-        for preferences in data_dir.glob("*/Preferences"):
-            store = preferences.parent / "Local Extension Settings" / "${darkReaderExtension.id}"
+        api_key = None
+        if floccus_key_path:
             try:
-                db = plyvel.DB(str(store), create_if_missing=True)
-            except plyvel.Error as error:
-                print(f"helium: skipped Dark Reader settings in {store}: {error}", file=sys.stderr)
-                continue
-            with db.write_batch() as batch:
-                for key, value in settings.items():
-                    batch.put(key.encode(), json.dumps(value).encode())
-            db.close()
+                api_key = Path(floccus_key_path).read_text().strip()
+            except OSError as error:
+                print(f"helium: Karakeep API key unavailable, not seeding Floccus: {error}", file=sys.stderr)
+
+        for preferences in data_dir.glob("*/Preferences"):
+            seed_dark_reader(preferences.parent)
+            if api_key:
+                seed_floccus(preferences.parent, api_key)
       '';
 
   # Helium Browser - privacy-focused Chromium fork
@@ -725,7 +829,7 @@ let
   # Native Wayland applies Hyprland's per-monitor fractional scale. XWayland
   # stays unscaled by policy and makes Chromium's UI too small on HiDPI outputs.
   helium-browser = pkgs.writeShellScriptBin "helium-browser" ''
-    ${heliumSeedDarkReader} "''${XDG_CONFIG_HOME:-$HOME/.config}/net.imput.helium" || true
+    ${heliumSeedExtensions} "''${XDG_CONFIG_HOME:-$HOME/.config}/net.imput.helium" || true
     exec ${lib.getExe heliumAppImage} --ozone-platform=wayland \
       --load-extension=${
         lib.concatStringsSep "," (
@@ -745,7 +849,7 @@ let
   # store Stylus (same styles, no import) and keeps the last seeded settings.
   heliumMacDataDir = "Library/Application Support/net.imput.helium";
   helium-launch = pkgs.writeShellScript "helium-launch" ''
-    ${heliumSeedDarkReader} "$HOME/${heliumMacDataDir}" || true
+    ${heliumSeedExtensions} "$HOME/${heliumMacDataDir}" || true
     exec /Applications/Helium.app/Contents/MacOS/Helium \
       --silent-debugger-extension-api \
       --load-extension=${stylusManaged} "$@"
@@ -753,6 +857,12 @@ let
   heliumLaunchLink = ".local/share/helium/helium-launch";
 in
 {
+  sops.secrets.karakeep-floccus-api-key = lib.mkIf floccusEnabled {
+    sopsFile = ../../../secrets/karakeep.yaml;
+    key = "floccus-api-key";
+    mode = "0400";
+  };
+
   home.packages = lib.optionals pkgs.stdenv.hostPlatform.isLinux [
     helium-browser
   ];
@@ -785,11 +895,11 @@ in
     };
   };
 
-  # Seed Dark Reader on every switch too, so a later cold Dock launch still
-  # starts with the current settings. Skipped while Helium is running.
-  home.activation.heliumDarkReaderSettings = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin (
+  # Seed Dark Reader and Floccus on every switch too, so a later cold Dock
+  # launch still starts with the current settings. Skipped while Helium runs.
+  home.activation.heliumExtensionSettings = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin (
     lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      run ${heliumSeedDarkReader} "$HOME/${heliumMacDataDir}" || true
+      run ${heliumSeedExtensions} "$HOME/${heliumMacDataDir}" || true
     ''
   );
   xdg.configFile = {
