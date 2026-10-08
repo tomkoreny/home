@@ -113,6 +113,10 @@ let
       hash = "sha256-ncsb1tytQ4kt3AKP9l+YLfPtuhNammRF5PpxZx43qhM=";
     };
   };
+  # Store copy of Stylus: the fallback whenever Helium starts without the
+  # launcher's flags, such as a cold Dock launch on macOS. It shares its ID and
+  # therefore its styles with the patched copy below, and updates itself from
+  # the Web Store.
   stylusExtension = {
     id = "clngdbkpkpeebahjckkjfobafhncgmne";
     version = "2.4.9";
@@ -121,19 +125,28 @@ let
       hash = "sha256-qMU7PiV38+dCIH+NbWv1PA4PoSX3simCQeT4sTqmXGM=";
     };
   };
-  # On Linux the helium-browser launcher loads a patched Stylus unpacked
-  # (stylusManaged below), so only Dark Reader comes from an external CRX there.
-  # macOS starts Helium from the Homebrew app, which cannot pass the flag.
+  # Release the patched Stylus is built from. The `-id` build keeps the Web
+  # Store key, so it has the store ID. .github/scripts/bump-pins.py moves it.
+  stylusVersion = "2.4.14";
+  stylusRelease = pkgs.fetchurl {
+    url = "https://github.com/openstyles/stylus/releases/download/v${stylusVersion}/stylus-chrome-mv3-v${stylusVersion}-id.zip";
+    hash = "sha256-IEqjuoyZ2YtxYHtjTryqQDL4ac6brDKj6lBGYMWxwD0=";
+  };
   externalExtensionFiles =
-    directory: extensions:
+    directory:
     lib.listToAttrs (
-      map (extension: {
-        name = "${directory}/External Extensions/${extension.id}.json";
-        value.text = builtins.toJSON {
-          external_crx = "${extension.crx}";
-          external_version = extension.version;
-        };
-      }) extensions
+      map
+        (extension: {
+          name = "${directory}/External Extensions/${extension.id}.json";
+          value.text = builtins.toJSON {
+            external_crx = "${extension.crx}";
+            external_version = extension.version;
+          };
+        })
+        [
+          darkReaderExtension
+          stylusExtension
+        ]
     );
 
   # `all-userstyles-export` is a rolling release tag that upstream regenerates,
@@ -512,12 +525,12 @@ let
         PY
       '';
   # Stylus keeps styles in IndexedDB and accepts neither policy nor messages
-  # from other extensions, so this unpacks the pinned CRX and appends
+  # from other extensions, so this takes the release build and appends
   # stylus-managed-styles.js to its service worker. That script imports the
-  # generated styles at startup. The manifest gets the CRX's public key so the
-  # unpacked copy keeps the Web Store ID, and with it the existing Stylus data.
+  # generated styles at startup. The same build also carries
+  # youtube-favicon.js, because tab favicons are images CSS cannot recolor.
   stylusManaged =
-    pkgs.runCommand "stylus-managed-${stylusExtension.version}"
+    pkgs.runCommand "stylus-managed-${stylusVersion}"
       {
         nativeBuildInputs = [ pkgs.python3 ];
       }
@@ -525,73 +538,22 @@ let
         python3 - <<'PY'
         import base64
         import hashlib
-        import io
         import json
         import os
         import shutil
         import zipfile
         from pathlib import Path
 
-
-        def varint(buf, pos):
-            value = shift = 0
-            while True:
-                byte = buf[pos]
-                pos += 1
-                value |= (byte & 0x7F) << shift
-                shift += 7
-                if byte < 0x80:
-                    return value, pos
-
-
-        def length_fields(buf, wanted):
-            # Only the length-delimited fields of a protobuf message matter here.
-            pos = 0
-            while pos < len(buf):
-                key, pos = varint(buf, pos)
-                if key & 7 == 0:
-                    _, pos = varint(buf, pos)
-                    continue
-                if key & 7 != 2:
-                    raise RuntimeError(f"Unexpected CRX header wire type {key & 7}")
-                size, pos = varint(buf, pos)
-                if key >> 3 == wanted:
-                    yield buf[pos:pos + size]
-                pos += size
-
-
-        def extension_id(public_key):
-            digest = hashlib.sha256(public_key).hexdigest()[:32]
-            return "".join(chr(ord("a") + int(c, 16)) for c in digest)
-
-
-        crx = Path("${stylusExtension.crx}").read_bytes()
-        if crx[:4] != b"Cr24" or int.from_bytes(crx[4:8], "little") != 3:
-            raise RuntimeError("Stylus download is not a CRX3 file")
-        header_size = int.from_bytes(crx[8:12], "little")
-        header = crx[12:12 + header_size]
-        # CrxFileHeader.sha256_with_rsa (2) holds AsymmetricKeyProof.public_key (1).
-        keys = [
-            key
-            for proof in length_fields(header, 2)
-            for key in length_fields(proof, 1)
-        ]
-        public_key = next(
-            (key for key in keys if extension_id(key) == "${stylusExtension.id}"),
-            None,
-        )
-        if public_key is None:
-            raise RuntimeError("No CRX key matches the Stylus extension ID")
-
         out = Path(os.environ["out"])
-        zipfile.ZipFile(io.BytesIO(crx[12 + header_size:])).extractall(out)
-        # Web Store verification data only applies to store installs.
-        shutil.rmtree(out / "_metadata", ignore_errors=True)
+        zipfile.ZipFile("${stylusRelease}").extractall(out)
 
         manifest_path = out / "manifest.json"
         manifest = json.loads(manifest_path.read_text())
-        manifest["key"] = base64.b64encode(public_key).decode()
-        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+        # The extension ID, and with it the existing Stylus data, comes from
+        # the manifest key; a release without the store key would start empty.
+        digest = hashlib.sha256(base64.b64decode(manifest.get("key", ""))).hexdigest()[:32]
+        if "".join(chr(ord("a") + int(c, 16)) for c in digest) != "${stylusExtension.id}":
+            raise RuntimeError("Stylus release does not carry the Web Store key")
 
         # The import script relies on these service worker globals; fail the
         # build instead of shipping a silently inert import after an upgrade.
@@ -602,8 +564,16 @@ let
                 raise RuntimeError(f"Stylus service worker lacks {anchor!r}")
         importer = Path("${./stylus-managed-styles.js}").read_text()
         worker_path.write_text(worker + "\n" + importer)
-
         shutil.copy("${stylusCatppuccinImport}", out / "managed-styles.json")
+
+        favicon = Path("${./youtube-favicon.js}").read_text()
+        (out / "youtube-favicon.js").write_text(favicon.replace("@accent@", "${accentColor}"))
+        manifest.setdefault("content_scripts", []).append({
+            "matches": ["*://youtube.com/*", "*://*.youtube.com/*"],
+            "js": ["youtube-favicon.js"],
+            "run_at": "document_start",
+        })
+        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
         PY
       '';
   darkReaderSettings = {
@@ -767,6 +737,20 @@ let
         )
       } "$@"
   '';
+  # macOS runs the Homebrew app. The login agent below starts it through this
+  # launcher so Helium gets the same treatment as on Linux, plus the switch that
+  # suppresses Chromium's "'…' started debugging this browser" infobar raised
+  # whenever the OMP Browser Relay extension attaches via chrome.debugger.
+  # A cold Dock launch after quitting skips the launcher; Helium then runs the
+  # store Stylus (same styles, no import) and keeps the last seeded settings.
+  heliumMacDataDir = "Library/Application Support/net.imput.helium";
+  helium-launch = pkgs.writeShellScript "helium-launch" ''
+    ${heliumSeedDarkReader} "$HOME/${heliumMacDataDir}" || true
+    exec /Applications/Helium.app/Contents/MacOS/Helium \
+      --silent-debugger-extension-api \
+      --load-extension=${stylusManaged} "$@"
+  '';
+  heliumLaunchLink = ".local/share/helium/helium-launch";
 in
 {
   home.packages = lib.optionals pkgs.stdenv.hostPlatform.isLinux [
@@ -778,17 +762,37 @@ in
   };
 
   # Helium has no Home Manager module, but supports Chromium's external-extension
-  # manifests. Install Dark Reader as a fallback and Stylus for site-specific
-  # Catppuccin userstyles; on Linux Stylus comes from the launcher instead.
+  # manifests. Dark Reader and the store Stylus install on both platforms; the
+  # launchers add the patched Stylus on top.
   home.file = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin (
-    externalExtensionFiles "Library/Application Support/net.imput.helium" [
-      darkReaderExtension
-      stylusExtension
-    ]
+    externalExtensionFiles heliumMacDataDir
+    // {
+      ${heliumLaunchLink}.source = helium-launch;
+    }
+  );
+
+  # Launches the binary through the launcher rather than `open`, which exited 1
+  # at login in the past (see scroll-reverser in the macOS host config). The
+  # agent points at a stable symlink: a store path would change the plist on
+  # every rebuild, and reloading a RunAtLoad agent starts the browser. No
+  # KeepAlive: quitting the browser should not resurrect it.
+  launchd.agents.helium = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
+    enable = true;
+    config = {
+      ProgramArguments = [ "${config.home.homeDirectory}/${heliumLaunchLink}" ];
+      ProcessType = "Interactive";
+      RunAtLoad = true;
+    };
+  };
+
+  # Seed Dark Reader on every switch too, so a later cold Dock launch still
+  # starts with the current settings. Skipped while Helium is running.
+  home.activation.heliumDarkReaderSettings = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin (
+    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      run ${heliumSeedDarkReader} "$HOME/${heliumMacDataDir}" || true
+    ''
   );
   xdg.configFile = {
-    "helium/stylus-catppuccin-import.json".source = stylusCatppuccinImport;
-    "helium/dark-reader-settings.json".source = darkReaderSettingsFile;
     "helium/theme-setup.md".text = ''
       # Helium website theming setup
 
@@ -797,20 +801,15 @@ in
       Change them only through `common.stylix` in `~/home/lib/common/default.nix`; see
       `~/home/docs/theming.md` for propagation and maintenance details.
 
-      The extension installation and import files are declarative. On Linux the
-      `helium-browser` launcher applies both imports itself, so restarting Helium
-      after a rebuild is enough and steps 1 and 2 below do not apply. On macOS,
-      import them after initial setup and again whenever shared colors, fonts, or
-      pinned userstyles change:
+      Extensions, userstyles, and Dark Reader settings are declarative and applied
+      automatically: the launcher (`helium-browser` on Linux, the login agent on
+      macOS) seeds Dark Reader and loads a Stylus build that imports the generated
+      styles itself. Fully restart Helium after a rebuild. Two settings live on the
+      sites themselves and need setting once:
 
-      1. In Stylus, open **Manage**, select **Import**, and choose
-         `~/.config/helium/stylus-catppuccin-import.json`.
-         Import the bundled options when prompted so CSP patching is enabled.
-      2. In Dark Reader, open **Settings → Advanced → Import Settings** and choose
-         `~/.config/helium/dark-reader-settings.json`.
-      3. Select each site's native dark appearance so its Catppuccin dark flavor is used:
+      1. Select each site's native dark appearance so its Catppuccin dark flavor is used:
          GitHub **Dark default**, YouTube **Dark theme**, and Notion **Dark**.
-      4. In Teams, set **Settings → Appearance → Follow OS theme** once. The
+      2. In Teams, set **Settings → Appearance → Follow OS theme** once. The
          `Teams Catppuccin` style keys off the theme class Teams applies, so it then
          follows the system appearance: Latte in light mode, Mocha in dark mode.
          Only the browser client is themed; the desktop app cannot be.
@@ -825,9 +824,7 @@ in
       userstyle exists for the current Teams client.
     '';
   }
-  // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux (
-    externalExtensionFiles "net.imput.helium" [ darkReaderExtension ]
-  );
+  // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux (externalExtensionFiles "net.imput.helium");
 
   xdg.dataFile."icons/hicolor/256x256/apps/helium.png" = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
     source = "${heliumContents}/usr/share/icons/hicolor/256x256/apps/helium.png";

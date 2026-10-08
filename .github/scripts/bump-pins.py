@@ -119,6 +119,16 @@ PINS = [
             "https://github.com/imputnet/helium-linux/releases/download/{version}/helium-{version}-x86_64.AppImage",
         )]},
     ),
+    # Patched at build time (modules/home/helium/default.nix): a new major may
+    # move the service worker internals the managed-style import relies on.
+    Pin(
+        "stylus", "same-major", github_latest("openstyles/stylus"),
+        {"modules/home/helium/default.nix": r'^  stylusVersion = "([^"]+)";'},
+        {"modules/home/helium/default.nix": [Source(
+            "openstyles/stylus/releases/download",
+            "https://github.com/openstyles/stylus/releases/download/v{version}/stylus-chrome-mv3-v{version}-id.zip",
+        )]},
+    ),
     Pin(
         "betterbird", "same-major", betterbird_latest,
         {"modules/home/betterbird/package.nix": r'^  version = "([^"]+)";'},

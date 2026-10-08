@@ -34,7 +34,9 @@ generate all browser theme artifacts:
 
 - GitHub and YouTube use the official Catppuccin userstyles with the Catppuccin
   Mocha base replaced by the shared true-black background and their blue and
-  accent replaced by the shared accent.
+  accent replaced by the shared accent. YouTube's tab favicon is a red image
+  CSS cannot recolor, so the patched Stylus (below) also ships
+  `youtube-favicon.js`, which swaps it for the play button in the accent.
 - Notion uses the community Catppuccin userstyle with its background, blue, and
   primary accent replaced by the shared values.
 - `nextcloud.home.tomkoreny.com` uses the community `byted/catppuccin-nextcloud`
@@ -328,49 +330,49 @@ theme Teams selects.
 
 ## Applying a change
 
-After changing a shared color or font:
+After changing a shared color or font, apply the configuration with `sw` and
+fully quit and reopen Helium. Nothing needs importing by hand.
 
-1. Apply the configuration with `sw`.
-2. Fully quit and reopen Helium. On Linux this is all; the next two steps are
-   only needed on macOS.
-3. Import `~/.config/helium/stylus-catppuccin-import.json` from Stylus's
-   **Manage → Import** screen.
-4. Import `~/.config/helium/dark-reader-settings.json` from Dark Reader's
-   **Settings → Advanced → Import Settings** screen.
-
-Re-importing the Stylus file updates the existing styles by name.
-
-## How the imports are automated on Linux
+## How the imports are automated
 
 Neither extension takes settings from a browser policy: neither declares a
 Chromium managed-storage schema, and neither listens for messages from other
-extensions. The `helium-browser` launcher therefore handles each one directly.
+extensions. Helium is therefore started through a launcher that handles each one
+directly: `helium-browser` on Linux, and on macOS the `helium` login agent,
+which runs `~/.local/share/helium/helium-launch` and execs the Homebrew app.
 
 Stylus keeps styles in IndexedDB, which cannot practically be written from
 outside the browser. `stylusManaged` in `modules/home/helium/default.nix`
-instead unpacks the pinned Stylus CRX, bundles the generated import file as
-`managed-styles.json`, and appends `stylus-managed-styles.js` to its service
-worker. On every worker start that script imports the bundled styles through
-Stylus's own `API.styles.importMany`, matching existing styles by name like the
-Import button. It rewrites a style only when its source or variable values
-differ, and it leaves the enabled state alone. Hand-made styles are untouched.
-The launcher loads this copy with `--load-extension`. The manifest carries the
-CRX's public key, so the extension keeps the Web Store ID and its existing data.
-The build fails if a Stylus upgrade removes the service worker globals the
+instead takes the Stylus GitHub release (the `-id` build, which carries the Web
+Store key and therefore the store ID and its existing data), bundles the
+generated styles as `managed-styles.json`, and appends `stylus-managed-styles.js`
+to its service worker. On every worker start that script imports the bundled
+styles through Stylus's own `API.styles.importMany`, matching existing styles by
+name like the Import button. It rewrites a style only when its source or
+variable values differ, and it leaves the enabled state alone. Hand-made styles
+are untouched. The launcher loads this copy with `--load-extension`. The build
+fails if a Stylus release drops the store key or the service worker globals the
 script relies on (`API` and `_busy`).
+
+The store Stylus stays installed from its CRX as a fallback. It shares the ID,
+so whenever Helium starts without the launcher, as with a cold Dock launch on
+macOS after quitting, the store copy runs with the same styles; only the import
+of newer generated styles waits for the next launcher start.
 
 Dark Reader reads its settings as top-level keys of `chrome.storage.local`,
 which Chromium stores in a LevelDB under each profile's
-`Local Extension Settings/eimadpbcbfnmbkopoojfekhnkhdbieeh`. Before starting
-Helium, the launcher runs `helium-seed-dark-reader`, which writes every key of
-`darkReaderSettings` there. Nix owns those keys: changes made to them in Dark
-Reader's UI, including per-site toggles in `disabledFor`, reset at the next
-launch. When Helium is already running, the profile is locked, so the launcher
-skips seeding and the running browser keeps its settings until it restarts.
+`Local Extension Settings/eimadpbcbfnmbkopoojfekhnkhdbieeh`. The launcher runs
+`helium-seed-dark-reader` first, which writes every key of `darkReaderSettings`
+there; on macOS each `darwin-rebuild switch` runs it too. Nix owns those keys:
+changes made to them in Dark Reader's UI, including per-site toggles in
+`disabledFor`, reset at the next launch. When Helium is already running, the
+profile is locked, so seeding is skipped until the browser restarts.
 
-macOS starts Helium from the Homebrew app, which cannot pass `--load-extension`
-or run the seeder first, so it keeps the stock Stylus CRX and the manual imports
-above.
+The patched Stylus is pinned by `stylusVersion`. The scheduled `Update flake
+inputs` workflow bumps it within the current major version through
+`.github/scripts/bump-pins.py`, builds `helium-browser` (and with it the
+patched Stylus), and reverts the bump with an issue if the build fails. The store
+copies of both extensions update themselves from the Web Store.
 
 ## mpv playback controls
 
