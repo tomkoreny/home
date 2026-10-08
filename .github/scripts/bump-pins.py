@@ -169,14 +169,6 @@ PINS = [
             "https://cdn.getmoshi.app/hook/v{version}/moshi-hook_Linux_x86_64.tar.gz",
         )]},
     ),
-    Pin(
-        "bitwarden-browser", "auto", github_latest_prefixed("bitwarden/clients", "browser-v"),
-        {"modules/home/agents/default.nix": r'^  bitwardenRelayVersion = "([^"]+)";'},
-        {"modules/home/agents/default.nix": [Source(
-            "dist-chrome-",
-            "https://github.com/bitwarden/clients/releases/download/browser-v{version}/dist-chrome-{version}.zip",
-        )]},
-    ),
     Pin("herdr", "auto", github_latest("herdrdev/herdr"), {"flake.nix": flake_tag("herdrdev/herdr")}),
     # Homebrew's CLI must stay at least as new as the hourly-updated taps.
     Pin("brew", "same-major", github_latest("Homebrew/brew"), {"flake.nix": flake_tag("Homebrew/brew", "")}),

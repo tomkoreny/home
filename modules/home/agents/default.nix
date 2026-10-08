@@ -26,7 +26,6 @@
 let
   common = import ../../../lib/common { };
   ompPackage = import ../packages/omp.nix { inherit inputs lib pkgs; };
-  hyprctl = lib.getExe' config.wayland.windowManager.hyprland.package "hyprctl";
   ompWithHindsight = pkgs.writeShellScriptBin "omp" ''
     set -eu
     token_file=${lib.escapeShellArg config.sops.secrets.hindsight-api-token.path}
@@ -69,111 +68,6 @@ let
       export PULSE_SERVER="''${PULSE_SERVER:-unix:${common.ompVoice.nixosSocket} unix:''${XDG_RUNTIME_DIR:-/run/user/$(${pkgs.coreutils}/bin/id -u)}/pulse/native}"
     ''}
     exec ${lib.getExe ompPackage} "$@"
-  '';
-  ompRelayExtension = pkgs.runCommand "omp-browser-relay-extension" { } ''
-    export HOME="$TMPDIR"
-    ${lib.getExe ompPackage} browser-relay install --dir "$out"
-  '';
-  # The Web Store "latest" redirect serves whatever Bitwarden published last,
-  # so a hash pinned against it breaks on every release. The GitHub release zip
-  # is immutable per version; .github/scripts/bump-pins.py moves the version.
-  bitwardenRelayVersion = "2026.9.3";
-  bitwardenRelayZip = pkgs.fetchurl {
-    url = "https://github.com/bitwarden/clients/releases/download/browser-v${bitwardenRelayVersion}/dist-chrome-${bitwardenRelayVersion}.zip";
-    hash = "sha256-cYW6101EsdfoGz3JhYoga/nev/Jy1+W/x/VqS52ULKA=";
-  };
-  bitwardenRelayExtension =
-    pkgs.runCommand "bitwarden-browser-extension-${bitwardenRelayVersion}"
-      {
-        nativeBuildInputs = [
-          pkgs.jq
-          pkgs.unzip
-        ];
-      }
-      ''
-        mkdir -p "$out"
-        unzip -q '${bitwardenRelayZip}' -d "$out"
-        jq --arg key 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmqKbvreshyXRuN2gikeR1idqR6KL0Di89JZcMyD4bjJRZVmQO7aznSGSALIHzSAUGYocUYBNDOP5QAhImxXyQ1qG8+goXs93v9GzrNJETdVuCEhqBggC4/DFabryJZDiKvZ2Jl0DM7MsWdoybZPwrj70V3aJ/nVNOMkf868scNTMliwitCqqjT5baTANsG0DkZWQExD4lSXzSZHH9MEO8q0iZ7RRlNuGRBAkZgNV8FwZRsPKm/rwQ9dy3VpgLcmLp5GiMt+kAEncqKAkuRYnhVXXBsKqIyYTMjHSLkLnpfFySyOPLBdS617i/PGNiP/MT6Xy6z//v5NozUgaAZ4gJQIDAQAB' \
-          '.key = $key' "$out/manifest.json" > "$out/manifest.json.tmp"
-        mv "$out/manifest.json.tmp" "$out/manifest.json"
-      '';
-  ompRelayBrowser = pkgs.writeShellScriptBin "omp-relay-browser" ''
-    set -eu
-    profile_dir="''${XDG_DATA_HOME:-$HOME/.local/share}/omp-relay-chromium"
-    ${pkgs.coreutils}/bin/mkdir -p "$profile_dir"
-    preferences="$profile_dir/Default/Preferences"
-    if [[ -f "$preferences" ]]; then
-      ${lib.getExe pkgs.jq} '
-        .browser.window_placement.maximized = false
-        | .profile.exit_type = "Normal"
-        | .profile.exited_cleanly = true
-      ' "$preferences" > "$preferences.tmp"
-      ${pkgs.coreutils}/bin/mv "$preferences.tmp" "$preferences"
-    fi
-    read -r x y width height < <(
-      ${hyprctl} -j monitors all | ${lib.getExe pkgs.jq} -r '
-        .[]
-        | select(.name == "HDMI-A-2")
-        | if (.transform % 2) == 1 then
-            [.x, .y, ((.height / .scale) | floor), ((.width / .scale) | floor)]
-          else
-            [.x, .y, ((.width / .scale) | floor), ((.height / .scale) | floor)]
-          end
-        | @tsv
-      '
-    )
-    target_height=$((height / 4))
-    target_y=$((y + height - target_height))
-    if [[ $# -eq 0 ]]; then
-      set -- http://127.0.0.1:9224/
-    fi
-    printf 'omp-relay-browser: launching dedicated Chromium\n' >&2
-    ${lib.getExe pkgs.chromium} \
-      --user-data-dir="$profile_dir" \
-      --disable-extensions-except=${ompRelayExtension},${bitwardenRelayExtension} \
-      --load-extension=${ompRelayExtension},${bitwardenRelayExtension} \
-      --no-first-run \
-      --no-default-browser-check \
-      --class=omp-relay-browser \
-      --window-size="$width,$target_height" \
-      --window-position="$x,$target_y" \
-      "$@" &
-    browser_pid=$!
-
-    cleanup() {
-      ${pkgs.coreutils}/bin/kill "$browser_pid" 2>/dev/null || true
-    }
-    trap cleanup EXIT INT TERM HUP
-
-    address=
-    for _ in $(${pkgs.coreutils}/bin/seq 1 200); do
-      address="$(${hyprctl} -j clients | ${lib.getExe pkgs.jq} -r \
-        --argjson pid "$browser_pid" \
-        '[.[] | select(.pid == $pid and .class == "omp-relay-browser")][0].address // empty')"
-      [[ -n "$address" ]] && break
-      ${pkgs.coreutils}/bin/sleep 0.05
-    done
-
-    if [[ -z "$address" ]]; then
-      printf 'omp-relay-browser: Chromium window did not map within 10 seconds\n' >&2
-      exit 1
-    fi
-
-    ${hyprctl} eval \
-      "local w = \"address:$address\"; \
-      hl.dispatch(hl.dsp.window.fullscreen({ mode = \"maximized\", action = \"unset\", layout_aware = false, window = w })); \
-      hl.dispatch(hl.dsp.window.float({ action = \"on\", window = w })); \
-      hl.dispatch(hl.dsp.window.move({ monitor = \"HDMI-A-2\", follow = false, window = w })); \
-      hl.dispatch(hl.dsp.window.resize({ x = $width, y = $target_height, window = w })); \
-      hl.dispatch(hl.dsp.window.move({ x = $x, y = $target_y, window = w })); \
-      return \"ok\"" >/dev/null
-
-    set +e
-    wait "$browser_pid"
-    status=$?
-    set -e
-    trap - EXIT INT TERM HUP
-    exit "$status"
   '';
   accentLight = common.stylix.accentLight;
 
@@ -309,9 +203,6 @@ in
     # Keep the bearer token out of the Nix store and config.yml. The wrapper
     # reads the sops-nix runtime secret immediately before starting OMP.
     programs.omp.package = ompWithHindsight;
-    home.packages = lib.optionals pkgs.stdenv.hostPlatform.isLinux [
-      ompRelayBrowser
-    ];
 
     # Copied to ~/.omp/agent/config.yml as a writable file on every switch:
     # OMP's own /settings edits persist until the next rebuild overwrites
@@ -331,9 +222,10 @@ in
       power = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
         sleepPrevention = "off";
       };
-      browser = {
-        headless = false;
-      };
+      # Agents default to hidden, project-shared Chromium so nothing opens on
+      # screen. Relay into Helium (`app.relay: true`) is reserved for tasks that
+      # need the user's logged-in session; see agent/RULES.md.
+      browser.headless = true;
       # Opt-in tools. `generate_image` runs on the `image` model role;
       # `computer` is the host-desktop Eval prelude (screenshots, input,
       # AT-SPI); `github` wraps the `gh` CLI, which must be on PATH.

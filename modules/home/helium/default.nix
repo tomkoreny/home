@@ -849,11 +849,22 @@ let
         alsa-lib
       ];
   };
+  # OMP Browser Relay lets agents drive Helium (`app.relay: true`) when a task
+  # needs Tom's logged-in session. `--silent-debugger-extension-api` hides the
+  # "started debugging this browser" infobar while the relay is attached.
+  ompRelayEnabled = config.home.username == "tom";
+  ompRelayExtension = pkgs.runCommand "omp-browser-relay-extension" { } ''
+    export HOME="$TMPDIR"
+    ${
+      lib.getExe (import ../packages/omp.nix { inherit inputs pkgs; })
+    } browser-relay install --dir "$out"
+  '';
   # Native Wayland applies Hyprland's per-monitor fractional scale. XWayland
   # stays unscaled by policy and makes Chromium's UI too small on HiDPI outputs.
   helium-browser = pkgs.writeShellScriptBin "helium-browser" ''
     ${heliumSeedExtensions} "''${XDG_CONFIG_HOME:-$HOME/.config}/net.imput.helium" || true
     exec ${lib.getExe heliumAppImage} --ozone-platform=wayland \
+      ${lib.optionalString ompRelayEnabled "--silent-debugger-extension-api"} \
       --load-extension=${
         lib.concatStringsSep "," (
           [
@@ -861,6 +872,7 @@ let
             "${stylusManaged}"
           ]
           ++ lib.optional config.tomkoreny.web-playback.enable "${../web-playback/extension}"
+          ++ lib.optional ompRelayEnabled "${ompRelayExtension}"
         )
       } "$@"
   '';
