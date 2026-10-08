@@ -311,6 +311,12 @@ in
       browser = {
         headless = false;
       };
+      # Opt-in tools. `generate_image` runs on the `image` model role;
+      # `computer` is the host-desktop Eval prelude (screenshots, input,
+      # AT-SPI); `github` wraps the `gh` CLI, which must be on PATH.
+      generate_image.enabled = true;
+      computer.enabled = true;
+      github.enabled = true;
 
       modelRoles = {
         default = "anthropic/claude-opus-5-5";
