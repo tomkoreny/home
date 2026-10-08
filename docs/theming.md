@@ -391,7 +391,13 @@ Both lists predate this setup and were reused. Every synced bookmark and tab is
 an ordinary Karakeep bookmark, so Karakeep crawls and tags it.
 
 The seeder merges only the managed fields into Floccus's `accounts` entry, so
-Floccus's own sync state and any profile created in its UI survive a launch.
+Floccus's own sync state and profiles created in its UI survive a launch. The
+exception is a UI profile syncing the same Karakeep list as a managed one: it
+would sync the same data twice, so the seeder deletes it with its sync cache.
+That retired the profile left over from the earlier hand-made setup, which had
+been failing with Floccus's 79% deletion failsafe (E050) since February. The
+seeder only touches `Default` and `Profile N` directories, never the guest or
+system profile.
 The Karakeep API key (the "Floccus (Helium, nixos2)" key in Karakeep's
 settings) lives sops-encrypted in `secrets/karakeep.yaml` and is read from
 `~/.config/sops-nix/secrets/karakeep-floccus-api-key` at launch, never stored

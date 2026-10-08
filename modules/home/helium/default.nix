@@ -691,6 +691,7 @@ let
         import json
         import os
         import socket
+        import shutil
         import sys
         from pathlib import Path
 
@@ -760,8 +761,21 @@ let
                     return
                 raw = db.get(b"accounts")
                 accounts = decode(raw) if raw is not None else {}
-                # Keep Floccus's own state (lastSync, rootPath, errors) and any
-                # profiles made in its UI; Nix owns the managed fields.
+                # A profile made in Floccus's UI for the same Karakeep list
+                # would sync the same data twice; the managed one replaces it,
+                # along with its sync cache and mappings, as Floccus's own
+                # delete would. Other UI profiles are kept.
+                targets = {(m["type"], m["url"].rstrip("/"), m["serverFolder"]) for m in floccus_accounts.values()}
+                for account_id, data in list(accounts.items()):
+                    target = (data.get("type"), str(data.get("url", "")).rstrip("/"), data.get("serverFolder"))
+                    if account_id not in floccus_accounts and target in targets:
+                        del accounts[account_id]
+                        prefix = f"bookmarks[{account_id}]".encode()
+                        for key in list(db.iterator(prefix=prefix, include_value=False)):
+                            db.delete(key)
+                        print(f"helium: replaced Floccus profile {account_id} with the managed one", file=sys.stderr)
+                # Keep Floccus's own state (lastSync, rootPath, errors); Nix
+                # owns the managed fields.
                 for account_id, managed in floccus_accounts.items():
                     accounts[account_id] = {**accounts.get(account_id, {}), **managed, "password": api_key}
                 db.put(b"accounts", json.dumps(json.dumps(accounts)).encode())
@@ -779,10 +793,19 @@ let
             except OSError as error:
                 print(f"helium: Karakeep API key unavailable, not seeding Floccus: {error}", file=sys.stderr)
 
-        for preferences in data_dir.glob("*/Preferences"):
-            seed_dark_reader(preferences.parent)
+        # Real profiles only: the guest and system profiles also carry a
+        # Preferences file, and the key does not belong in either. Extensions
+        # do not run there, so any Floccus store in them (written by an
+        # earlier version of this script) holds nothing but the key.
+        profiles = [data_dir / "Default", *sorted(data_dir.glob("Profile *"))]
+        for other in ("Guest Profile", "System Profile"):
+            shutil.rmtree(data_dir / other / "Local Extension Settings" / "${floccusExtension.id}", ignore_errors=True)
+        for profile in profiles:
+            if not (profile / "Preferences").is_file():
+                continue
+            seed_dark_reader(profile)
             if api_key:
-                seed_floccus(preferences.parent, api_key)
+                seed_floccus(profile, api_key)
       '';
 
   # Helium Browser - privacy-focused Chromium fork
