@@ -947,11 +947,13 @@ let
       } "$@"
   '';
   # macOS runs the Homebrew app. The login agent below starts it through this
-  # launcher so Helium gets the same treatment as on Linux, plus the switch that
-  # suppresses Chromium's "'…' started debugging this browser" infobar raised
-  # whenever the OMP Browser Relay extension attaches via chrome.debugger.
+  # launcher so Helium gets the same treatment as on Linux: the patched Stylus,
+  # the OMP Browser Relay extension, and the switch that suppresses Chromium's
+  # "'…' started debugging this browser" infobar raised whenever the relay
+  # attaches via chrome.debugger.
   # A cold Dock launch after quitting skips the launcher; Helium then runs the
-  # store Stylus (same styles, no import) and keeps the last seeded settings.
+  # store Stylus (same styles, no import) without the relay, and keeps the last
+  # seeded settings.
   heliumMacDataDir = "Library/Application Support/net.imput.helium";
   helium-launch = pkgs.writeShellScript "helium-launch" ''
     ${heliumSeedExtensions} "$HOME/${heliumMacDataDir}" || true
@@ -959,7 +961,9 @@ let
       --silent-debugger-extension-api \
       --load-extension=${
         lib.concatStringsSep "," (
-          [ "${stylusManaged}" ] ++ lib.optional searxngEnabled "${searxngExtension}"
+          [ "${stylusManaged}" ]
+          ++ lib.optional searxngEnabled "${searxngExtension}"
+          ++ lib.optional ompRelayEnabled "${ompRelayExtension}"
         )
       } "$@"
   '';
