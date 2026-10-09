@@ -658,11 +658,11 @@
     "homebrew-cask": {
       "flake": false,
       "locked": {
-        "lastModified": 1791536188,
-        "narHash": "sha256-8mO6/Ryj8AMTWEfjaFfHC0pOrrZ0ui6pSQos1/bNTFY=",
+        "lastModified": 1791561958,
+        "narHash": "sha256-05G00hrkOEp4pvnrnRwWeArbOnyIbBTouCARYrUoGaA=",
         "owner": "homebrew",
         "repo": "homebrew-cask",
-        "rev": "9c8f254d2c65094e9e30421fde904da7fc10cf9f",
+        "rev": "86b9e9d818ce26a7ed22515ef83fecfe5eeecb51",
         "type": "github"
       },
       "original": {
@@ -674,11 +674,11 @@
     "homebrew-core": {
       "flake": false,
       "locked": {
-        "lastModified": 1791536580,
-        "narHash": "sha256-Yg1ykF2U+cs6HC1Z/HB2ouZS/vl2WxpZVuTfn9g7jk8=",
+        "lastModified": 1791562212,
+        "narHash": "sha256-HN82HXm0J1pcDbBefSTiaCrv3mNgu4+gE3+dMH3TK48=",
         "owner": "homebrew",
         "repo": "homebrew-core",
-        "rev": "e8cef3c856e2ae38c97104f8cde1bce36fe3a922",
+        "rev": "46a76daeb159084276be5fac4b645c7f4d27c87c",
         "type": "github"
       },
       "original": {
@@ -795,11 +795,11 @@
         "xdph": "xdph"
       },
       "locked": {
-        "lastModified": 1791470510,
-        "narHash": "sha256-gedubEBaDPiQZOWRPaGn/ZbbT1zqv4Fy6mcElfDC+iM=",
+        "lastModified": 1791545463,
+        "narHash": "sha256-EuTde/DbLBZ0nm8Ctj4Il3M5SKsWAKeDITvUuatu5+g=",
         "owner": "hyprwm",
         "repo": "Hyprland",
-        "rev": "5e04ae1f9fc44705799ed9c0f97b99a305c6db25",
+        "rev": "663b29b846e4bad17cfa29941f6d2fbb6b61f139",
         "type": "github"
       },
       "original": {
@@ -1418,11 +1418,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1791532102,
-        "narHash": "sha256-K+IL61WEwpmpD/kN64BuMrM2YhdaMW/myl5qCs6OH7w=",
+        "lastModified": 1791562864,
+        "narHash": "sha256-E0Ql6MP9gAuFzHuz2sqj02HBwD6/GVWD9SDsBnPnKRQ=",
         "owner": "can1357",
         "repo": "oh-my-pi",
-        "rev": "6c99a355d64fe43e027b047ce97859a566afd760",
+        "rev": "4cd31bd6d00bb7a161443d9a5f4bce4f564664f2",
         "type": "github"
       },
       "original": {
@@ -1434,11 +1434,11 @@
     "pi2-nvim": {
       "flake": false,
       "locked": {
-        "lastModified": 1791529890,
-        "narHash": "sha256-jgmy7H/u1WulfH4oyNVkA4w+py9DM/xnjUQKxO2vtVw=",
+        "lastModified": 1791543096,
+        "narHash": "sha256-FQKC4EZ0jh7DZoaHptZ1lLPKIdzBr97FPipMB4K7gYw=",
         "owner": "zgs225",
         "repo": "pi2.nvim",
-        "rev": "d4b64d117ba0d1d2bbd0aba0631a2ebba6ea8e67",
+        "rev": "73202e7d1722eba09feea8f76d2202b15af71a4c",
         "type": "github"
       },
       "original": {
