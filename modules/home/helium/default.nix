@@ -677,10 +677,62 @@ let
   );
   floccusKeyPath = lib.optionalString floccusEnabled config.sops.secrets.karakeep-floccus-api-key.path;
 
+  # Tom's SearXNG (homelab-services apps/services/searxng) as Helium's default
+  # search engine, for tom only. Chromium ignores search policies on a Mac
+  # without MDM, and a Linux policy in /etc/chromium/policies would cover every
+  # user, so each platform sets it per profile. macOS: the launcher loads a
+  # search-provider extension, so a cold Dock launch runs without it and falls
+  # back to Helium's own setting, like the patched Stylus. Linux exposes no
+  # extension search override but does not integrity-check the default-search
+  # pref, so the launcher writes it into each profile before start.
+  searxngEnabled = config.home.username == "tom";
+  searxng = {
+    name = "SearXNG";
+    keyword = "searxng";
+    searchUrl = "https://search.home.tomkoreny.com/search?q={searchTerms}";
+    suggestUrl = "https://search.home.tomkoreny.com/autocompleter?q={searchTerms}";
+    faviconUrl = "https://search.home.tomkoreny.com/favicon.ico";
+  };
+  searxngExtension = pkgs.writeTextDir "manifest.json" (
+    builtins.toJSON {
+      manifest_version = 3;
+      name = "SearXNG search";
+      version = "1.0";
+      # Search only: anything more makes Chromium ask whether to keep the change.
+      chrome_settings_overrides.search_provider = {
+        inherit (searxng) name keyword;
+        search_url = searxng.searchUrl;
+        suggest_url = searxng.suggestUrl;
+        favicon_url = searxng.faviconUrl;
+        encoding = "UTF-8";
+        is_default = true;
+      };
+    }
+  );
+  # Chromium's default_search_provider_data.template_url_data dictionary. The
+  # fixed sync_guid keeps every launch pointing at the same engine entry.
+  searxngTemplateUrlFile = pkgs.writeText "searxng-template-url.json" (
+    builtins.toJSON {
+      short_name = searxng.name;
+      inherit (searxng) keyword;
+      url = searxng.searchUrl;
+      suggestions_url = searxng.suggestUrl;
+      favicon_url = searxng.faviconUrl;
+      input_encodings = [ "UTF-8" ];
+      safe_for_autoreplace = false;
+      sync_guid = "50f040b8-f1d6-4b2c-9bad-20401fc6b9e8";
+    }
+  );
+  searxngSeedFile =
+    lib.optionalString (searxngEnabled && pkgs.stdenv.hostPlatform.isLinux)
+      "${searxngTemplateUrlFile}";
+
   # Dark Reader and Floccus keep their configuration as top-level keys of
   # chrome.storage.local, which Chromium stores in a LevelDB per profile.
-  # Writing it there before launch replaces both manual setups. A running
-  # browser holds the database lock, so the launchers skip seeding then.
+  # Writing it there before launch replaces both manual setups; on Linux the
+  # default search engine goes into each profile's Preferences the same way.
+  # A running browser holds the database lock and rewrites Preferences on
+  # exit, so the launchers skip seeding then.
   heliumSeedExtensions =
     pkgs.writers.writePython3 "helium-seed-extensions"
       {
@@ -701,6 +753,7 @@ let
         dark_reader = json.loads(Path("${darkReaderSettingsFile}").read_text())
         floccus_accounts = json.loads(Path("${floccusAccountsFile}").read_text())
         floccus_key_path = "${floccusKeyPath}"
+        searxng_path = "${searxngSeedFile}"
 
 
         def browser_running():
@@ -783,6 +836,19 @@ let
                 db.close()
 
 
+        def seed_search(profile, engine):
+            prefs_path = profile / "Preferences"
+            try:
+                prefs = json.loads(prefs_path.read_text())
+            except (OSError, ValueError) as error:
+                print(f"helium: skipped default search in {prefs_path}: {error}", file=sys.stderr)
+                return
+            prefs.setdefault("default_search_provider_data", {})["template_url_data"] = engine
+            staged = prefs_path.with_name("Preferences.helium-seed")
+            staged.write_text(json.dumps(prefs, separators=(",", ":")))
+            os.replace(staged, prefs_path)
+
+
         if not data_dir.is_dir() or browser_running():
             sys.exit(0)
 
@@ -792,6 +858,8 @@ let
                 api_key = Path(floccus_key_path).read_text().strip()
             except OSError as error:
                 print(f"helium: Karakeep API key unavailable, not seeding Floccus: {error}", file=sys.stderr)
+
+        search_engine = json.loads(Path(searxng_path).read_text()) if searxng_path else None
 
         # Real profiles only: the guest and system profiles also carry a
         # Preferences file, and the key does not belong in either. Extensions
@@ -806,6 +874,8 @@ let
             seed_dark_reader(profile)
             if api_key:
                 seed_floccus(profile, api_key)
+            if search_engine:
+                seed_search(profile, search_engine)
       '';
 
   # Helium Browser - privacy-focused Chromium fork
@@ -887,7 +957,11 @@ let
     ${heliumSeedExtensions} "$HOME/${heliumMacDataDir}" || true
     exec /Applications/Helium.app/Contents/MacOS/Helium \
       --silent-debugger-extension-api \
-      --load-extension=${stylusManaged} "$@"
+      --load-extension=${
+        lib.concatStringsSep "," (
+          [ "${stylusManaged}" ] ++ lib.optional searxngEnabled "${searxngExtension}"
+        )
+      } "$@"
   '';
   heliumLaunchLink = ".local/share/helium/helium-launch";
 in

@@ -404,6 +404,29 @@ settings) lives sops-encrypted in `secrets/karakeep.yaml` and is read from
 in Nix. Do not set a Floccus passphrase: it encrypts stored keys, and the
 seeder then skips Floccus rather than overwrite them.
 
+## Default search engine
+
+For `tom`, Helium searches with SearXNG at `https://search.home.tomkoreny.com`
+(homelab-services `apps/services/searxng`), with its autocompleter for
+suggestions. A browser policy cannot do this: Chromium drops the
+`DefaultSearchProvider*` policies on a Mac that is not MDM-managed, and on
+NixOS `/etc/chromium/policies` would apply to every user. Each platform sets it
+per profile instead:
+
+- macOS: `helium-launch` loads `searxngExtension`, a search-only extension
+  whose `chrome_settings_overrides.search_provider` is the default. Like the
+  patched Stylus, it is absent when Helium starts without the launcher, as with
+  a cold Dock launch after quitting; search then uses the engine chosen in
+  Helium's settings until the next launcher start.
+- Linux: Chromium exposes no extension search override there, but it does not
+  integrity-check the default-search preference either, so
+  `helium-seed-extensions` writes `default_search_provider_data.template_url_data`
+  into every `Default` and `Profile N` `Preferences` file before launch. Nix
+  owns it: an engine picked in settings reverts at the next launcher start.
+
+Helium's own `!bang` shortcuts still resolve locally before a query reaches
+SearXNG; turn off Helium's bangs in its settings to send them to SearXNG.
+
 ## mpv playback controls
 
 `modules/home/mpv-ui/theme.nix` generates the shared uosc appearance: true black,
