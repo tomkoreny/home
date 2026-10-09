@@ -11,8 +11,10 @@ Adopt the configuration currently on origin/main for this host:
   3. validates every host this machine can evaluate
   4. switches the current host configuration
 
-Validation and activation run even when origin/main has no new commits, so a
-failed activation is retried on the next run.
+A run that finds the revision it last switched to successfully stops there.
+Any other revision is validated and switched, so a failed switch is retried
+by the next run even when origin/main has no new commits. --no-switch always
+validates.
 
 Flake inputs are owned by .github/workflows/update-flake.yml, which bumps
 flake.lock only after instantiating every host. This script never runs
@@ -47,6 +49,11 @@ while [[ $# -gt 0 ]]; do
 	esac
 	shift
 done
+
+# The revision of the last successful switch on this machine. Activation is
+# not free: nix-darwin restarts the Dock on every switch, so a switch only
+# happens when it can change something or the previous attempt failed.
+applied_revision_file="${XDG_STATE_HOME:-$HOME/.local/state}/update-home/applied-revision"
 
 cd "$(git rev-parse --show-toplevel)"
 
@@ -85,8 +92,10 @@ if [[ "${UPDATE_HOME_PHASE:-pull}" == "pull" ]]; then
 		exit 1
 	fi
 
-	# An unchanged checkout does not prove the last activation succeeded.
-	# Always apply it so a failed switch is retried on the next run.
+	if [[ "$switch_config" == true && "$(git rev-parse HEAD)" == "$(cat "$applied_revision_file" 2>/dev/null)" ]]; then
+		echo "Already on the latest validated configuration."
+		exit 0
+	fi
 
 	UPDATE_HOME_PHASE=apply exec "$0" ${original_args[@]+"${original_args[@]}"}
 fi
@@ -129,4 +138,6 @@ if [[ "$switch_config" == true ]]; then
 		exit 1
 		;;
 	esac
+	mkdir -p "$(dirname "$applied_revision_file")"
+	git rev-parse HEAD >"$applied_revision_file"
 fi

@@ -43,6 +43,14 @@ rec {
     nixosSocket = "/run/user/1000/omp-voice-pulse.sock";
   };
 
+  # macOS auto-upgrade (modules/darwin/auto-upgrade). The launchd agent logs
+  # every run to `log` and records each finished run's outcome in
+  # `statusFile`, which the SketchyBar upgrade warning reads.
+  darwinAutoUpgrade = {
+    log = "${user.homeDir { isDarwin = true; }}/Library/Logs/auto-upgrade.log";
+    statusFile = "${user.homeDir { isDarwin = true; }}/.local/state/auto-upgrade/status.json";
+  };
+
   # Public Yggdrasil peers shared by the Mac and NixOS. Both hosts dial the
   # same nearby nodes, so Mac-to-NixOS traffic crosses one relay close to
   # both instead of a US node (~270 ms round trip before this list). Picked

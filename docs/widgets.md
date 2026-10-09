@@ -465,24 +465,31 @@ switch; hidden when AeroSpace is off, see
 front app name. When the focused workspace has exactly one tiled window, the
 bar turns solid black and both islands go flat (no border, square corners),
 like `singleWindowMode` on Linux; SketchyBar has one bar for all displays, so
-the focused monitor decides. The status island on the right holds, in order, herdr,
-timers, AI usage (one slot per account: the provider logo, tinted by the
-lowest limit, beside the same windows as the Linux bar, one 9 pt line each),
-Notion tasks, work tasks, clock, and battery. Every item runs
+the focused monitor decides. The status island on the right holds, in order, the
+auto-upgrade warning, herdr, timers, AI usage (one slot per account: the
+provider logo, tinted by the lowest limit, beside the same windows as the
+Linux bar, one 9 pt line each), Notion tasks, work tasks, clock, and battery.
+Every item runs
 `sketchybar-widgets <widget>`
 (`widgets.py`) on its schedule; a click toggles the item's popup:
 
 | Item | Popup rows | Row actions |
 | --- | --- | --- |
+| upgrade | shown only when the last auto-upgrade run failed (`upgrade`) or none has finished for 24 hours (`no upgrade`): age, first error line, last success, `Open the upgrade log` | opens `~/Library/Logs/auto-upgrade.log` in `less` in Ghostty |
 | herdr | one row per pane: workspace, agent, status, title | click opens it with `herdr-view` in Ghostty |
 | timers | `New timer…` (native text dialog, `20m pasta`), then each timer with its remaining time | click pauses or resumes, right-click cancels |
 | AI usage | update age, account, every limit with reset time, `Refresh usage` | refresh runs `omp usage invalidate` |
 | Notion tasks | counts header, `New task…` (same capture tokens as Linux), then today's and overdue tasks | click completes, right-click opens in Notion |
 | work tasks | provider header, then actionable tasks with their status | click opens the issue |
 
-Timer expiry and newly assigned work issues use macOS notifications through
-`osascript`. Not ported: the task manager and editing views, work status
-transitions, and the launcher.
+Timer expiry, newly assigned work issues, and the first failure of an
+auto-upgrade streak use macOS notifications through `osascript`. The upgrade
+item reads `~/.local/state/auto-upgrade/status.json`, which the
+`org.nixos.auto-upgrade` agent (`modules/darwin/auto-upgrade`) writes after
+every finished run in the same shape as the NixOS recorder; runs it skips
+because the checkout has local changes are not recorded, so a checkout left
+dirty shows up as `no upgrade` after a day. Not ported: the task manager and
+editing views, work status transitions, and the launcher.
 
 The module sets the native menu bar to auto-hide (`_HIHideMenuBar`), turns on
 its background (`SLSMenuBarUseBlurredAppearance`, System Settings' "Show menu

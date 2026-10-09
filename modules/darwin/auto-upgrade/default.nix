@@ -8,7 +8,7 @@ let
   cfg = config.tomkoreny.darwin.auto-upgrade;
   common = import ../../../lib/common { };
   homeDir = common.user.homeDir { isDarwin = true; };
-
+  inherit (common.darwinAutoUpgrade) log statusFile;
   # darwin-rebuild via the persistent system profile: /run/current-system is
   # volatile on macOS. Must match the sudoers rule below.
   darwinRebuild = "/nix/var/nix/profiles/system/sw/bin/darwin-rebuild";
@@ -18,6 +18,12 @@ let
   # machine cannot evaluate the NixOS host, so a lock it bumped locally would be
   # half-validated. Operating on the same checkout nh uses means "what's
   # running" is "what you edit".
+  #
+  # Each finished run's outcome lands in statusFile in the same shape as the
+  # NixOS recorder (systems/x86_64-linux/nixos), and SketchyBar shows a warning
+  # when the last run failed or none has finished for a day. Skipped runs
+  # (lock held, dirty checkout) are not recorded, so a checkout left dirty
+  # surfaces through that staleness check instead of flashing as a failure.
   upgradeScript = pkgs.writeShellScript "darwin-auto-upgrade" ''
     set -euo pipefail
     export PATH="${
@@ -25,6 +31,10 @@ let
         pkgs.git
         pkgs.nodejs
         pkgs.gnutar
+        pkgs.coreutils
+        pkgs.gnugrep
+        pkgs.gnused
+        pkgs.jq
       ]
     }:${homeDir}/.nix-profile/bin:/etc/profiles/per-user/${common.user.name}/bin:/nix/var/nix/profiles/system/sw/bin:/nix/var/nix/profiles/default/bin:/usr/bin:/bin:/usr/sbin:/sbin"
     export GIT_TERMINAL_PROMPT=0
@@ -38,7 +48,8 @@ let
       echo "auto-upgrade: another run is in progress; exiting"
       exit 0
     fi
-    trap 'rmdir "$LOCK_DIR"' EXIT
+    run_log=""
+    trap 'rm -f "$run_log"; rmdir "$LOCK_DIR"' EXIT
 
     if [ ! -d "$REPO_PATH/.git" ]; then
       echo "auto-upgrade: no git checkout at $REPO_PATH" >&2
@@ -54,8 +65,39 @@ let
       exit 1
     fi
 
+    record_status() {
+      local state=${lib.escapeShellArg statusFile} status=$1 now last_success error="" result=success
+      mkdir -p "$(dirname "$state")"
+      now="$(date +%s)"
+      last_success="$(jq -r '.lastSuccessAt // 0' "$state" 2>/dev/null || echo 0)"
+      if [ "$status" -eq 0 ]; then
+        last_success="$now"
+      else
+        result=failure
+        # Nix and git report the root failure first, Homebrew as "Error:";
+        # drop store hashes so the line fits the bar.
+        error="$(grep -m1 -iE '^[[:space:]]*error:' "$run_log" \
+          | sed -E 's/^[[:space:]]*//; s|/nix/store/[a-z0-9]{32}-||g' || true)"
+        [ -n "$error" ] || error="auto-upgrade exited with status $status"
+      fi
+      jq -n \
+        --arg result "$result" \
+        --arg error "$error" \
+        --argjson finishedAt "$now" \
+        --argjson lastSuccessAt "$last_success" \
+        '{result: $result, error: $error, finishedAt: $finishedAt, lastSuccessAt: $lastSuccessAt}' \
+        > "$state.tmp"
+      mv "$state.tmp" "$state"
+    }
+
     echo "auto-upgrade: adopting the configuration on origin/main..."
-    "$REPO_PATH/scripts/update-home.sh"
+    run_log="$(mktemp "''${TMPDIR:-/tmp}/auto-upgrade-run.XXXXXX")"
+    set +e
+    "$REPO_PATH/scripts/update-home.sh" 2>&1 | tee "$run_log"
+    status=''${PIPESTATUS[0]}
+    set -e
+    record_status "$status"
+    exit "$status"
   '';
 in
 {
@@ -87,8 +129,8 @@ in
       serviceConfig = {
         StartInterval = cfg.interval;
         RunAtLoad = false;
-        StandardOutPath = "${homeDir}/Library/Logs/auto-upgrade.log";
-        StandardErrorPath = "${homeDir}/Library/Logs/auto-upgrade.log";
+        StandardOutPath = log;
+        StandardErrorPath = log;
       };
     };
   };

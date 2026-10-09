@@ -33,6 +33,9 @@ OMP = "@omp@"
 # tint images, so the logos are pre-rendered in each status colour.
 LOGO_DIR = "@logoDir@"
 AEROSPACE = "@aerospace@"  # empty when AeroSpace is disabled
+# Written by the auto-upgrade launchd agent (modules/darwin/auto-upgrade).
+UPGRADE_STATUS = "@upgradeStatus@"
+UPGRADE_LOG = "@upgradeLog@"
 COLOR = {
     "accent": "@accent@",
     "accentSurface": "@accentSurface@",
@@ -60,6 +63,7 @@ ICON_PLAY = "\U000f040a"
 ICON_REFRESH = "\U000f0450"
 ICON_BATTERY = ["\U000f008e"] + [chr(0xF007A + step) for step in range(9)] + ["\U000f0079"]
 ICON_BATTERY_CHARGING = "\U000f0084"
+ICON_ALERT = "\U000f0026"
 
 CACHE_DIR = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "sketchybar-bar"
 SELF = [sys.executable, os.path.abspath(__file__)]
@@ -706,6 +710,71 @@ def work(args: list[str]) -> None:
     rebuild_popup("work", rows)
 
 
+# --- auto-upgrade ------------------------------------------------------------
+
+# The agent runs every 30 minutes; a day without a finished run means it has
+# stalled, as on Linux.
+UPGRADE_STALE_SECONDS = 24 * 60 * 60
+
+
+def ago(timestamp: float, now: float) -> str:
+    """Relative age, worded like UpgradeStatusService.qml."""
+    if timestamp <= 0:
+        return "never"
+    minutes = int((now - timestamp) // 60)
+    if minutes < 60:
+        return f"{minutes} min ago"
+    hours = minutes // 60
+    if hours < 48:
+        return f"{hours} h ago"
+    return f"{hours // 24} days ago"
+
+
+def upgrade(args: list[str]) -> None:
+    """The Quickshell bar's upgrade warning: shown only when the last auto-upgrade
+    failed or none has finished for a day."""
+    if args[:1] == ["row"]:
+        detach(["ghostty", "-e", "/usr/bin/less", "+G", UPGRADE_LOG])
+        sketchybar("--set", "upgrade", "popup.drawing=off")
+        return
+    try:
+        status = json.loads(Path(UPGRADE_STATUS).read_text())
+    except (OSError, ValueError):
+        status = {}  # no run has finished since the recorder was deployed
+    now = time.time()
+    finished = status.get("finishedAt") or 0
+    failed = finished > 0 and status.get("result") != "success"
+    stale = finished > 0 and now - finished > UPGRADE_STALE_SECONDS
+    visible = failed or stale
+
+    # Retries fail the same way every 30 minutes; notify once per failure streak.
+    notified = cache_path("upgrade-notified")
+    if failed and not notified.exists():
+        notify("macOS auto-upgrade failed", status.get("error") or "")
+        notified.touch()
+    elif not failed:
+        notified.unlink(missing_ok=True)
+
+    label = f"{ICON_ALERT} upgrade" if failed else f"{ICON_ALERT} no upgrade"
+    show("upgrade", visible, f"label={label}", f"label.color={COLOR['muted']}")
+    show("sep.upgrade", visible)
+    opened = toggle_popup("upgrade") if args[:1] == ["click"] else popup_open("upgrade")
+    if not opened or not visible:
+        return
+    if failed:
+        rows = [
+            {"label": f"macOS auto-upgrade failed · {ago(finished, now)}", "color": COLOR["muted"]},
+            {"label": (status.get("error") or "")[:120]},
+        ]
+    else:
+        rows = [{"label": f"macOS auto-upgrade has not run · last run {ago(finished, now)}", "color": COLOR["muted"]}]
+    rows += [
+        {"label": f"Last successful upgrade · {ago(status.get('lastSuccessAt') or 0, now)}", "color": COLOR["subdued"]},
+        {"label": "Open the upgrade log", "click": row_command("upgrade", "row")},
+    ]
+    rebuild_popup("upgrade", rows)
+
+
 WIDGETS = {
     "spaces": spaces,
     "front_app": front_app,
@@ -716,6 +785,7 @@ WIDGETS = {
     "ai": ai_usage,
     "todos": todos,
     "work": work,
+    "upgrade": upgrade,
 }
 
 

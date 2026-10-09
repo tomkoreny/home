@@ -79,6 +79,8 @@ let
           "@omp@"
           "@logoDir@"
           "@aerospace@"
+          "@upgradeStatus@"
+          "@upgradeLog@"
           "@accent@"
           "@accentSurface@"
           "@surface@"
@@ -98,6 +100,8 @@ let
           (lib.getExe config.programs.omp.package)
           "${providerLogos}"
           (lib.optionalString config.tomkoreny.aerospace.enable (lib.getExe pkgs.aerospace))
+          common.darwinAutoUpgrade.statusFile
+          common.darwinAutoUpgrade.log
           theme.accent
           theme.accentSurface
           theme.surface

@@ -100,7 +100,7 @@ sketchybar --add bracket workspace space.1 space.2 space.3 space.4 space.5 space
 
 # Right island. SketchyBar adds `right` items from the edge inwards, so this is
 # the Quickshell order reversed: battery, clock, work, todos, AI usage, timers,
-# herdr. `sep.*` are the one-pixel dividers between neighbours.
+# herdr, upgrade. `sep.*` are the one-pixel dividers between neighbours.
 add_separator() {
   sketchybar --add item "sep.$1" right \
     --set "sep.$1" \
@@ -181,9 +181,16 @@ add_separator herdr
 sketchybar --add item herdr right \
   --set herdr update_freq=2 script="$plugin herdr" click_script="$plugin herdr click"
 
+# Shown only when the macOS auto-upgrade failed or stalled, like the NixOS
+# upgrade warning at the left end of the Quickshell status island.
+add_separator upgrade
+sketchybar --set sep.upgrade drawing=off \
+  --add item upgrade right \
+  --set upgrade drawing=off update_freq=60 script="$plugin upgrade" click_script="$plugin upgrade click"
+
 sketchybar --add bracket status battery sep.clock clock sep.work work sep.todos todos sep.ai \
   ai.3.top ai.3.bot ai.3 ai.2.top ai.2.bot ai.2 ai.1.top ai.1.bot ai.1 ai.0.top ai.0.bot ai.0 \
-  sep.timers timers sep.herdr herdr \
+  sep.timers timers sep.herdr herdr sep.upgrade upgrade \
   --set status \
   background.color=@surface@ \
   background.border_color=@border@ \
