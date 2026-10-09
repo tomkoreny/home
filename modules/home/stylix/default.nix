@@ -16,21 +16,29 @@ in
   # system-level Stylix integrations deliberately disable their automatic Home
   # Manager import, so this remains the single user-level configuration.
   config = lib.mkIf (options ? stylix) {
-    stylix =
-      stylixBase
-      // {
-        image = common.stylix.wallpaper;
-        fonts = sharedFonts // {
-          sizes = common.stylix.fontSizes;
-        };
+    stylix = lib.mkMerge [
+      (
+        stylixBase
+        // {
+          image = common.stylix.wallpaper;
+          fonts = sharedFonts // {
+            sizes = common.stylix.fontSizes;
+          };
+        }
+        // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+          cursor = common.stylix.cursor pkgs;
+          targets.waybar.font = "sansSerif";
+          # These Linux profiles run on NixOS even when evaluated standalone,
+          # where Stylix cannot infer that from a nixosConfig argument.
+          targets.qt.enable = true;
+        }
+      )
+      {
+        # No profile uses rofi, but Stylix's rofi target still sets the
+        # renamed programs.rofi.font, which warns on every evaluation.
+        targets.rofi.enable = false;
       }
-      // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
-        cursor = common.stylix.cursor pkgs;
-        targets.waybar.font = "sansSerif";
-        # These Linux profiles run on NixOS even when evaluated standalone,
-        # where Stylix cannot infer that from a nixosConfig argument.
-        targets.qt.enable = true;
-      };
+    ];
 
     # Do not let a standalone switch remove the NixOS-integrated font config.
     fonts.fontconfig.enable = lib.mkIf pkgs.stdenv.hostPlatform.isLinux true;

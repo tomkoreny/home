@@ -41,16 +41,10 @@ let
 
     REPO_PATH=${lib.escapeShellArg cfg.repoPath}
 
-    # $TMPDIR is per-user and cleared on reboot, so a crashed run cannot
-    # wedge the lock across boots.
-    LOCK_DIR="''${TMPDIR:-/tmp}/auto-upgrade-$(id -u).lock"
-    if ! mkdir "$LOCK_DIR" 2>/dev/null; then
-      echo "auto-upgrade: another run is in progress; exiting"
-      exit 0
-    fi
+    # launchd runs at most one instance of this agent, so no lock is needed;
+    # a mkdir lock left by a killed run used to block every later run.
     run_log=""
-    trap 'rm -f "$run_log"; rmdir "$LOCK_DIR"' EXIT
-
+    trap 'rm -f "$run_log"' EXIT
     if [ ! -d "$REPO_PATH/.git" ]; then
       echo "auto-upgrade: no git checkout at $REPO_PATH" >&2
       exit 1
@@ -119,7 +113,9 @@ in
 
   config = lib.mkIf cfg.enable {
     # Let the (non-root) launchd agent activate the rebuilt system without a
-    # password. Scoped to darwin-rebuild only.
+    # password. This is root-equivalent, not a narrow grant: darwin-rebuild
+    # activates whatever configuration it is pointed at as root, so anyone
+    # running as this user can run arbitrary code as root.
     environment.etc."sudoers.d/darwin-rebuild".text = ''
       ${common.user.name} ALL=(ALL) NOPASSWD: ${darwinRebuild}
     '';

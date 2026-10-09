@@ -4,6 +4,12 @@
   config,
   ...
 }:
+let
+  # `conf` and `ksecret` act on Tom's flake checkout. Its per-platform path
+  # is defined once, as programs.nh.flake in modules/home/nh.
+  isTom = config.home.username == "tom";
+  flakeCheckout = config.programs.nh.flake;
+in
 {
   home.sessionVariables.PNPM_HOME = "${config.home.homeDirectory}/.local/share/pnpm";
   home.sessionPath = [
@@ -14,7 +20,7 @@
   home.shellAliases = {
     v = "nvim";
     vi = "nvim";
-    conf = "nvim ~/nixos2";
+    conf = lib.mkIf isTom "nvim ${flakeCheckout}";
     dcu = "docker compose up -d";
     dcd = "docker compose down";
     dc = "docker compose";
@@ -73,24 +79,25 @@
       *) export PATH="$PNPM_HOME:$PATH" ;;
     esac
 
-    ksecret() {
-      if [ -z "$1" ]; then
-        echo "usage: ksecret <cluster>" >&2
-        return 1
-      fi
+    ${lib.optionalString isTom ''
+      ksecret() {
+        if [ -z "$1" ]; then
+          echo "usage: ksecret <cluster>" >&2
+          return 1
+        fi
 
-      local secrets_dir="$HOME/nixos2/secrets/kubeconfig"
-      local secret_file="$secrets_dir/$1.json"
+        local secrets_dir="${flakeCheckout}/secrets/kubeconfig"
+        local secret_file="$secrets_dir/$1.json"
 
-      if [ ! -f "$secret_file" ]; then
-        echo "secret file not found: $secret_file" >&2
-        return 1
-      fi
+        if [ ! -f "$secret_file" ]; then
+          echo "secret file not found: $secret_file" >&2
+          return 1
+        fi
 
-      SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" \
-        ${pkgs.sops}/bin/sops "$secret_file"
-    }
-
+        SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" \
+          ${pkgs.sops}/bin/sops "$secret_file"
+      }
+    ''}
   '';
   programs.starship.enable = true;
 }

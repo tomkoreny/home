@@ -8,9 +8,12 @@
 #
 # That backend shows no consent dialog. It only accepts callers whose
 # /proc/<pid>/exe is on an allowlist, and HKCF_DESKFLOW_EXECUTABLE adds the
-# exact OMP binary from this flake. Upstream applies the executable check only
-# when the portal reports an empty app id. Here it applies to every caller,
-# because OMP inherits the app id of whatever terminal unit started herdr.
+# exact OMP binary from this flake. Upstream trusts any caller that claims a
+# KDE Connect or Deskflow app id without that check, and runs the check only
+# when the portal reports an empty app id, rejecting every other id. Here every
+# caller gets the executable check and nothing else: an app id is
+# caller-chosen, and OMP inherits the app id of whatever terminal unit started
+# herdr.
 {
   config,
   inputs,
@@ -41,6 +44,10 @@ let
         --replace-fail \
           'return normalized.isEmpty() || normalized == QStringLiteral("surface-transient");' \
           'return true;'
+      substituteInPlace src/portal_backend.cpp \
+        --replace-fail \
+          'if (security::isAllowedAppId(appId))' \
+          'if (false)'
     '';
 
     nativeBuildInputs = [

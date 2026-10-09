@@ -90,11 +90,6 @@
       url = "github:homebrew/homebrew-bundle";
       flake = false;
     };
-    zen-browser = {
-      url = "github:0xc000022070/zen-browser-flake";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.home-manager.follows = "home-manager";
-    };
     # Note: no `inputs.nixpkgs.follows` here — building lan-mouse against
     # nixpkgs-unstable breaks (appstream link failure on darwin) and defeats
     # the lan-mouse.cachix.org binary cache, which is keyed to upstream's pin.
@@ -107,6 +102,10 @@
     mac-app-util = {
       url = "github:hraban/mac-app-util";
       inputs.nixpkgs.follows = "nixpkgs";
+      # treefmt-nix only backs upstream's formatter and format check, which we
+      # never build; without these each copy pinned its own full nixpkgs.
+      inputs.treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
+      inputs.cl-nix-lite.inputs.treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
     };
     puma-rails.url = "github:puma/homebrew-puma";
     puma-rails.flake = false;

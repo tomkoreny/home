@@ -29,13 +29,6 @@
     options = ["fmask=0077" "dmask=0077"];
   };
 
-  # Commented out - swap is configured in default.nix
-  # swapDevices = [
-  #   {
-  #     device = "/swapfile";
-  #     size = 16 * 1024; # 16GB
-  #   }
-  # ];
   swapDevices = [];
 
   # Enables DHCP on each ethernet and wireless interface. In case of scripted networking

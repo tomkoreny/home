@@ -157,7 +157,8 @@ in
     historyLimit = 100000;
     keyMode = "vi";
     mouse = true;
-    shell = "/etc/profiles/per-user/tom/bin/bash";
+    # Store path rather than a per-user profile path, so it works for any user.
+    shell = "${pkgs.bashInteractive}/bin/bash";
     terminal = "tmux-256color";
 
     plugins = with pkgs.tmuxPlugins; [

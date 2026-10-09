@@ -18,8 +18,9 @@ This is Tom Koreny's NixOS/Darwin configuration repository using plain Nix flake
 ### Flake Management
 - `nix flake update` - Update all flake inputs
 - `nix flake check` - Validate the flake configuration
-- `nix build` - Build flake outputs
-- `nix develop` - Enter development shell
+- `nix flake show` - Confirm the flake evaluates and list its outputs
+- `sudo -n /run/current-system/sw/bin/nixos-rebuild switch --flake .#nixos` - Build and deploy the NixOS host, including its Home Manager profiles
+- `darwin-rebuild switch --flake .#macos` - Build and apply the macOS configuration
 
 ### Configuration Editing
 - `conf` - Opens the config in nvim (alias for `nvim ~/nixos2`)

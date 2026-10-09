@@ -48,9 +48,9 @@ in
 
   home.activation = {
     # Use the store path of the shared wallpaper so this works regardless of
-    # where the repo checkout lives.
+    # where the repo checkout lives. `run` only prints the command on dry runs.
     set-wallpaper = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      /usr/bin/osascript -e "tell application \"System Events\" to tell every desktop to set picture to \"${common.stylix.wallpaper}\" as POSIX file"
+      run /usr/bin/osascript -e "tell application \"System Events\" to tell every desktop to set picture to \"${common.stylix.wallpaper}\" as POSIX file"
     '';
   };
 }

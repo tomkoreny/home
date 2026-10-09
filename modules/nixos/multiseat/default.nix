@@ -142,10 +142,9 @@ in
     users.users.${cfg.user} = {
       isNormalUser = true;
       description = "Terka";
-      # No wheel: plain desktop user. render+video are belt-and-braces for
-      # PRIME offload; Docker access is intentionally shared with this user.
+      # No wheel and no docker (rootful Docker is root-equivalent): plain
+      # desktop user. render+video are belt-and-braces for PRIME offload.
       extraGroups = [
-        "docker"
         "networkmanager"
         "video"
         "render"

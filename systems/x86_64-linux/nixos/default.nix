@@ -1,19 +1,6 @@
 {
-  # Snowfall Lib provides a customized `lib` instance with access to your flake's library
-  # as well as the libraries available from your flake's inputs.
   lib,
-  # An instance of `pkgs` with your overlays and packages applied is also available.
   pkgs,
-  # You also have access to your flake's inputs.
-  # inputs,
-  # Additional metadata is provided by Snowfall Lib.
-  # namespace, # The namespace used for your flake, defaulting to "internal" if not set.
-  # system, # The system architecture for this host (eg. `x86_64-linux`).
-  # target, # The Snowfall Lib target for this system (eg. `x86_64-iso`).
-  # format, # A normalized name for the system target (eg. `iso`).
-  # virtual, # A boolean to determine whether this system is a virtual target using nixos-generators.
-  # systems, # An attribute map of your defined hosts.
-  # All other arguments come from the system system.
   config,
   ...
 }:
@@ -27,7 +14,7 @@ let
 in
 {
   tomkoreny.nixos = {
-    # TCP tuning + IPv6 privacy-address fixes (module auto-loaded by Snowfall)
+    # TCP tuning + IPv6 privacy-address fixes (modules/nixos is auto-imported)
     networking-fixes.enable = true;
 
     # FortiVPN tunnel + its sops secret
@@ -124,11 +111,8 @@ in
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
-    # Note: modules in modules/nixos/ are auto-loaded by Snowfall Lib
-    # (openfortivpn, clawdbot-node)
+    # Every directory under modules/nixos is auto-imported by flake.nix.
   ];
-
-  nixpkgs.overlays = [ (import ../../../overlays/lazarus.nix) ];
 
   # Configure swap file
   swapDevices = [
@@ -366,7 +350,6 @@ in
     };
     portal = {
       enable = true;
-      #      extraPortals = [ pkgs.xdg-desktop-portal-hyprland ];
     };
     terminal-exec = {
       settings = {
@@ -375,24 +358,37 @@ in
     };
   };
 
-  # Passwordless sudo is limited to two allowlisted binaries. `systemctl`
-  # covers service restarts; `nixos-rebuild` lets coding agents deploy this
-  # repo without a password prompt (see AGENTS.md). `sw` stays on nh's normal
-  # elevation path: nh wraps activation in `sudo env ... <cmd>`, so
-  # allowlisting it would mean allowlisting every command.
+  # Passwordless sudo is limited to two allowlisted binaries. `systemctl` only
+  # gets the service-lifecycle verbs below; enable, mask, edit, set-property
+  # and the rest still prompt. `nixos-rebuild` lets coding agents deploy this
+  # repo without a password prompt (see AGENTS.md). That rule is
+  # root-equivalent: `switch` activates whatever flake the caller names, as
+  # root. `sw` stays on nh's normal elevation path: nh wraps activation in
+  # `sudo env ... <cmd>`, so allowlisting it would mean allowlisting every
+  # command.
   security.sudo.extraRules = [
     {
       users = [ name ];
-      commands = [
-        {
-          command = "/run/current-system/sw/bin/systemctl";
-          options = [ "NOPASSWD" ];
-        }
-        {
-          command = "/run/current-system/sw/bin/nixos-rebuild";
-          options = [ "NOPASSWD" ];
-        }
-      ];
+      commands =
+        map
+          (verb: {
+            command = "/run/current-system/sw/bin/systemctl ${verb} *";
+            options = [ "NOPASSWD" ];
+          })
+          [
+            "start"
+            "stop"
+            "restart"
+            "reload"
+            "try-restart"
+            "reset-failed"
+          ]
+        ++ [
+          {
+            command = "/run/current-system/sw/bin/nixos-rebuild";
+            options = [ "NOPASSWD" ];
+          }
+        ];
     }
   ];
   security.rtkit.enable = true;
@@ -421,16 +417,6 @@ in
   # Maaaybe make this home manager somehow someday
   # maybe make some proper config, inspire from lazyvim
 
-  home-manager.useUserPackages = true;
-  home-manager.useGlobalPkgs = true;
-  home-manager.sharedModules = [
-    {
-      # Home Manager inherits the system package set, which already includes
-      # Stylix's overlays. Reapplying them in the user profile is redundant and
-      # is incompatible with useGlobalPkgs.
-      stylix.overlays.enable = false;
-    }
-  ];
   # Rename clobbered unmanaged files instead of failing activation (matches
   # darwin; ported from a hotfix found in the old /etc/nixos/home clone).
   home-manager.backupFileExtension = "hm-bak";
@@ -532,12 +518,7 @@ in
     };
   };
 
-  # Reduce IPv6 address churn (privacy temp addresses) to avoid frequent
-  # netlink address change events that some applications interpret as
-  # network changes.
   boot.kernel.sysctl = {
-    "net.ipv6.conf.all.use_tempaddr" = lib.mkForce 0;
-    "net.ipv6.conf.default.use_tempaddr" = lib.mkForce 0;
     # Helps newer games/launchers that allocate many memory maps.
     "vm.max_map_count" = 2147483642;
   };
@@ -581,30 +562,5 @@ in
     LIBVA_DRIVER_NAME = "nvidia";
     VDPAU_DRIVER = "nvidia";
     NVD_BACKEND = "direct";
-  };
-
-  # [DEBUG-shutdown] Temporary: the end of shutdown runs after journald has
-  # stopped. Save the final kernel log to the ESP, and replay it into the
-  # journal on the next boot as `journalctl -t debug-shutdown`.
-  systemd.shutdown.debug-shutdown-log = pkgs.writeShellScript "debug-shutdown-log" ''
-    PATH=${lib.makeBinPath [ pkgs.util-linux pkgs.coreutils ]}
-    mount -t vfat -o rw /dev/disk/by-uuid/13D0-AE5F /boot || exit 0
-    { echo "verb=$1 uptime=$(cut -d' ' -f1 /proc/uptime)"; dmesg | tail -n 800; } > /boot/debug-shutdown.txt
-    sync
-    umount /boot
-  '';
-  systemd.services.debug-shutdown-log = {
-    wantedBy = [ "multi-user.target" ];
-    unitConfig.RequiresMountsFor = "/boot";
-    serviceConfig = {
-      Type = "oneshot";
-      SyslogIdentifier = "debug-shutdown";
-    };
-    script = ''
-      if [ -f /boot/debug-shutdown.txt ]; then
-        cat /boot/debug-shutdown.txt
-        rm /boot/debug-shutdown.txt
-      fi
-    '';
   };
 }

@@ -1,4 +1,6 @@
 {
+  config,
+  lib,
   pkgs,
   ...
 }:
@@ -71,6 +73,10 @@ let
 
   thunderbirdConfigPath =
     if pkgs.stdenv.hostPlatform.isDarwin then "Library/Thunderbird" else ".thunderbird";
+
+  # The accounts, the generated profile and the forced profiles.ini are Tom's
+  # mailboxes. Other users get the client and set up their own profile.
+  isTom = config.home.username == common.user.name;
 in
 {
   # Betterbird uses Thunderbird's profile/account directory layout. Home
@@ -79,7 +85,7 @@ in
     enable = true;
     package = betterbird;
 
-    profiles.default = {
+    profiles.default = lib.mkIf isTom {
       isDefault = true;
       accountsOrder = [
         "tom"
@@ -91,9 +97,9 @@ in
   };
 
   # The Thunderbird module owns this file; replace any imperative copy.
-  home.file."${thunderbirdConfigPath}/profiles.ini".force = true;
+  home.file."${thunderbirdConfigPath}/profiles.ini" = lib.mkIf isTom { force = true; };
 
-  accounts.email.accounts = {
+  accounts.email.accounts = lib.mkIf isTom {
     tom = {
       primary = true;
       flavor = "gmail.com";

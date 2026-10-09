@@ -13,6 +13,9 @@ let
   # Stable for as long as that key is.
   nixosYggAddress = "204:f4f4:6226:ebeb:780b:1c4a:847e:4bbc";
 
+  # Personal and work hosts belong to Tom; other users keep only "*".
+  isTom = config.home.username == common.user.name;
+
   # Single source of truth for SSH hosts. Blocks use upstream ssh_config
   # directive names; the attribute name becomes the `Host` pattern.
   # ~/.omp/agent/ssh.json is derived from this set below.
@@ -27,7 +30,8 @@ let
       ControlPath = "~/.ssh/sockets/%C";
       ControlPersist = "600";
     };
-
+  }
+  // lib.optionalAttrs isTom {
     "proxmox" = {
       HostName = "192.168.1.2";
       User = "root";
@@ -199,7 +203,7 @@ in
 
   # OMP ssh:// host registry, derived from sshSettings. Read-only store
   # symlink: `omp ssh add --scope user` cannot write it — add hosts here.
-  home.file.".omp/agent/ssh.json" = lib.mkIf (config.home.username == "tom") {
+  home.file.".omp/agent/ssh.json" = lib.mkIf isTom {
     text = builtins.toJSON { hosts = ompSshHosts; };
   };
 }

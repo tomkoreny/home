@@ -28,4 +28,4 @@ nix build --no-link --print-build-logs --impure --expr '
     tom.programs.omp.package
     flake.inputs.herdr.packages.x86_64-linux.default
   ]
-  ++ map fromHome [ "helium-browser" "betterbird" "orca-ide" "komai" "jellyfin-mpv-shim" ]'
+  ++ map fromHome [ "helium-browser" "betterbird" "orca-ide" "komai" "jellyfin-mpv-shim" "moshi-hook" ]'

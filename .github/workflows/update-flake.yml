@@ -62,8 +62,11 @@ jobs:
             echo "No changes to build"
             exit 0
           fi
+          # The revert re-locks, so the lock being built is not the one the
+          # Validate step checked; validate it again before building it.
           .github/scripts/build-moving.sh || {
             .github/scripts/revert-pin-bumps.sh "failed to build"
+            .github/scripts/validate.sh
             .github/scripts/build-moving.sh
           }
 

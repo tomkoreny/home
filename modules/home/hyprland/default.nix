@@ -197,6 +197,9 @@ let
     inherit fontFamily;
     oledIdle = lib.getExe oledIdle;
   };
+  # The OLED idle helpers address Tom's seat0 monitors by serial and output
+  # name. Other users get neither them nor hypridle.
+  isTom = config.home.username == common.user.name;
 in
 {
   config = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
@@ -209,14 +212,13 @@ in
       systemd.enable = false;
     };
 
-    # Hyprpaper, Hypridle, and the OLED saver are managed by user services.
+    # Hyprpaper, Hypridle, and the OLED saver (the last two Tom-only) are
+    # managed by user services.
     # UWSM activates graphical-session.target; the compositor callback starts
     # only units which are intentionally tied to this Hyprland session.
     home.packages = [
       pkgs.hyprpaper
-      pkgs.hypridle
       pkgs.quickshell
-      oledIdle
       mediaControl
       aspectTiling
 
@@ -251,9 +253,13 @@ in
 
         ${pkgs.wtype}/bin/wtype -- "$fixed"
       '')
+    ]
+    ++ lib.optionals isTom [
+      pkgs.hypridle
+      oledIdle
     ];
 
-    xdg.configFile."quickshell/tom-idle/shell.qml".source = idleShell;
+    xdg.configFile."quickshell/tom-idle/shell.qml" = lib.mkIf isTom { source = idleShell; };
     xdg.configFile."mpv/scripts/hyprland-aspect.lua".source = mpvAspectScript;
     # Jellyfin starts external mpv with its own --config-dir.
     xdg.configFile."jellyfin-mpv-shim/scripts/hyprland-aspect.lua".source = mpvAspectScript;
@@ -296,7 +302,7 @@ in
       ''
     );
 
-    systemd.user.services.quickshell-idle = {
+    systemd.user.services.quickshell-idle = lib.mkIf isTom {
       Unit.Description = "Quickshell OLED idle surface";
       Service = {
         ExecStart = "${pkgs.quickshell}/bin/qs -c tom-idle";
@@ -306,8 +312,8 @@ in
     };
 
     services.hyprpaper.enable = true;
-    services.hypridle.enable = true;
-    services.hypridle.settings = {
+    services.hypridle.enable = isTom;
+    services.hypridle.settings = lib.mkIf isTom {
       general = {
         after_sleep_cmd = "${oledIdle}/bin/oled-idle dpms-on";
         ignore_dbus_inhibit = false;

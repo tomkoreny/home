@@ -49,6 +49,13 @@ in {
       # Backlogs
       "net.core.netdev_max_backlog" = 5000;
       "net.ipv4.tcp_max_syn_backlog" = 8192;
+
+      # Reduce IPv6 address churn (privacy temp addresses) to avoid frequent
+      # netlink address change events that some applications interpret as
+      # network changes. mkForce because NixOS already sets the `default` key
+      # from networking.tempAddresses at normal priority.
+      "net.ipv6.conf.all.use_tempaddr" = lib.mkForce 0;
+      "net.ipv6.conf.default.use_tempaddr" = lib.mkForce 0;
     };
   };
 }
