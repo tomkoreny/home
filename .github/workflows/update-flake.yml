@@ -26,10 +26,13 @@ jobs:
       # invisible to it, which is how Helium sat seven months behind. The script
       # moves them to upstream's latest release first, so the lock below picks
       # up bumped tags; majors and boot-critical pins open an issue instead.
+      # It also re-hashes rolling downloads, files upstream replaces in place
+      # behind a fixed URL, which otherwise fail the build until hand-fixed.
       - name: Bump pinned versions
         env:
           GH_TOKEN: ${{ github.token }}
           BUMP_SUMMARY: ${{ runner.temp }}/pin-bumps.txt
+          ROLLING_SUMMARY: ${{ runner.temp }}/rolling-refreshes.txt
         run: python3 .github/scripts/bump-pins.py
 
       - name: Update flake.lock
@@ -45,6 +48,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           BUMP_SUMMARY: ${{ runner.temp }}/pin-bumps.txt
+          ROLLING_SUMMARY: ${{ runner.temp }}/rolling-refreshes.txt
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           .github/scripts/validate.sh || {
@@ -56,6 +60,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           BUMP_SUMMARY: ${{ runner.temp }}/pin-bumps.txt
+          ROLLING_SUMMARY: ${{ runner.temp }}/rolling-refreshes.txt
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           if git diff --quiet; then
@@ -73,13 +78,14 @@ jobs:
       - name: Commit and push
         env:
           BUMP_SUMMARY: ${{ runner.temp }}/pin-bumps.txt
+          ROLLING_SUMMARY: ${{ runner.temp }}/rolling-refreshes.txt
         run: |
           git config user.name "Tom Koreny"
           git config user.email "tom@tomkoreny.com"
           if git diff --quiet; then
             echo "No changes to flake inputs or pins"
-          elif [ -s "$BUMP_SUMMARY" ]; then
-            git commit -a -m "chore: bump pinned versions and flake inputs" -m "$(cat "$BUMP_SUMMARY")"
+          elif [ -s "$BUMP_SUMMARY" ] || [ -s "$ROLLING_SUMMARY" ]; then
+            git commit -a -m "chore: bump pinned versions and flake inputs" -m "$(cat "$BUMP_SUMMARY" "$ROLLING_SUMMARY")"
             git push
           else
             git commit -a -m "flake.lock: update inputs"

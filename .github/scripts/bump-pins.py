@@ -13,7 +13,14 @@ Policies:
               major opens an issue instead, because it may need real changes
   manual      never bump; open an issue when a new release appears
 
-Writes one line per bumped pin to the file named by $BUMP_SUMMARY.
+Rolling downloads have no version: upstream replaces the file behind a fixed
+URL, which invalidates the pinned hash. They are re-hashed on every run and are
+never reverted, because the old content can no longer be downloaded.
+`--rolling` refreshes only those; revert-pin-bumps.sh uses it to re-apply them
+after restoring the files a failed bump touched.
+
+Writes one line per bumped pin to the file named by $BUMP_SUMMARY, and one line
+per refreshed rolling download to $ROLLING_SUMMARY.
 """
 
 from __future__ import annotations
@@ -46,6 +53,15 @@ class Pin:
     # file -> regex whose group 1 is the pinned version (first one is canonical)
     versions: dict[str, str]
     sources: dict[str, list[Source]] = field(default_factory=dict)
+
+
+@dataclass
+class Rolling:
+    """A fixed-output download whose URL stays put while its content changes."""
+
+    name: str
+    path: str
+    url: str  # exactly as written on the `url = "...";` line in the file
 
 
 def github_latest(repo: str):
@@ -198,6 +214,16 @@ PINS = [
     Pin("default-shader-pack", "same-major", github_latest("iwalton3/default-shader-pack"), {"flake.nix": flake_tag("iwalton3/default-shader-pack")}),
 ]
 
+# Catppuccin regenerates this export in place under a rolling release tag. The
+# Helium module's generator rejects an export that lost a selected style, and
+# build-moving.sh builds helium-browser, so a bad regeneration fails CI.
+ROLLING = [
+    Rolling(
+        "catppuccin-userstyles-export", "modules/home/helium/default.nix",
+        "https://github.com/catppuccin/userstyles/releases/download/all-userstyles-export/import.json",
+    ),
+]
+
 
 def major(version: str) -> int:
     return int(re.match(r"\d+", version).group())
@@ -218,11 +244,14 @@ def replace_version(text: str, pattern: str, new: str, path: str) -> str:
     return text[: match.start(1)] + new + text[match.end(1):]
 
 
-def replace_hash(text: str, source: Source, new_hash: str, path: str) -> str:
-    pattern = rf'(url = "[^"\n]*{re.escape(source.marker)}[^"\n]*";\n\s*hash = ")[^"]+(";)'
-    updated, count = re.subn(pattern, lambda m: m.group(1) + new_hash + m.group(2), text)
+def hash_pattern(marker: str) -> str:
+    return rf'(url = "[^"\n]*{re.escape(marker)}[^"\n]*";\n\s*hash = ")([^"]+)(";)'
+
+
+def replace_hash(text: str, marker: str, new_hash: str, path: str) -> str:
+    updated, count = re.subn(hash_pattern(marker), lambda m: m.group(1) + new_hash + m.group(3), text)
     if count != 1:
-        raise RuntimeError(f"{path}: expected one url/hash pair for {source.marker!r}, found {count}")
+        raise RuntimeError(f"{path}: expected one url/hash pair for {marker!r}, found {count}")
     return updated
 
 
@@ -262,35 +291,57 @@ def bump(pin: Pin) -> str | None:
     for path, sources in pin.sources.items():
         for source in sources:
             new_hash = prefetch(source.url.format(version=latest))
-            edits[path] = replace_hash(edits.get(path) or (ROOT / path).read_text(), source, new_hash, path)
+            edits[path] = replace_hash(edits.get(path) or (ROOT / path).read_text(), source.marker, new_hash, path)
     for path, text in edits.items():
         (ROOT / path).write_text(text)
     return f"{pin.name} {current} -> {latest}"
 
 
-def main() -> int:
-    bumped, failed = [], []
-    for pin in PINS:
+def refresh(download: Rolling) -> str | None:
+    text = (ROOT / download.path).read_text()
+    match = re.search(hash_pattern(download.url), text)
+    if not match:
+        raise RuntimeError(f"{download.path}: no url/hash pair for {download.url!r}")
+    current = match.group(2)
+    latest = prefetch(download.url)
+    if latest == current:
+        return None
+    (ROOT / download.path).write_text(replace_hash(text, download.url, latest, download.path))
+    return f"{download.name} {current} -> {latest}"
+
+
+def check_all(items: list, check, summary_variable: str) -> None:
+    changed, failed = [], []
+    for item in items:
         try:
-            result = bump(pin)
+            result = check(item)
         except Exception as error:  # one broken upstream must not block the rest
-            print(f"::warning::{pin.name}: {error}", file=sys.stderr)
+            print(f"::warning::{item.name}: {error}", file=sys.stderr)
             open_issue(
-                f"Pin check failing for {pin.name}",
-                f"The scheduled update could not check or bump `{pin.name}`:\n\n```\n{error}\n```",
+                f"Pin check failing for {item.name}",
+                f"The scheduled update could not check or bump `{item.name}`:\n\n```\n{error}\n```",
             )
-            failed.append(pin.name)
+            failed.append(item.name)
             continue
         if result:
             print(result)
-            bumped.append(result)
-    summary = os.environ.get("BUMP_SUMMARY")
+            changed.append(result)
+    summary = os.environ.get(summary_variable)
     if summary:
-        Path(summary).write_text("".join(f"{line}\n" for line in bumped))
+        Path(summary).write_text("".join(f"{line}\n" for line in changed))
     if failed:
         print(f"::warning::could not check: {', '.join(failed)}", file=sys.stderr)
+
+
+def main(args: list[str]) -> int:
+    if args not in ([], ["--rolling"]):
+        print("usage: bump-pins.py [--rolling]", file=sys.stderr)
+        return 2
+    if not args:
+        check_all(PINS, bump, "BUMP_SUMMARY")
+    check_all(ROLLING, refresh, "ROLLING_SUMMARY")
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))

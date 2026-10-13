@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Undo this run's pin bumps after they broke a check, keep the lock update, and
-# report the reverted bumps in one reused issue. Usage: revert-pin-bumps.sh REASON
+# Undo this run's pin bumps after they broke a check, keep the lock update and
+# the rolling-download refreshes, and report the reverted bumps in one reused
+# issue. Usage: revert-pin-bumps.sh REASON
 # Exits 1 when there were no pin bumps to blame, so the caller's failure stands.
 set -euo pipefail
 
@@ -11,6 +12,9 @@ fi
 echo "::warning::pinned version bumps $reason; retrying without them"
 bumps="$(cat "$BUMP_SUMMARY")"
 git diff --name-only | grep -vx flake.lock | xargs git checkout HEAD --
+# That also restored any rolling-download hash sharing a file with a pin, and
+# upstream no longer serves the old content, so the retry would fail on it.
+python3 .github/scripts/bump-pins.py --rolling
 # flake.nix tag pins are back at their old values; re-lock just those inputs.
 nix flake lock
 : > "$BUMP_SUMMARY"

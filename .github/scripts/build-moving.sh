@@ -8,8 +8,8 @@
 # - source-built flake inputs that change with every lock update and are in no
 #   binary cache: omp (a stale native-addon stamp left every host failing to
 #   upgrade in September 2026) and herdr;
-# - the Linux packages behind the release pins in bump-pins.py, which are
-#   cheap downloads or small builds.
+# - the Linux packages behind the release pins and rolling downloads in
+#   bump-pins.py, which are cheap downloads or small builds.
 # Everything is taken from the host configuration so overrides and `follows`
 # match exactly what the hosts build.
 set -euo pipefail

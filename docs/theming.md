@@ -374,6 +374,13 @@ inputs` workflow bumps it within the current major version through
 patched Stylus), and reverts the bump with an issue if the build fails. The store
 copies of the extensions update themselves from the Web Store.
 
+The GitHub and YouTube styles come from Catppuccin's `all-userstyles-export`, a
+release asset upstream regenerates in place, so its hash goes stale without any
+version changing. The same workflow re-hashes it on every run, and the generator
+fails the `helium-browser` build if the export no longer contains either style.
+A bad regeneration therefore opens the workflow's failure issue instead of
+silently dropping a theme.
+
 ## Bookmark and tab sync
 
 For `tom`, Helium also installs Floccus, which syncs through Karakeep at

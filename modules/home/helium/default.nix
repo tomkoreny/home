@@ -164,10 +164,10 @@ let
     );
 
   # `all-userstyles-export` is a rolling release tag that upstream regenerates,
-  # and there is no versioned artifact to point at instead, so this hash has to
-  # be refreshed whenever the export changes. Verify the download before
-  # trusting a new hash: it must be a JSON array that still contains the style
-  # names selected below, or the generator fails in a much less obvious way.
+  # and there is no versioned artifact to point at instead. The scheduled update
+  # re-hashes it on every run (`ROLLING` in .github/scripts/bump-pins.py) and
+  # builds helium-browser, whose generator below rejects an export that lost a
+  # selected style.
   catppuccinStylusExport = pkgs.fetchurl {
     url = "https://github.com/catppuccin/userstyles/releases/download/all-userstyles-export/import.json";
     hash = "sha256-ZOy+lNugGa7kAh5LYIzYEIQ2Sig5tCTOmaCClGNM9pQ=";
@@ -227,6 +227,13 @@ let
         library_import = '@import "https://userstyles.catppuccin.com/lib/std/v1.less";'
 
         selected_names = {"GitHub Catppuccin", "YouTube Catppuccin"}
+        # The export is re-hashed unattended, so a regeneration that dropped a
+        # selected style must fail the build rather than ship without it.
+        if not isinstance(export, list):
+            raise RuntimeError("Catppuccin export is no longer a JSON array")
+        missing = selected_names - {item.get("name") for item in export}
+        if missing:
+            raise RuntimeError(f"Catppuccin export no longer contains {sorted(missing)}")
         selected = [
             item
             for item in export
