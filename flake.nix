@@ -16,7 +16,7 @@
     # the latest GitHub release before the scheduled lock update, so
     # `nix flake update` alone would not move it.
     herdr = {
-      url = "github:herdrdev/herdr/v0.9.3";
+      url = "github:herdrdev/herdr/v0.9.4";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.rust-overlay.follows = "rust-overlay";
     };
