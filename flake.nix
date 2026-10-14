@@ -16,7 +16,7 @@
     # the latest GitHub release before the scheduled lock update, so
     # `nix flake update` alone would not move it.
     herdr = {
-      url = "github:herdrdev/herdr/v0.9.4";
+      url = "github:herdrdev/herdr/v0.9.5";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.rust-overlay.follows = "rust-overlay";
     };
@@ -121,7 +121,7 @@
       flake = false;
     };
     jellyfin-apiclient-python-src = {
-      url = "github:jellyfin/jellyfin-apiclient-python/v1.20.1";
+      url = "github:jellyfin/jellyfin-apiclient-python/v1.20.2";
       flake = false;
     };
     python-mpv-jsonipc-src = {
