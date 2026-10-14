@@ -415,6 +415,10 @@ in
     packages = [ ];
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFBlOVKsct1Qrd9uKbKr962p0Zv7m2TV5Ggdc+KltH2P moshi"
+      # Authentik RAC "Tom Nix" endpoint (homelab-services, OpenBao
+      # kv/apps/authentik-rac). Cluster pods reach this host from the Talos
+      # node addresses; the key gets a shell and nothing else.
+      ''from="10.11.0.10,10.11.0.11",restrict,pty ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ0SHGcdPxfwth2Qe1IH4SSqubvjiQXFcDteiOBX8z5H authentik-rac@proxmox-lab''
     ];
   };
 
