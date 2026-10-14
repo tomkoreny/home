@@ -125,6 +125,12 @@ let
       chmod 0644 "$token_file"
 
       docker rm -f gha-runner >/dev/null 2>&1 || true
+      # A unique name per registration, as ARC does. A runner that died with
+      # its dind cannot close its GitHub session, and a successor under the
+      # same name is refused with "A session for this runner already exists"
+      # until that session expires. Offline ephemeral runners are removed by
+      # GitHub after a day.
+      runner_name="$RUNNER_NAME_PREFIX-$(od -An -N3 -tx1 /dev/urandom | tr -d ' \n')"
       # /var/run is a symlink to /run in the image, so the token goes under
       # /etc where the socket mount cannot cover it.
       exec docker run --rm --name gha-runner \
@@ -136,9 +142,9 @@ let
         -v "$token_file":/etc/gha-registration-token:ro \
         -e DOCKER_HOST=unix:///var/run/docker.sock \
         -e ORG \
-        -e RUNNER_NAME \
+        -e RUNNER_NAME="$runner_name" \
         ${runnerImage} \
-        bash -c './config.sh --url "https://github.com/$ORG" --token "$(cat /etc/gha-registration-token)" --name "$RUNNER_NAME" --labels homelab --ephemeral --unattended --replace && exec ./run.sh'
+        bash -c './config.sh --url "https://github.com/$ORG" --token "$(cat /etc/gha-registration-token)" --name "$RUNNER_NAME" --labels homelab --ephemeral --unattended && exec ./run.sh'
     '';
   };
 in
@@ -149,7 +155,10 @@ in
     name = lib.mkOption {
       type = lib.types.str;
       default = "tom-pc";
-      description = "Runner name shown in the org's runner list.";
+      description = ''
+        Prefix of the runner name in the org's runner list. Every registration
+        appends a random suffix.
+      '';
     };
   };
 
@@ -178,6 +187,11 @@ in
       after = [ "docker.service" ];
       requires = [ "docker.service" ];
       wantedBy = [ "multi-user.target" ];
+      # Starts the runner again whenever dind is up and the runner is not,
+      # e.g. after dind crashed and took the runner down with it (BindsTo on
+      # gha-runner). To stop both, stop this unit; stopping only gha-runner
+      # is undone right away.
+      upholds = [ "gha-runner.service" ];
       serviceConfig = {
         ExecStartPre = "-${docker} rm -f gha-runner-dind";
         # The caps keep a Next.js build from starving the desktop.
@@ -203,12 +217,15 @@ in
         "gha-runner-dind.service"
         "network-online.target"
       ];
-      requires = [ "gha-runner-dind.service" ];
+      # The runner lives in dind's network namespace and talks to its socket,
+      # so it must not outlive it: when dind stops or crashes, the runner is
+      # stopped at once instead of sitting in a namespace with no network.
+      bindsTo = [ "gha-runner-dind.service" ];
       wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
       environment = {
         ORG = "TomAndTer";
-        RUNNER_NAME = cfg.name;
+        RUNNER_NAME_PREFIX = cfg.name;
         # Not secret: the App and installation the homelab ARC controller uses.
         APP_ID = "5100532";
         INSTALLATION_ID = "165570859";
