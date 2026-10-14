@@ -53,6 +53,10 @@ in
 
     # Quiet boot with the TK Plymouth splash (true black, accent mark).
     boot-splash.enable = true;
+
+    # Extra TomAndTer GitHub Actions runner with the `homelab` label while this
+    # desktop is on. The homelab cluster runner takes the jobs when it is off.
+    gha-runner.enable = true;
   };
 
   # Pull the latest pushed config and rebuild (CI keeps flake.lock fresh).
