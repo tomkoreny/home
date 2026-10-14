@@ -59,6 +59,10 @@ in
     gha-runner.enable = true;
   };
 
+  # typescript-language-server's pnpm dependency hash differs per platform; see
+  # overlays/typescript-language-server.nix.
+  nixpkgs.overlays = [ (import ../../../overlays/typescript-language-server.nix) ];
+
   # Pull the latest pushed config and rebuild (CI keeps flake.lock fresh).
   # Fetches straight from GitHub, so there is no local clone to go stale.
   system.autoUpgrade = {
