@@ -225,7 +225,6 @@
           inherit system;
           config.allowUnfree = true;
           overlays = [
-            (import ./overlays/quickshell.nix)
             (import ./overlays/typescript-language-server.nix)
           ];
         };
