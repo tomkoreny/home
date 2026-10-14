@@ -175,6 +175,9 @@ in
 
   # The platform the configuration will be used on.
   nixpkgs.hostPlatform = "aarch64-darwin";
+  # aarch64-darwin's pnpm dependency hash for typescript-language-server; see
+  # overlays/typescript-language-server.nix.
+  nixpkgs.overlays = [ (import ../../../overlays/typescript-language-server.nix) ];
 
   # Reverse the mouse wheel but not the trackpad: macOS has a single
   # `com.apple.swipescrolldirection` for both, so per-device inversion needs an
