@@ -103,12 +103,6 @@ in
       default = "${homeDir}/home";
       description = "Git checkout to pull and rebuild (the same one nh uses)";
     };
-
-    interval = lib.mkOption {
-      type = lib.types.int;
-      default = 1800; # 30 minutes in seconds
-      description = "Seconds between upgrade attempts";
-    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -123,7 +117,14 @@ in
     launchd.user.agents.auto-upgrade = {
       command = "${upgradeScript}";
       serviceConfig = {
-        StartInterval = cfg.interval;
+        # Every 30 minutes, on the hour and half hour. Not StartInterval: on
+        # macOS 27 launchd parks StartInterval agents at "pended nondemand
+        # spawn = interval" and never starts them (this agent went five days
+        # without a run), while calendar-scheduled agents fire normally.
+        StartCalendarInterval = [
+          { Minute = 0; }
+          { Minute = 30; }
+        ];
         RunAtLoad = false;
         StandardOutPath = log;
         StandardErrorPath = log;

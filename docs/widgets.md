@@ -488,8 +488,12 @@ item reads `~/.local/state/auto-upgrade/status.json`, which the
 `org.nixos.auto-upgrade` agent (`modules/darwin/auto-upgrade`) writes after
 every finished run in the same shape as the NixOS recorder; runs it skips
 because the checkout has local changes are not recorded, so a checkout left
-dirty shows up as `no upgrade` after a day. Not ported: the task manager and
-editing views, work status transitions, and the launcher.
+dirty shows up as `no upgrade` after a day. The agent is scheduled at minutes
+0 and 30 of each hour with `StartCalendarInterval`. On this macOS 27 host,
+`StartInterval` agents stayed at `pended nondemand spawn = interval` without
+running; a side-by-side calendar-scheduled probe ran three times.
+Not ported: the task manager and editing views, work status transitions, and
+the launcher.
 
 The module sets the native menu bar to auto-hide (`_HIHideMenuBar`), turns on
 its background (`SLSMenuBarUseBlurredAppearance`, System Settings' "Show menu
