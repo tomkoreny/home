@@ -12,6 +12,9 @@ let
   # secrets/yggdrasil/nixos-private.pem (`yggdrasil -useconf -address`).
   # Stable for as long as that key is.
   nixosYggAddress = "204:f4f4:6226:ebeb:780b:1c4a:847e:4bbc";
+  # The Mac's overlay address, derived the same way from
+  # secrets/yggdrasil/macos-private.pem.
+  macosYggAddress = "200:4c70:83f0:269e:e54c:525e:5ebf:39de";
 
   # Personal and work hosts belong to Tom; other users keep only "*".
   isTom = config.home.username == common.user.name;
@@ -83,6 +86,16 @@ let
         }
       ];
       ControlPersist = "60";
+    };
+
+    # The reverse of nixos-ygg: the Mac roams, and Yggdrasil is the one path
+    # that reaches it on any network. Herdr's saved "macos" machine on NixOS
+    # connects through this alias; the Mac's sshd and the key it accepts live
+    # in systems/aarch64-darwin/macos.
+    "macos-ygg" = {
+      HostName = macosYggAddress;
+      User = "tom";
+      AddressFamily = "inet6";
     };
 
     # Attach directly to the persistent NixOS tmux session.

@@ -233,6 +233,23 @@ in
     description = fullName;
     home = homeDir;
     shell = pkgs.bashInteractive;
+    # tom@nixos, for Herdr's saved "macos" machine on NixOS (the macos-ygg
+    # alias in modules/home/ssh).
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEL+ZoEJf5oFRRFbWHZoMV7nsV/qYqjvCMtQP1J/jghU tom@nixos"
+    ];
+  };
+
+  # Remote Login, so Herdr on NixOS can attach this Mac's sessions. launchd
+  # owns sshd's socket and listens on every interface, including untrusted
+  # Wi-Fi, so only public keys are accepted, matching the NixOS host.
+  services.openssh = {
+    enable = true;
+    extraConfig = ''
+      PermitRootLogin no
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+    '';
   };
 
   # Touch ID for sudo, declaratively: /etc/pam.d/sudo was patched imperatively
