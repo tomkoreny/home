@@ -485,6 +485,9 @@ in
       ensureDefaultPrinter = "HP_Color_LaserJet_4302";
     };
 
+    # Web Bluetooth in Chromium talks to the thermal label printer through BlueZ.
+    bluetooth.enable = true;
+
     steam-hardware.enable = true;
 
     # Did you read the comment?
