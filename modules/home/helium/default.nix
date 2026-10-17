@@ -127,10 +127,10 @@ let
   };
   # Release the patched Stylus is built from. The `-id` build keeps the Web
   # Store key, so it has the store ID. .github/scripts/bump-pins.py moves it.
-  stylusVersion = "2.4.14";
+  stylusVersion = "2.4.15";
   stylusRelease = pkgs.fetchurl {
     url = "https://github.com/openstyles/stylus/releases/download/v${stylusVersion}/stylus-chrome-mv3-v${stylusVersion}-id.zip";
-    hash = "sha256-IEqjuoyZ2YtxYHtjTryqQDL4ac6brDKj6lBGYMWxwD0=";
+    hash = "sha256-E2uy93cHHETZrHm86zJEouj8em4kHV6URe6iukQwBio=";
   };
   # Store copy of Floccus; it updates itself from the Web Store. Its required
   # host permission (`*://*/*`) already covers Karakeep, so the seeded profiles
@@ -170,7 +170,7 @@ let
   # selected style.
   catppuccinStylusExport = pkgs.fetchurl {
     url = "https://github.com/catppuccin/userstyles/releases/download/all-userstyles-export/import.json";
-    hash = "sha256-1T0O8wLi/5LT2TzD6QNuqxjYjisbVycuydWr97sSDY0=";
+    hash = "sha256-MwHWQN4wh0/NuQPNkBgpu2FSLArF+YMyiHd8dl4sxfg=";
   };
   # Upstream migrated the standard library to a versioned path and left
   # lib/lib.less as a two-line shim that imports this file. The shim is a moving

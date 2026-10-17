@@ -658,11 +658,11 @@
     "homebrew-cask": {
       "flake": false,
       "locked": {
-        "lastModified": 1792261535,
-        "narHash": "sha256-VuStEp6Wf8Uap3gy7GVBAvGOwdwDGNjBy1kXxPfhyLQ=",
+        "lastModified": 1792273343,
+        "narHash": "sha256-miLRTT4BembPUkKCF1/WrwlV7ul2hyFY4O+tgg+BnVE=",
         "owner": "homebrew",
         "repo": "homebrew-cask",
-        "rev": "d3728a455f65547787910dea0e3491b117c15099",
+        "rev": "abb4c35941a60ea931786318a96763d32a1b8cf1",
         "type": "github"
       },
       "original": {
@@ -674,11 +674,11 @@
     "homebrew-core": {
       "flake": false,
       "locked": {
-        "lastModified": 1792265199,
-        "narHash": "sha256-tmVbSflaRuRMn5oIdDI5pFcrnAmM5ytITYH9NJqL9f0=",
+        "lastModified": 1792272362,
+        "narHash": "sha256-OIoDIB7zoyWad3/usUPT0cyxt4H4OGXJh7rlVnnGRuU=",
         "owner": "homebrew",
         "repo": "homebrew-core",
-        "rev": "b13b3dfc98ddbf69d7e695ff88959d8bcc8d4e3d",
+        "rev": "cbd0c8ddb11909fb209f06e08677973c0f211848",
         "type": "github"
       },
       "original": {
@@ -1040,16 +1040,16 @@
     "jellyfin-mpv-shim-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1791164766,
-        "narHash": "sha256-Re9qYQp+Z7GHdL75YrJNHCvI5G0uHss3CJsA1AIj+UA=",
+        "lastModified": 1792261284,
+        "narHash": "sha256-WXousNzOXsKhx5Lku8elQq3CeQN9xSSVawkS53XhPfY=",
         "owner": "jellyfin",
         "repo": "jellyfin-mpv-shim",
-        "rev": "7e9fd292459358dde12f054c24f79642ab5ec98f",
+        "rev": "9fa9c9e1f0bd5a2f9f3af81d8a22a8b2222798ae",
         "type": "github"
       },
       "original": {
         "owner": "jellyfin",
-        "ref": "v3.1.0",
+        "ref": "v3.2.0",
         "repo": "jellyfin-mpv-shim",
         "type": "github"
       }
@@ -1150,11 +1150,11 @@
         "treefmt-nix": "treefmt-nix_3"
       },
       "locked": {
-        "lastModified": 1792269575,
-        "narHash": "sha256-sBxAd2rrhyqqGsyVYSDunaBj++Z2xs69p41bZUvHKRU=",
+        "lastModified": 1792278144,
+        "narHash": "sha256-pWF6v2K3xAoEysYnl56MnYkuAhHJsaJnBQqIiFD2pAg=",
         "owner": "numtide",
         "repo": "nix-ai-tools",
-        "rev": "ab3f77e16752054857a29d25dc54cf3869aa1ffc",
+        "rev": "803ef46814fc52de72307a20d6ac1b07ad45f518",
         "type": "github"
       },
       "original": {
@@ -1386,11 +1386,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1792265232,
-        "narHash": "sha256-EFDWvROFJ2y5DpUQYOeB0xCGqCC9/qxB20ejyocnMEM=",
+        "lastModified": 1792278096,
+        "narHash": "sha256-1vAhe1bYL58QJyuAx7OQtYfGY/XBzW8TlHQ16tOPTog=",
         "owner": "can1357",
         "repo": "oh-my-pi",
-        "rev": "59c801839065487b4497a5447876fed159de8815",
+        "rev": "291e055836c210f314af3f73f53244e8e9d09de8",
         "type": "github"
       },
       "original": {
