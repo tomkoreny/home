@@ -125,7 +125,7 @@
       flake = false;
     };
     python-mpv-jsonipc-src = {
-      url = "github:iwalton3/python-mpv-jsonipc/v1.4.0";
+      url = "github:iwalton3/python-mpv-jsonipc/v1.5.0";
       flake = false;
     };
     jellyfin-default-shader-pack-src = {
