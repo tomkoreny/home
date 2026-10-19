@@ -127,10 +127,10 @@ let
   };
   # Release the patched Stylus is built from. The `-id` build keeps the Web
   # Store key, so it has the store ID. .github/scripts/bump-pins.py moves it.
-  stylusVersion = "2.4.15";
+  stylusVersion = "2.4.16";
   stylusRelease = pkgs.fetchurl {
     url = "https://github.com/openstyles/stylus/releases/download/v${stylusVersion}/stylus-chrome-mv3-v${stylusVersion}-id.zip";
-    hash = "sha256-E2uy93cHHETZrHm86zJEouj8em4kHV6URe6iukQwBio=";
+    hash = "sha256-bWezl6LhV4Ao8k6amjsDZ4j7mU0fPH7pqZixqJvvk1U=";
   };
   # Store copy of Floccus; it updates itself from the Web Store. Its required
   # host permission (`*://*/*`) already covers Karakeep, so the seeded profiles
