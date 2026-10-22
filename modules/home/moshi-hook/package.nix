@@ -5,13 +5,13 @@
 }:
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "moshi-hook";
-  version = "0.4.35";
+  version = "0.4.36";
 
   # Upstream publishes only prebuilt archives on its CDN (the Homebrew tap
   # points at the same files). The hash matches upstream's checksums.txt.
   src = fetchurl {
     url = "https://cdn.getmoshi.app/hook/v${finalAttrs.version}/moshi-hook_Linux_x86_64.tar.gz";
-    hash = "sha256-E/MlhYZXp1k7uOOJEUpPT6kBzL66+vQ8bJhaIM7/6Wc=";
+    hash = "sha256-HWBuLFHgcCDCTHWyRsbRZaLIU5sOPVNs3HsqtF8JSYs=";
   };
 
   sourceRoot = ".";
