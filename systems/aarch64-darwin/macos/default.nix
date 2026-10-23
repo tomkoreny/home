@@ -59,8 +59,6 @@ in
   };
   # Local I2P proxies and a stable, sops-backed Yggdrasil identity.
   tomkoreny.darwin.privacy-networks.enable = true;
-  # Weekly: drop Nix generations older than 14 days, then collect garbage.
-  tomkoreny.darwin.nix-gc.enable = true;
   # Avoid collisions with pre-existing manual backups like ~/.ssh/config.bak.
   home-manager.backupFileExtension = "hm-bak";
 
