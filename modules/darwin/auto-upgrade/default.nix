@@ -72,11 +72,14 @@ let
     # launchd fires the slots missed while asleep on the next wake, including
     # the few seconds of a dark wake, before the network is back, and git then
     # failed with "Could not resolve host: github.com" (six runs on
-    # 2026-10-23). Wait up to about two minutes for GitHub, then skip without
-    # recording a failure. Only "cannot resolve", "cannot connect" and timeout
-    # (curl exits 6, 7, 28) count as offline; any other error goes on to the
-    # real pull so it is reported.
-    for attempt in $(seq 1 12); do
+    # 2026-10-23). Retry GitHub every 10 seconds for two minutes, then skip
+    # without recording a failure. The deadline, not an attempt count, bounds
+    # the wait, because each probe itself can take up to 10 seconds. Only
+    # "cannot resolve", "cannot connect" and timeout (curl exits 6, 7, 28)
+    # count as offline; any other error goes on to the real pull so it is
+    # reported.
+    deadline=$((SECONDS + 120))
+    while :; do
       net=0
       curl --silent --head --output /dev/null --connect-timeout 5 --max-time 10 \
         https://github.com || net=$?
@@ -84,7 +87,7 @@ let
         6 | 7 | 28) ;;
         *) break ;;
       esac
-      if [ "$attempt" -eq 12 ]; then
+      if [ "$SECONDS" -ge "$deadline" ]; then
         echo "auto-upgrade: github.com unreachable (curl exit $net); skipping" >&2
         exit 0
       fi
