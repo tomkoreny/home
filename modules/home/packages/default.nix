@@ -4,6 +4,29 @@
   pkgs,
   ...
 }:
+let
+  aiTools = inputs.nix-ai-tools.packages.${pkgs.stdenv.hostPlatform.system};
+
+  # hermes-agent 0.22.4 pins prompt-toolkit==3.0.52 and markdown==3.10.2.
+  # llm-agents.nix builds it against its own nixpkgs (f20cd90), which still
+  # carries those versions; this flake makes it follow nixos-unstable 02c087f,
+  # which has 3.0.53 and 3.10.3, so pythonRuntimeDepsCheck failed and took
+  # every nixos-upgrade down with it (2026-10-23). Scoped to 0.22.4, so the
+  # next hermes bump drops the override.
+  hermes-desktop =
+    if aiTools.hermes-agent.version == "0.22.4" then
+      aiTools.hermes-desktop.override {
+        hermes-agent = aiTools.hermes-agent.overridePythonAttrs (old: {
+          # Spelled as in hermes' pyproject: the hook does not fold `_` to `-`.
+          pythonRelaxDeps = old.pythonRelaxDeps ++ [
+            "markdown"
+            "prompt_toolkit"
+          ];
+        });
+      }
+    else
+      aiTools.hermes-desktop;
+in
 {
   programs.omp = {
     enable = true;
@@ -73,7 +96,7 @@
   ]
   ++ lib.optionals (!pkgs.stdenv.hostPlatform.isDarwin) [
     # Native desktop shell for Hermes Agent on the Linux workstation.
-    inputs.nix-ai-tools.packages.${pkgs.stdenv.hostPlatform.system}.hermes-desktop
+    hermes-desktop
     pkgs.kicad
     pkgs.zed-editor
   ];

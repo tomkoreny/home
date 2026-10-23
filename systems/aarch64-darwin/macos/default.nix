@@ -59,6 +59,8 @@ in
   };
   # Local I2P proxies and a stable, sops-backed Yggdrasil identity.
   tomkoreny.darwin.privacy-networks.enable = true;
+  # Weekly: drop Nix generations older than 14 days, then collect garbage.
+  tomkoreny.darwin.nix-gc.enable = true;
   # Avoid collisions with pre-existing manual backups like ~/.ssh/config.bak.
   home-manager.backupFileExtension = "hm-bak";
 
@@ -175,9 +177,12 @@ in
 
   # The platform the configuration will be used on.
   nixpkgs.hostPlatform = "aarch64-darwin";
-  # aarch64-darwin's pnpm dependency hash for typescript-language-server; see
-  # overlays/typescript-language-server.nix.
-  nixpkgs.overlays = [ (import ../../../overlays/typescript-language-server.nix) ];
+  # aarch64-darwin's pnpm dependency hash for typescript-language-server and
+  # the diff-cover test skip; see overlays/.
+  nixpkgs.overlays = [
+    (import ../../../overlays/typescript-language-server.nix)
+    (import ../../../overlays/diff-cover.nix)
+  ];
 
   # Reverse the mouse wheel but not the trackpad: macOS has a single
   # `com.apple.swipescrolldirection` for both, so per-device inversion needs an

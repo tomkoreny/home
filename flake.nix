@@ -226,6 +226,7 @@
           config.allowUnfree = true;
           overlays = [
             (import ./overlays/typescript-language-server.nix)
+            (import ./overlays/diff-cover.nix)
           ];
         };
 
