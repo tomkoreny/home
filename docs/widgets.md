@@ -486,9 +486,11 @@ Timer expiry, newly assigned work issues, and the first failure of an
 auto-upgrade streak use macOS notifications through `osascript`. The upgrade
 item reads `~/.local/state/auto-upgrade/status.json`, which the
 `org.nixos.auto-upgrade` agent (`modules/darwin/auto-upgrade`) writes after
-every finished run in the same shape as the NixOS recorder; runs it skips
-because the checkout has local changes are not recorded, so a checkout left
-dirty shows up as `no upgrade` after a day. The agent is scheduled at minutes
+every finished run in the same shape as the NixOS recorder. Runs it skips are
+not recorded: a checkout with local changes, or no route to GitHub after about
+two minutes of retrying, which is what a wake from sleep looks like before the
+network is back. A checkout left dirty or a Mac kept offline therefore shows
+up as `no upgrade` after a day. The agent is scheduled at minutes
 0 and 30 of each hour with `StartCalendarInterval`. On this macOS 27 host,
 `StartInterval` agents stayed at `pended nondemand spawn = interval` without
 running; a side-by-side calendar-scheduled probe ran three times. The agent

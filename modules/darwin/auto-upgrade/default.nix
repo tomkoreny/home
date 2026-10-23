@@ -30,13 +30,15 @@ let
   # Each finished run's outcome lands in statusFile in the same shape as the
   # NixOS recorder (systems/x86_64-linux/nixos), and SketchyBar shows a warning
   # when the last run failed or none has finished for a day. Skipped runs
-  # (lock held, dirty checkout) are not recorded, so a checkout left dirty
-  # surfaces through that staleness check instead of flashing as a failure.
+  # (dirty checkout, no network) are not recorded, so a checkout left dirty or
+  # a Mac kept offline surfaces through that staleness check instead of
+  # flashing as a failure.
   upgradeScript = pkgs.writeShellScriptBin "darwin-auto-upgrade" ''
     set -euo pipefail
     export PATH="${
       lib.makeBinPath [
         pkgs.git
+        pkgs.curl
         pkgs.nodejs
         pkgs.gnutar
         pkgs.coreutils
@@ -66,6 +68,28 @@ let
       echo "auto-upgrade: $REPO_PATH has local changes; skipping" >&2
       exit 1
     fi
+
+    # launchd fires the slots missed while asleep on the next wake, including
+    # the few seconds of a dark wake, before the network is back, and git then
+    # failed with "Could not resolve host: github.com" (six runs on
+    # 2026-10-23). Wait up to about two minutes for GitHub, then skip without
+    # recording a failure. Only "cannot resolve", "cannot connect" and timeout
+    # (curl exits 6, 7, 28) count as offline; any other error goes on to the
+    # real pull so it is reported.
+    for attempt in $(seq 1 12); do
+      net=0
+      curl --silent --head --output /dev/null --connect-timeout 5 --max-time 10 \
+        https://github.com || net=$?
+      case "$net" in
+        6 | 7 | 28) ;;
+        *) break ;;
+      esac
+      if [ "$attempt" -eq 12 ]; then
+        echo "auto-upgrade: github.com unreachable (curl exit $net); skipping" >&2
+        exit 0
+      fi
+      sleep 10
+    done
 
     record_status() {
       local state=${lib.escapeShellArg statusFile} status=$1 now last_success error="" result=success
