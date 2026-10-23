@@ -339,10 +339,10 @@ in
         greedy = true;
       }
       "loom"
-      {
-        name = "microsoft-teams";
-        greedy = true;
-      }
+      # Not greedy: the cask is flagged auto_updates, and upgrading it through
+      # brew uninstalls Teams' system packages with sudo, which the unattended
+      # auto-upgrade agent cannot do. Teams' own updater daemon keeps it current.
+      "microsoft-teams"
       "notion"
       "signal"
 
