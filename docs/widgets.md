@@ -491,7 +491,10 @@ because the checkout has local changes are not recorded, so a checkout left
 dirty shows up as `no upgrade` after a day. The agent is scheduled at minutes
 0 and 30 of each hour with `StartCalendarInterval`. On this macOS 27 host,
 `StartInterval` agents stayed at `pended nondemand spawn = interval` without
-running; a side-by-side calendar-scheduled probe ran three times.
+running; a side-by-side calendar-scheduled probe ran three times. The agent
+starts the script as `/nix/var/nix/profiles/system/sw/bin/darwin-auto-upgrade`
+rather than by store path, so its plist does not change when the script does
+and a switch it runs no longer reloads, and kills, the agent mid-activation.
 Not ported: the task manager and editing views, work status transitions, and
 the launcher.
 

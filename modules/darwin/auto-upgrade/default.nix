@@ -12,6 +12,14 @@ let
   # darwin-rebuild via the persistent system profile: /run/current-system is
   # volatile on macOS. Must match the sudoers rule below.
   darwinRebuild = "/nix/var/nix/profiles/system/sw/bin/darwin-rebuild";
+  # The agent starts the script through the same persistent profile instead of
+  # its store path. nix-darwin reloads a user agent whenever its plist changes,
+  # and the script's store path changed with every nixpkgs bump, so the switch
+  # this agent ran unloaded the agent itself: launchd killed the activation
+  # mid-way, the agent stayed unloaded, and the run was never recorded
+  # (2026-10-23). With a fixed path the plist only changes when serviceConfig
+  # does.
+  upgradeCommand = "/nix/var/nix/profiles/system/sw/bin/darwin-auto-upgrade";
 
   # Pull the configuration CI has already validated, then activate it. Flake
   # inputs are bumped by .github/workflows/update-flake.yml, never here: this
@@ -24,7 +32,7 @@ let
   # when the last run failed or none has finished for a day. Skipped runs
   # (lock held, dirty checkout) are not recorded, so a checkout left dirty
   # surfaces through that staleness check instead of flashing as a failure.
-  upgradeScript = pkgs.writeShellScript "darwin-auto-upgrade" ''
+  upgradeScript = pkgs.writeShellScriptBin "darwin-auto-upgrade" ''
     set -euo pipefail
     export PATH="${
       lib.makeBinPath [
@@ -114,8 +122,10 @@ in
       ${common.user.name} ALL=(ALL) NOPASSWD: ${darwinRebuild}
     '';
 
+    environment.systemPackages = [ upgradeScript ];
+
     launchd.user.agents.auto-upgrade = {
-      command = "${upgradeScript}";
+      command = upgradeCommand;
       serviceConfig = {
         # Every 30 minutes, on the hour and half hour. Not StartInterval: on
         # macOS 27 launchd parks StartInterval agents at "pended nondemand
