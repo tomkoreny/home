@@ -429,6 +429,11 @@ in
     ];
   };
 
+  # The account itself is created by modules/nixos/multiseat.
+  users.users.${config.tomkoreny.nixos.multiseat.user}.openssh.authorizedKeys.keys = [
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKmAUQKfH5oXfgIV1NdTtuv3ECMTruvS0x/8qxaksION terka@Terezas-MBP"
+  ];
+
   # Maaaybe make this home manager somehow someday
   # maybe make some proper config, inspire from lazyvim
 
