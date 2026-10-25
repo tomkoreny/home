@@ -6,7 +6,7 @@ The root `flake.nix` is hand-wired (no Snowfall Lib, no flake-parts — it calls
 ## Build, Test, and Development Commands
 - `nix flake show` – confirm the flake evaluates and exposes the expected outputs.
 - `nix flake check` – run before every push to catch evaluation or formatting regressions.
-- `sudo -n /run/current-system/sw/bin/nixos-rebuild switch --flake .#nixos` – deploys the Linux host, including every `modules/home` profile (Home Manager runs as a NixOS module here; there is no standalone `home-manager` binary). `nixos-rebuild` is allowlisted for passwordless sudo in `systems/x86_64-linux/nixos/default.nix`, so agents can run this themselves; `-n` fails fast instead of prompting if the rule is missing. Add `--show-trace` when diagnosing eval errors.
+- `sudo -n /run/current-system/sw/bin/nixos-rebuild switch --flake .#nixos` – deploys the Linux host, including every `modules/home` profile (Home Manager runs as a NixOS module here; there is no standalone `home-manager` binary). `nixos-rebuild` is allowlisted for passwordless sudo in `systems/x86_64-linux/nixos/default.nix`, so agents can run this themselves; `-n` fails fast instead of prompting if the rule is missing. Add `--show-trace` when diagnosing eval errors. Run `git pull --ff-only` first: the hourly `system.autoUpgrade` deploys `github:tomkoreny/home#nixos`, so switching from a checkout behind `origin/main` rolls the host back.
 - `darwin-rebuild switch --flake .#macos` – applies the macOS configuration defined in `systems/aarch64-darwin/macos`; this one still prompts for sudo.
 
 ## Coding Style & Naming Conventions
