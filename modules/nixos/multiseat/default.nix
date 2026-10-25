@@ -142,8 +142,9 @@ in
     users.users.${cfg.user} = {
       isNormalUser = true;
       description = "Terka";
-      # No wheel and no docker (rootful Docker is root-equivalent): plain
-      # desktop user. render+video are belt-and-braces for PRIME offload.
+      # The module itself grants no admin groups (no wheel, and no docker,
+      # which is root-equivalent); hosts opt in. render+video are
+      # belt-and-braces for PRIME offload.
       extraGroups = [
         "networkmanager"
         "video"
