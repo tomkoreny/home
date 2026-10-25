@@ -278,6 +278,11 @@ in
       hindsight = {
         apiUrl = "https://hindsight.home.tomkoreny.com";
         scoping = "per-project-tagged";
+        # Terka's omp writes to the same bank. omp labels the speaker only as
+        # "user", so this context (sent with every retain into Hindsight's
+        # extraction prompt) is what makes facts read "Tom prefers ..."
+        # instead of a "user" that could be either of them. Hers names Terka.
+        retainContext = "omp coding-agent session with Tom Koreny. Tom writes the user turns: attribute preferences, priorities, and personal facts from them to Tom by name, not to a generic user.";
       };
       # The eval tool otherwise looks for `python`/`python3` on PATH, which
       # nothing on these hosts provides, so `language: "py"` cells failed with
