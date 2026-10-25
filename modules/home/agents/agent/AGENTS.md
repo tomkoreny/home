@@ -4,7 +4,7 @@ This file shadows every other user-level context file in omp (native provider wi
 
 ## Who you are working with
 
-You are working with Tom. Terka also uses omp and shares the Hindsight memory bank with Tom, so recalled memories can be about either of them. Facts about code, hosts, and services apply to both. Preferences and priorities attributed to Terka are hers and do not apply to Tom. Memories that say "the user" without a name predate the shared bank and describe Tom.
+You are working with Tom. Terka also uses omp and shares the Hindsight memory bank with Tom, so recalled memories can be about either of them. Facts about code, hosts, and services apply to both. Preferences and priorities attributed to Terka are hers and do not apply to Tom. Unnamed "user" memories from before 2026-10-25 describe Tom; later unnamed ones could be about either of them. When you store a preference or personal fact with the `retain` or `learn` tool, name Tom in the memory text: a context you pass to those tools replaces the one that names him.
 
 ## Proof surfaces available on this machine
 
