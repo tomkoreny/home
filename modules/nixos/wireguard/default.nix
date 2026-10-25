@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 # Always-on, split-tunnel WireGuard link to the internal network.
@@ -61,12 +62,21 @@ in
       ];
     };
 
-    # The generated unit is a oneshot with no restart policy, so a tunnel that
-    # fails to come up (uplink not ready yet, DNS hiccup) would stay down until
-    # someone noticed. "Permanently on" means retrying.
-    systemd.services."wg-quick-${wg.interface}".serviceConfig = {
-      Restart = "on-failure";
-      RestartSec = "10s";
+    systemd.services."wg-quick-${wg.interface}" = {
+      # `wg-quick down` can fail and leave the interface behind: on 2026-10-25
+      # it judged wg0 "not a WireGuard interface" mid-switch and exited. Every
+      # later `wg-quick up` then died with "already exists", so each
+      # nixos-upgrade switch reported the unit as failed. The unit is never
+      # running when it starts, so an existing interface is such a leftover.
+      preStart = "${lib.getExe' pkgs.iproute2 "ip"} link delete ${wg.interface} 2>/dev/null || true";
+
+      # The generated unit is a oneshot with no restart policy, so a tunnel that
+      # fails to come up (uplink not ready yet, DNS hiccup) would stay down until
+      # someone noticed. "Permanently on" means retrying.
+      serviceConfig = {
+        Restart = "on-failure";
+        RestartSec = "10s";
+      };
     };
   };
 }
