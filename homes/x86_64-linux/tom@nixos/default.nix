@@ -69,10 +69,11 @@ let
       python.pystray
       python.pypresence
     ];
-    # 3.3.0 requires certifi>=2026.10.19 to ship a fresh CA bundle. Nixpkgs'
-    # certifi links the cacert bundle instead of its own, so its version says
-    # nothing about CA freshness and must not block the build.
-    pythonRelaxDeps = [ "certifi" ];
+    # 3.3.0 requires certifi>=2026.10.19, the release that drops the
+    # compromised eMudhra "emSign ECC Root CA - G3" root. Nixpkgs' certifi
+    # ships the nixpkgs cacert bundle instead of its own, and nss-cacert
+    # 3.131.1 already omits that root, so relax the floor only from there.
+    pythonRelaxDeps = lib.optional (lib.versionAtLeast pkgs.cacert.version "3.131.1") "certifi";
     postPatch = ''
       # Release archives generate this directory before packaging; the Git tag
       # intentionally omits it, so supply the pinned upstream shader pack.
