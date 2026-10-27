@@ -17,6 +17,16 @@ let
   # Main rather than v0.8.1: call notifications, the oFono call controller and
   # call history landed after that release.
   rev = "027392765e6fcc31811128add4f3d03c96c286ad";
+
+  pythonDependencies = with python3Packages; [
+    cryptography
+    dbus-python
+    phonenumbers
+    pygobject3
+    regex
+    textual
+    typer
+  ];
 in
 python3Packages.buildPythonApplication {
   pname = "blueferry";
@@ -72,15 +82,7 @@ python3Packages.buildPythonApplication {
     wheel
   ];
 
-  dependencies = with python3Packages; [
-    cryptography
-    dbus-python
-    phonenumbers
-    pygobject3
-    regex
-    textual
-    typer
-  ];
+  dependencies = pythonDependencies;
 
   nativeBuildInputs = [
     gobject-introspection
@@ -125,6 +127,9 @@ python3Packages.buildPythonApplication {
   '';
 
   dontWrapGApps = true;
+  # The clients start helpers (pairing, activation, notification clicks) as
+  # `sys.executable -m blueferry ...`. Nix adds the package to sys.path only
+  # inside the wrapped script, so those children get it from PYTHONPATH.
   preFixup = ''
     makeWrapperArgs+=(
       "''${gappsWrapperArgs[@]}"
@@ -134,6 +139,7 @@ python3Packages.buildPythonApplication {
           wl-clipboard
         ]
       }
+      --prefix PYTHONPATH : "$out/${python3Packages.python.sitePackages}:${python3Packages.makePythonPath pythonDependencies}"
     )
   '';
 
