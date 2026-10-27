@@ -1,4 +1,5 @@
 {
+  config,
   inputs,
   lib,
   pkgs,
@@ -147,6 +148,36 @@ in
     run ${pkgs.python3}/bin/python3 ${./herdr-theme.py} \
       "''${XDG_CONFIG_HOME:-$HOME/.config}/herdr/config.toml"
   '';
+
+  # Idle OMP sessions pile up in Herdr tabs, and each one keeps a few hundred
+  # MB of RAM and swap for as long as its tab stays open. Once a day OMP
+  # triages every session that has been idle for 24 hours: finished ones
+  # close, and unfinished ones restart in the same pane from a handoff brief.
+  # Numeric default tab labels get names. The script's docstring has the
+  # details; actions are logged to ~/.omp/agent/tab-janitor/log.jsonl, and
+  # `systemctl --user start omp-tab-janitor` runs it on demand.
+  systemd.user = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
+    services.omp-tab-janitor = {
+      Unit.Description = "Close finished and restart stale OMP sessions in Herdr";
+      Service = {
+        Type = "oneshot";
+        ExecStart = "${pkgs.python3}/bin/python3 ${./omp-tab-janitor.py}";
+        # The script shells out to herdr and omp; a user unit does not inherit
+        # the login shell PATH.
+        Environment = [ "PATH=${config.home.profileDirectory}/bin:/run/current-system/sw/bin" ];
+        Nice = 10;
+        TimeoutStartSec = "2h";
+      };
+    };
+    timers.omp-tab-janitor = {
+      Unit.Description = "Daily OMP session cleanup in Herdr";
+      Timer = {
+        OnCalendar = "*-*-* 04:30";
+        Persistent = true;
+      };
+      Install.WantedBy = [ "timers.target" ];
+    };
+  };
 
   programs.tmux = {
     enable = true;
