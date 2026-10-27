@@ -69,7 +69,7 @@
     # Ruby required `HOMEBREW_ORIGINAL_BREW_FILE`, which the 7.0.4 wrapper no
     # longer exports, so `brew bundle` died during activation).
     brew-src = {
-      url = "github:Homebrew/brew/7.0.10";
+      url = "github:Homebrew/brew/7.0.11";
       flake = false;
     };
     nix-homebrew = {
@@ -117,7 +117,7 @@
     # Browser-enabled Jellyfin MPV Shim pre-release and the dependency versions
     # it requires. Nixpkgs still packages the older cast-only 2.10.0 release.
     jellyfin-mpv-shim-src = {
-      url = "github:jellyfin/jellyfin-mpv-shim/v3.2.0";
+      url = "github:jellyfin/jellyfin-mpv-shim/v3.3.0";
       flake = false;
     };
     jellyfin-apiclient-python-src = {

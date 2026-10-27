@@ -159,16 +159,16 @@
     "brew-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1792393606,
-        "narHash": "sha256-7NCtaaeR/OPjJ5BQAHeJN0vhMmVB/tFSinCX5YDXjYA=",
+        "lastModified": 1793000687,
+        "narHash": "sha256-8mCor0DDjNhi+0e+FllfqiMABujBl+/RxYW+wgMpcto=",
         "owner": "Homebrew",
         "repo": "brew",
-        "rev": "8f10429b56be28a25032b87463fffc95e556b5bc",
+        "rev": "c6069d2a943b71b0a90d91fc1ac93cb9c1634dcc",
         "type": "github"
       },
       "original": {
         "owner": "Homebrew",
-        "ref": "7.0.10",
+        "ref": "7.0.11",
         "repo": "brew",
         "type": "github"
       }
@@ -658,11 +658,11 @@
     "homebrew-cask": {
       "flake": false,
       "locked": {
-        "lastModified": 1793077439,
-        "narHash": "sha256-QZhkhnAZp5umY/9S+zTaytZKoUG0WyFIu06bMU3w5W0=",
+        "lastModified": 1793085022,
+        "narHash": "sha256-SkBnHqoqoPfh8ZG7lohCPCKH9OOCCxMeh7SwQ1Rh7I8=",
         "owner": "homebrew",
         "repo": "homebrew-cask",
-        "rev": "887743b0e08d5b049bb523f7e1e9acfefcbe64db",
+        "rev": "76c42bf73d8adb00e78d29cd9134d0d51320f4b1",
         "type": "github"
       },
       "original": {
@@ -674,11 +674,11 @@
     "homebrew-core": {
       "flake": false,
       "locked": {
-        "lastModified": 1793081756,
-        "narHash": "sha256-wkiv1IUX/9rQ2mj+3e8mgw02jKo03oq8i7QSIoQVngs=",
+        "lastModified": 1793085318,
+        "narHash": "sha256-QmaqcMxOVvsuX0fvlC1XwhRoA9OTeV2Cq/ja0S80jFU=",
         "owner": "homebrew",
         "repo": "homebrew-core",
-        "rev": "150f3856644de5404f8d141737d806dd8ed639e3",
+        "rev": "3d2e275f529784e208b0f1d6739d8de1666bf96c",
         "type": "github"
       },
       "original": {
@@ -1040,16 +1040,16 @@
     "jellyfin-mpv-shim-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1792261284,
-        "narHash": "sha256-WXousNzOXsKhx5Lku8elQq3CeQN9xSSVawkS53XhPfY=",
+        "lastModified": 1792707407,
+        "narHash": "sha256-U69wmxdui9FAhcknCpSEGE/y/9d3zxTHSu9SZrnby0s=",
         "owner": "jellyfin",
         "repo": "jellyfin-mpv-shim",
-        "rev": "9fa9c9e1f0bd5a2f9f3af81d8a22a8b2222798ae",
+        "rev": "daca187a9846192fa53d4c95f8eb5bb19aa9332b",
         "type": "github"
       },
       "original": {
         "owner": "jellyfin",
-        "ref": "v3.2.0",
+        "ref": "v3.3.0",
         "repo": "jellyfin-mpv-shim",
         "type": "github"
       }
