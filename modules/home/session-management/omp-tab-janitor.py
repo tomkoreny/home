@@ -5,11 +5,14 @@ every Herdr pane where OMP is the foreground process, idle, not focused, and
 without a user or assistant message for --min-age-hours, OMP in print mode
 reads a digest of the session and decides whether it is done:
 
-- done: OMP exits (Ctrl+D) and the tab closes, or only the pane when the tab
-  holds other panes.
+- done: OMP exits (Ctrl+D) and its pane closes; Herdr drops the tab with
+  its last pane, and any other pane in the tab is left alone.
 - open: a handoff brief is written to ~/.omp/agent/tab-janitor/handoffs/,
   OMP exits, a fresh OMP starts in the same pane with the brief attached and
   replies with the open items, and the tab is renamed.
+
+Renames only happen while the tab still holds that one pane under the label
+the run started with, so a tab split or renamed mid-run keeps its name.
 
 A session started from a handoff and never used again is skipped, so briefs
 are not re-summarised every day. Tabs still carrying Herdr's numeric default
@@ -289,6 +292,18 @@ def still_idle(pane, session):
     return None
 
 
+def rename_if_unchanged(tab_id, label, name):
+    """Rename a tab only if it still holds one pane and the label the run saw; report whether it did."""
+    try:
+        tab = herdr("tab", "get", tab_id)["tab"]
+    except RuntimeError:
+        return False
+    if tab["pane_count"] != 1 or tab["label"] != label or not name or name == label:
+        return False
+    herdr("tab", "rename", tab_id, name)
+    return True
+
+
 def wait_for_reply(pane_id, old_path, timeout=600):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -343,19 +358,16 @@ def retire(pane, session, args):
             record(**base, action="skipped", reason="OMP did not exit on Ctrl+D; its editor may hold a draft")
             return
         if action == "close":
-            if pane["tab_panes"] == 1:
-                herdr("tab", "close", pane["tab"])
-            else:
-                herdr("pane", "close", pane["pane"])
+            # Close only this pane, never the tab: a split added during triage must survive.
+            herdr("pane", "close", pane["pane"])
             record(**base, action="closed")
             return
         command = f"omp @{shlex.quote(str(handoff))} {shlex.quote(START_MESSAGE)}"
         herdr("pane", "run", pane["pane"], command)
         new_session = wait_for_reply(pane["pane"], session.path)
-        if pane["tab_panes"] == 1 and verdict["tab_name"] and verdict["tab_name"] != pane["label"]:
-            herdr("tab", "rename", pane["tab"], verdict["tab_name"])
+        renamed = rename_if_unchanged(pane["tab"], pane["label"], verdict["tab_name"])
         record(**base, action="restarted" if new_session else "restarted, no reply yet",
-               handoff=str(handoff), new_session=new_session)
+               handoff=str(handoff), new_session=new_session, renamed=renamed)
     except (OSError, subprocess.SubprocessError, RuntimeError, ValueError, KeyError) as error:
         record(**base, action="error", reason=str(error))
 
@@ -373,11 +385,14 @@ def name_default_tabs(args, only):
         session = Session(pane["session"])
         first = next((m["text"] for m in session.messages if m["role"] == "user" and m["text"].strip()), "")
         if session.title or first:
-            unnamed.append({"tab": pane["tab"], "title": session.title, "first_message": trim(first, 600)})
+            unnamed.append({"tab": pane["tab"], "label": pane["label"], "title": session.title,
+                            "first_message": trim(first, 600)})
     if not unnamed:
         return
     try:
-        names = omp_json(NAMING_PROMPT, json.dumps(unnamed, ensure_ascii=False, indent=1),
+        names = omp_json(NAMING_PROMPT,
+                         json.dumps([{k: t[k] for k in ("tab", "title", "first_message")} for t in unnamed],
+                                    ensure_ascii=False, indent=1),
                          "Name the attached tabs.", args.model)
     except (OSError, subprocess.SubprocessError, RuntimeError, ValueError) as error:
         record(action="error", reason=f"tab naming failed: {error}")
@@ -390,8 +405,11 @@ def name_default_tabs(args, only):
             record(tab=tab["tab"], title=tab["title"], action="would rename", new_label=name)
             continue
         try:
-            herdr("tab", "rename", tab["tab"], name)
-            record(tab=tab["tab"], title=tab["title"], action="renamed", new_label=name)
+            if rename_if_unchanged(tab["tab"], tab["label"], name):
+                record(tab=tab["tab"], title=tab["title"], action="renamed", new_label=name)
+            else:
+                record(tab=tab["tab"], title=tab["title"], action="skipped", new_label=name,
+                       reason="the tab was split, renamed or closed during naming")
         except (OSError, subprocess.SubprocessError, RuntimeError, ValueError) as error:
             record(tab=tab["tab"], action="error", reason=f"rename failed: {error}")
 
