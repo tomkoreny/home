@@ -105,7 +105,6 @@ in
       # notice; panics and oopses still raise the level before printing. With
       # nothing printed, fbcon also defers its takeover and never draws text.
       consoleLogLevel = 0;
-      initrd.verbose = false;
 
       kernelParams = [
         "quiet"
