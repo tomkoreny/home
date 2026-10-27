@@ -1,4 +1,4 @@
-"""Retire idle OMP sessions in Herdr tabs so open sessions stop piling up.
+"""Close finished OMP sessions in Herdr tabs and park unfinished ones.
 
 Run daily by the omp-tab-janitor systemd user timer (see default.nix). For
 every Herdr pane where OMP is the foreground process, idle, not focused, and
@@ -7,18 +7,15 @@ reads a digest of the session and decides whether it is done:
 
 - done: OMP exits (Ctrl+D) and its pane closes; Herdr drops the tab with
   its last pane, and any other pane in the tab is left alone.
-- open: a handoff brief is written to ~/.omp/agent/tab-janitor/handoffs/,
-  OMP exits, a fresh OMP starts in the same pane with the brief attached and
-  replies with the open items, and the tab is renamed.
+- open: OMP exits and the pane runs `omp-resume-prompt`, which shows the
+  session title, when it was last active and what is still open, and
+  resumes that same session on Enter. A parked pane holds a shell, not OMP,
+  so the next run skips it.
 
 Renames only happen while the tab still holds that one pane under the label
 the run started with, so a tab split or renamed mid-run keeps its name.
-
-A session started from a handoff and never used again is skipped, so briefs
-are not re-summarised every day. Tabs still carrying Herdr's numeric default
-label are named from their session titles. Every action is appended to
-~/.omp/agent/tab-janitor/log.jsonl; old sessions stay on disk and resume with
-`omp --resume <session file>`.
+Tabs still carrying Herdr's numeric default label are named from their
+session titles. Every action is appended to ~/.omp/agent/tab-janitor/log.jsonl.
 """
 
 import argparse
@@ -36,12 +33,10 @@ import time
 from pathlib import Path
 
 STATE = Path.home() / ".omp/agent/tab-janitor"
-MARKER = "<!-- omp-tab-janitor handoff v1 -->"
-START_MESSAGE = "Read the attached handoff from my previous session and follow its last line."
 DEFAULT_LABEL = re.compile(r"\d+")
 READY = {"idle", "done"}
 
-TRIAGE_PROMPT = """You triage idle coding-agent (omp) sessions for Tom, who wants to close finished terminal tabs and restart stale unfinished ones with a handoff summary.
+TRIAGE_PROMPT = """You triage idle coding-agent (omp) sessions for Tom, who closes finished terminal tabs and parks unfinished ones behind a prompt that resumes the session on Enter.
 
 You get a digest of one session: metadata plus the active branch of the transcript (tool calls collapsed, long texts trimmed).
 
@@ -49,13 +44,11 @@ Decide `status`:
 - "done": every request the user made was completed or answered, and nothing remains that needs Tom or the agent to act. An optional closing offer ("if you want, I can also…") does not make it open. A session whose question was answered informationally is done.
 - "open": anything still pending: unfinished or interrupted work, the agent's last message waits on a decision/confirmation/info from Tom that the task needs, explicit remaining next steps, something to verify or monitor later, a deploy/commit not yet done, or a blocker. When genuinely unsure, choose "open".
 
-`reason`: one plain sentence explaining the verdict, naming the concrete pending item if open.
+`reason`: one plain sentence explaining the verdict. For an open session it is shown on the resume prompt, so lead with the concrete pending item.
 
 `tab_name`: a short lowercase label for the terminal tab, 1-3 words, max 20 characters, plain ASCII without diacritics (e.g. "uredni deska", "unifi radius", "dph podklady"). If the current tab label already describes the topic well and is not just a number, return it unchanged.
 
-`summary`: only for "open" sessions (empty string for "done"). A handoff brief for a fresh agent that will continue in the same working directory without the old transcript. Write it in the language Tom used in the session. Use these markdown sections: Goal, Done so far, Current state, Open items (concrete next steps or the pending question for Tom), Key references (file paths, hosts, commands, IDs, URLs, branch names). Max ~350 words. Use only facts from the digest; never invent.
-
-Answer with exactly one JSON object with the keys status, reason, tab_name and summary, and nothing else."""
+Answer with exactly one JSON object with the keys status, reason and tab_name, and nothing else."""
 
 NAMING_PROMPT = """You name terminal tabs that each hold one coding-agent session.
 
@@ -136,21 +129,11 @@ class Session:
                 "time": entry.get("timestamp"),
                 "text": text,
                 "tools": tools,
-                "stop": message.get("stopReason"),
             })
 
     @property
     def last_activity(self):
         return parse_time(self.messages[-1]["time"]) if self.messages else None
-
-    @property
-    def untouched_handoff(self):
-        users = [m for m in self.messages if m["role"] == "user" and m["text"].strip()]
-        return len(users) == 1 and MARKER in users[0]["text"]
-
-    @property
-    def replied(self):
-        return any(m["role"] == "assistant" and m["stop"] == "stop" and m["text"].strip() for m in self.messages)
 
 
 def trim(text, limit):
@@ -209,9 +192,8 @@ def triage(pane, session, model):
     verdict = omp_json(TRIAGE_PROMPT, digest(pane, session), "Triage the attached session digest.", model)
     if verdict.get("status") not in ("done", "open"):
         raise ValueError(f"unexpected status {verdict.get('status')!r}")
+    verdict["reason"] = " ".join(str(verdict.get("reason") or "").split())
     verdict["tab_name"] = str(verdict.get("tab_name") or "").strip()[:24]
-    if verdict["status"] == "open" and not str(verdict.get("summary") or "").strip():
-        raise ValueError("open verdict without a handoff summary")
     return verdict
 
 
@@ -304,34 +286,6 @@ def rename_if_unchanged(tab_id, label, name):
     return True
 
 
-def wait_for_reply(pane_id, old_path, timeout=600):
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        time.sleep(5)
-        current = herdr("pane", "get", pane_id)["pane"]
-        path = (current.get("agent_session") or {}).get("value")
-        if path and path != old_path and os.path.exists(path) and current.get("agent_status") in READY:
-            if Session(path).replied:
-                return path
-    return None
-
-
-def write_handoff(pane, session, verdict):
-    STATE.joinpath("handoffs").mkdir(parents=True, exist_ok=True)
-    path = STATE / "handoffs" / f"{Path(session.path).stem.rsplit('_', 1)[-1]}.md"
-    last = session.last_activity.strftime("%Y-%m-%d %H:%M UTC")
-    path.write_text(
-        f"{MARKER}\n# Handoff from a previous omp session\n\n"
-        f"This tab was restarted to free memory. The previous session is `{session.path}` "
-        f"(title \"{session.title}\", last active {last}). Read that file if a detail below is missing.\n\n"
-        f"{verdict['summary'].strip()}\n\n---\n"
-        "Do not start working yet. Reply with one or two sentences naming the open items, "
-        "then wait for Tom's instructions.\n",
-        encoding="utf-8",
-    )
-    return path
-
-
 def retire(pane, session, args):
     base = {"tab": pane["tab"], "pane": pane["pane"], "label": pane["label"], "workspace": pane["workspace"],
             "session": session.path, "title": session.title}
@@ -341,7 +295,7 @@ def retire(pane, session, args):
         record(**base, action="error", reason=f"triage failed: {error}")
         return
     base.update(verdict=verdict["status"], why=verdict["reason"], new_label=verdict["tab_name"])
-    action = "close" if verdict["status"] == "done" else "restart"
+    action = "close" if verdict["status"] == "done" else "park"
     if args.dry_run:
         record(**base, action=f"would {action}")
         return
@@ -353,7 +307,6 @@ def retire(pane, session, args):
         if problem:
             record(**base, action="skipped", reason=problem)
             return
-        handoff = write_handoff(pane, session, verdict) if action == "restart" else None
         if not exit_omp(pane["pane"], pid):
             record(**base, action="skipped", reason="OMP did not exit on Ctrl+D; its editor may hold a draft")
             return
@@ -362,12 +315,10 @@ def retire(pane, session, args):
             herdr("pane", "close", pane["pane"])
             record(**base, action="closed")
             return
-        command = f"omp @{shlex.quote(str(handoff))} {shlex.quote(START_MESSAGE)}"
-        herdr("pane", "run", pane["pane"], command)
-        new_session = wait_for_reply(pane["pane"], session.path)
+        note = shlex.quote(verdict["reason"])
+        herdr("pane", "run", pane["pane"], f"omp-resume-prompt --note {note} {shlex.quote(session.path)}")
         renamed = rename_if_unchanged(pane["tab"], pane["label"], verdict["tab_name"])
-        record(**base, action="restarted" if new_session else "restarted, no reply yet",
-               handoff=str(handoff), new_session=new_session, renamed=renamed)
+        record(**base, action="parked", renamed=renamed)
     except (OSError, subprocess.SubprocessError, RuntimeError, ValueError, KeyError) as error:
         record(**base, action="error", reason=str(error))
 
@@ -439,7 +390,7 @@ def main():
         if not os.path.exists(pane["session"]):
             continue
         session = Session(pane["session"])
-        if session.last_activity is None or session.last_activity > cutoff or session.untouched_handoff:
+        if session.last_activity is None or session.last_activity > cutoff:
             continue
         candidates.append((pane, session))
 

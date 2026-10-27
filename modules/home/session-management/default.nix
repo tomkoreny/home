@@ -108,6 +108,61 @@ let
       exec "''${window[@]}"
     '';
   };
+  # The omp-tab-janitor timer (below) parks an unfinished OMP session by exiting
+  # OMP and running this in its pane: the session title, when it was last
+  # active and what is still open, then Enter resumes that same session.
+  # Ctrl+C or Ctrl+D leaves a plain shell. A parked pane costs a shell, not
+  # an OMP process.
+  ompResumePrompt = pkgs.writeShellApplication {
+    name = "omp-resume-prompt";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.jq
+    ];
+    text = ''
+      note=""
+      if [[ "''${1:-}" == "--note" ]]; then
+        note=''${2:-}
+        shift 2
+      fi
+      session=''${1:?usage: omp-resume-prompt [--note TEXT] SESSION_FILE}
+      if [[ ! -f "$session" ]]; then
+        echo "omp-resume-prompt: $session does not exist" >&2
+        exit 1
+      fi
+
+      # One pass over the session file: the latest title and the timestamp of
+      # the last user or assistant message.
+      IFS=$'\t' read -r title last < <(jq -rRn '
+        reduce (inputs | fromjson?) as $e ({};
+          if ($e.type == "title" or $e.type == "title_change") and (($e.title // "") != "") then .title = $e.title
+          elif $e.type == "message" and (($e.message.role // "") | IN("user", "assistant")) then .last = $e.timestamp
+          else . end)
+        | [.title // "Untitled OMP session", .last // ""]
+        | @tsv' "$session")
+      when="an unknown time ago"
+      if [[ -n "$last" ]]; then
+        when=$(date -d "$last" '+%a %-d %b %H:%M')
+      fi
+      cols=80
+      if size=$(stty size 2>/dev/null); then
+        cols=''${size#* }
+      fi
+
+      printf '\e]2;⏸ %s\a\e[H\e[2J' "$title"
+      printf '\n  \e[1m%s\e[0m\n\n  Parked to free memory. Last active %s.\n' "$title" "$when"
+      if [[ -n "$note" ]]; then
+        printf '\n'
+        fold -s -w $((cols > 24 ? cols - 4 : 20)) <<<"$note" | while IFS= read -r line; do
+          printf '  %s\n' "$line"
+        done
+      fi
+      printf '\n  \e[2mEnter\e[0m resume this session   \e[2mCtrl+C\e[0m shell\n'
+      read -rs _ || exit 0
+      printf '\e[H\e[2J'
+      exec omp --resume "$session"
+    '';
+  };
 in
 {
   # Keep tmux and mux installed as a fallback while Herdr is being evaluated.
@@ -115,6 +170,7 @@ in
     herdrPackage
     mux
     herdrView
+    ompResumePrompt
   ];
 
   # OMP has no reliable screen fallback in Herdr; its lifecycle extension is
@@ -152,13 +208,13 @@ in
   # Idle OMP sessions pile up in Herdr tabs, and each one keeps a few hundred
   # MB of RAM and swap for as long as its tab stays open. Once a day OMP
   # triages every session that has been idle for 24 hours: finished ones
-  # close, and unfinished ones restart in the same pane from a handoff brief.
+  # close, and unfinished ones are parked behind `omp-resume-prompt` (above).
   # Numeric default tab labels get names. The script's docstring has the
   # details; actions are logged to ~/.omp/agent/tab-janitor/log.jsonl, and
   # `systemctl --user start omp-tab-janitor` runs it on demand.
   systemd.user = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
     services.omp-tab-janitor = {
-      Unit.Description = "Close finished and restart stale OMP sessions in Herdr";
+      Unit.Description = "Close finished and park stale OMP sessions in Herdr";
       Service = {
         Type = "oneshot";
         ExecStart = "${pkgs.python3}/bin/python3 ${./omp-tab-janitor.py}";
