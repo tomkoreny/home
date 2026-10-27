@@ -57,6 +57,9 @@ in
     # Extra TomAndTer GitHub Actions runner with the `homelab` label while this
     # desktop is on. The homelab cluster runner takes the jobs when it is off.
     gha-runner.enable = true;
+
+    # iPhone messages, app notifications and contacts over Bluetooth.
+    blueferry.enable = true;
   };
 
   # typescript-language-server's pnpm dependency hash differs per platform, and
