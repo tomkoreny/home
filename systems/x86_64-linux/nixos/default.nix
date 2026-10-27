@@ -372,7 +372,7 @@ in
     };
   };
 
-  # Passwordless sudo is limited to two allowlisted binaries. `systemctl` only
+  # Tom's passwordless sudo is limited to two allowlisted binaries. `systemctl` only
   # gets the service-lifecycle verbs below; enable, mask, edit, set-property
   # and the rest still prompt. `nixos-rebuild` lets coding agents deploy this
   # repo without a password prompt (see AGENTS.md). That rule is
@@ -404,6 +404,16 @@ in
           }
         ];
     }
+    # Terka gets unrestricted passwordless sudo on this host.
+    {
+      users = [ config.tomkoreny.nixos.multiseat.user ];
+      commands = [
+        {
+          command = "ALL";
+          options = [ "NOPASSWD" ];
+        }
+      ];
+    }
   ];
   security.rtkit.enable = true;
 
@@ -433,9 +443,13 @@ in
   };
 
   # The account itself is created by modules/nixos/multiseat. On this host she
-  # is also an admin (sudo with her own password) and logs in from her MacBook.
+  # is also an admin (passwordless sudo, see security.sudo.extraRules above,
+  # plus docker, which is root-equivalent) and logs in from her MacBook.
   users.users.${config.tomkoreny.nixos.multiseat.user} = {
-    extraGroups = [ "wheel" ];
+    extraGroups = [
+      "wheel"
+      "docker"
+    ];
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKmAUQKfH5oXfgIV1NdTtuv3ECMTruvS0x/8qxaksION terka@Terezas-MBP"
     ];
