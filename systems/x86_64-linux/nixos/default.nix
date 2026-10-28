@@ -47,6 +47,10 @@ in
     # Input (RemoteDesktop over libei) and AT-SPI for OMP's `computer` prelude.
     computer-use.enable = true;
 
+    # Hermes (Matrix) can list, prompt and answer the herdr/OMP agents here
+    # through an SSH forced command; see the module for what it may do.
+    hermes-herdr-gate.enable = true;
+
     # After a driver bump, keep new apps on the loaded module's GPU libraries
     # until reboot instead of falling back to CPU rendering.
     nvidia-driver-match.enable = true;
