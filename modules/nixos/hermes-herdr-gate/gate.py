@@ -6,8 +6,9 @@ handed to a shell), checked against an allowlist of herdr subcommands and
 executed directly. Every call is appended to a JSON-lines audit log.
 
 Allowed: reading state (list/get/read/wait), prompts and keystrokes to
-agents, creating workspaces/tabs/panes and starting agents.
-Not allowed: shells, `pane run`/`send-text`, closing anything, focus
+agents, creating workspaces/tabs/panes, starting agents, and closing single
+panes and tabs (Tom asks Hermes to close finished agents).
+Not allowed: shells, `pane run`/`send-text`, closing whole workspaces, focus
 changes on Tom's screen, server/session management, `--env`, and selecting
 another session or machine.
 """
@@ -22,9 +23,9 @@ HERDR = "@herdr@"
 
 ALLOWED = {
     "agent": {"list", "get", "read", "prompt", "send-keys", "wait", "start", "rename"},
-    "pane": {"list", "get", "read", "split", "wait-output", "send-keys"},
+    "pane": {"list", "get", "read", "split", "wait-output", "send-keys", "close"},
     "workspace": {"list", "get", "create"},
-    "tab": {"list", "get", "create"},
+    "tab": {"list", "get", "create", "close"},
     "api": {"snapshot"},
     "status": {"server"},
 }
