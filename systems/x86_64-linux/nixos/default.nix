@@ -561,8 +561,10 @@ in
       # accessible via `nvidia-settings`.
       nvidiaSettings = true;
 
-      # Optionally, you may need to select the appropriate driver version for your specific GPU.
-      package = config.boot.kernelPackages.nvidiaPackages.production;
+      # New-feature branch (615+), not production (595): 615.71.09 fixed
+      # VK_NV_low_latency2 (Reflex) not reducing latency on Wayland surfaces,
+      # which native-Wayland CS2 uses. Revert to `production` if it regresses.
+      package = config.boot.kernelPackages.nvidiaPackages.latest;
     };
   };
 
