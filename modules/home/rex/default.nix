@@ -1,11 +1,16 @@
-# Rex (superlogical.com/rex): tom's personal Rex server on NixOS, which the
-# Mac's Rex app opens as the remote host "nixos" over Yggdrasil.
+# Rex (superlogical.com/rex): tom's personal Rex server on NixOS. The Mac's
+# Rex app opens it as the remote host "nixos" over Yggdrasil; the iPhone app
+# reaches it over Tailscale.
 #
-# Rex can tell remote callers apart only through Tailscale, which these hosts
-# do not run, so the server accepts anonymous plain HTTP: whoever reaches the
-# listener gets a shell as tom. The listener binds only the NixOS Yggdrasil
-# address, and modules/nixos/rex lets only the Mac's Yggdrasil address through
-# the firewall to it.
+# The Yggdrasil listener can't tell callers apart, so it accepts anonymous
+# plain HTTP: whoever reaches it gets a shell as tom. It binds only the NixOS
+# Yggdrasil address, and modules/nixos/rex lets only the Mac's Yggdrasil
+# address through the firewall to it.
+#
+# The Tailscale listener is Rex's own tailnet node (no tailscaled on NixOS),
+# like the Mac server's toms-macbook-pro-rex. Tailscale identifies each
+# caller, and only the account that enrolled the node gets in. The tailnet is
+# shared with Terka, so leave allowTailnetMembers off.
 {
   config,
   lib,
@@ -30,6 +35,13 @@ in
           enable = true;
           extraListen = [ common.rex.endpoint ];
           allowAnonymous = true;
+          # https://nixos-rex.<tailnet>.ts.net. The node keeps its identity
+          # in Rex's state directory; the first start prints a sign-in link
+          # in `rex server status`. Renaming it means enrolling again.
+          tailscale = {
+            enable = true;
+            hostname = "nixos-rex";
+          };
         };
       })
       (lib.mkIf isDarwin {
