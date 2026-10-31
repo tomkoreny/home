@@ -84,9 +84,9 @@ rec {
     nixos = "204:f4f4:6226:ebeb:780b:1c4a:847e:4bbc";
   };
 
-  # Tom's Rex server on NixOS, which the Mac's Rex app opens as the host
-  # "nixos" (modules/home/rex, modules/nixos/rex). Plain HTTP is enough:
-  # Yggdrasil encrypts the traffic between the two addresses.
+  # Tom's Rex server on NixOS, which the Mac reaches at this endpoint
+  # (modules/home/rex, modules/nixos/rex). Plain HTTP is enough: Yggdrasil
+  # encrypts the traffic between the two addresses.
   rex = {
     port = 7297;
     endpoint = "http://[${yggdrasil.addresses.nixos}]:${toString rex.port}";

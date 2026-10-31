@@ -1,6 +1,5 @@
-# Rex (superlogical.com/rex): tom's personal Rex server on NixOS. The Mac's
-# Rex app opens it as the remote host "nixos" over Yggdrasil; the iPhone app
-# reaches it over Tailscale.
+# Rex (superlogical.com/rex): tom's personal Rex server on NixOS. The Mac
+# reaches it over Yggdrasil, the iPhone app over Tailscale.
 #
 # The Yggdrasil listener can't tell callers apart, so it accepts anonymous
 # plain HTTP: whoever reaches it gets a shell as tom. It binds only the NixOS
@@ -50,6 +49,10 @@ in
           # Rex Beta.app ships the CLI and runs the server; this only writes
           # ~/.config/rex/init.lua. Apply a change with `rex config reload`.
           package = null;
+          # The label is for the CLI (`rex -S nixos`). The app keeps its own
+          # host list in its preferences and does not read init.lua hosts,
+          # so it was added there by hand with "Add Remote Host…" and this
+          # endpoint.
           config = ''
             rex.host{ label = "nixos", endpoint = "${common.rex.endpoint}" }
           '';
