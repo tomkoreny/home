@@ -141,6 +141,13 @@
     # auto-updated daily and served from Numtide's binary cache.
     nix-ai-tools.url = "github:numtide/nix-ai-tools";
     nix-ai-tools.inputs.nixpkgs.follows = "nixpkgs";
+
+    # Rex's prebuilt release flake. The Mac's Rex Beta app updates from the
+    # preview channel, so NixOS runs the same build as the Mac.
+    rex = {
+      url = "https://pkgs.superlogical.com/rex/nix/preview.tar.gz";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -182,6 +189,7 @@
           inputs.omp.homeManagerModules.default
           inputs.stylix.homeModules.stylix
           inputs.sops-nix.homeManagerModules.sops
+          inputs.rex.homeManagerModules.default
           ({ lib, ... }: {
             # Reapplying Stylix's package overlays inside Home Manager is
             # incompatible with useGlobalPkgs and causes standalone HM recursion.

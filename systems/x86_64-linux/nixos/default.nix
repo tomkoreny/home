@@ -23,6 +23,10 @@ in
     # Local I2P proxies and a stable, sops-backed Yggdrasil identity.
     privacy-networks.enable = true;
 
+    # Tom's Rex server, reachable from the Mac's Rex app over Yggdrasil only
+    # (the server itself is in modules/home/rex).
+    rex.enable = true;
+
     # Always-on split-tunnel WireGuard link (10.71.71.3, internal routes only).
     wireguard.enable = true;
 

@@ -75,6 +75,23 @@ rec {
     homeGateway.yggdrasil.peer
   ];
 
+  # Each host's Yggdrasil address. Yggdrasil derives it from the node's key
+  # (secrets/yggdrasil/*-private.pem) and drops packets whose source address
+  # does not match the sending node's key, so a packet from one of these
+  # addresses came from that host. Read one with `sudo yggdrasilctl getself`.
+  yggdrasil.addresses = {
+    macos = "200:4c70:83f0:269e:e54c:525e:5ebf:39de";
+    nixos = "204:f4f4:6226:ebeb:780b:1c4a:847e:4bbc";
+  };
+
+  # Tom's Rex server on NixOS, which the Mac's Rex app opens as the host
+  # "nixos" (modules/home/rex, modules/nixos/rex). Plain HTTP is enough:
+  # Yggdrasil encrypts the traffic between the two addresses.
+  rex = {
+    port = 7297;
+    endpoint = "http://[${yggdrasil.addresses.nixos}]:${toString rex.port}";
+  };
+
   # Homelab IPv4 gateway (the ygg-gateway pod). It is a Yggdrasil node that
   # also runs a WireGuard server on its Yggdrasil address and masquerades the
   # tunnel's IPv4 out of the home uplink, so the Mac can borrow home IPv4 on
