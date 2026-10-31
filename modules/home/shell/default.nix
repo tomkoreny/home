@@ -79,6 +79,14 @@ in
       *) export PATH="$PNPM_HOME:$PATH" ;;
     esac
 
+    # Rex puts its `rex` CLI first on PATH when it opens a terminal, but
+    # nix-darwin and NixOS reset PATH to a fixed list in every interactive
+    # shell. Put it back in front so `rex` matches the running server. Rex's
+    # docs advise against home.sessionPath: outside Rex the variable is empty.
+    if [ -n "''${REX_BIN_DIR:-}" ]; then
+      export PATH="$REX_BIN_DIR:$PATH"
+    fi
+
     ${lib.optionalString isTom ''
       ksecret() {
         if [ -z "$1" ]; then
