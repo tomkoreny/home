@@ -15,12 +15,17 @@ Policies:
 
 Rolling downloads have no version: upstream replaces the file behind a fixed
 URL, which invalidates the pinned hash. They are re-hashed on every run and are
-never reverted, because the old content can no longer be downloaded.
-`--rolling` refreshes only those; revert-pin-bumps.sh uses it to re-apply them
-after restoring the files a failed bump touched.
+never reverted, because the old content can no longer be downloaded. The same
+goes for a pin whose upstream deletes old releases (moshi-hook's CDN 404s on
+versions a few releases back): reverting its bump once the pinned release is
+gone only trades the failure being retried for a download failure.
+`--after-revert` re-applies just those two; revert-pin-bumps.sh runs it after
+restoring the files a failed bump touched.
 
 Writes one line per bumped pin to the file named by $BUMP_SUMMARY, and one line
-per refreshed rolling download to $ROLLING_SUMMARY.
+per refreshed rolling download to $ROLLING_SUMMARY. With `--after-revert`, the
+pins it re-applies go to $ROLLING_SUMMARY too, as changes that are never
+reverted.
 """
 
 from __future__ import annotations
@@ -30,6 +35,7 @@ import os
 import re
 import subprocess
 import sys
+import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -265,12 +271,29 @@ def open_issue(title: str, body: str) -> None:
     subprocess.run(["gh", "issue", "create", "--title", title, "--body", body], check=True)
 
 
+def current_version(pin: Pin) -> str:
+    path, pattern = next(iter(pin.versions.items()))
+    match = re.search(pattern, (ROOT / path).read_text(), re.MULTILINE)
+    if not match:
+        raise RuntimeError(f"{path}: pattern {pattern!r} no longer matches")
+    return match.group(1)
+
+
+def downloadable(url: str) -> bool:
+    request = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "tomkoreny-home-ci"})
+    try:
+        urllib.request.urlopen(request, timeout=60).close()
+    except urllib.error.HTTPError as error:
+        # Only a definite "gone" counts; outages and rate limits are raised so
+        # a transient error never moves a pin the run just reverted.
+        if error.code in (404, 410):
+            return False
+        raise
+    return True
+
+
 def bump(pin: Pin) -> str | None:
-    first_path, first_pattern = next(iter(pin.versions.items()))
-    current_match = re.search(first_pattern, (ROOT / first_path).read_text(), re.MULTILINE)
-    if not current_match:
-        raise RuntimeError(f"{first_path}: pattern {first_pattern!r} no longer matches")
-    current = current_match.group(1)
+    current = current_version(pin)
     latest = pin.latest()
     if not re.match(r"\d", latest):
         raise RuntimeError(f"unexpected upstream version {latest!r}")
@@ -310,7 +333,16 @@ def refresh(download: Rolling) -> str | None:
     return f"{download.name} {current} -> {latest}"
 
 
-def check_all(items: list, check, summary_variable: str) -> None:
+def rebump_if_gone(pin: Pin) -> str | None:
+    """Re-apply a reverted bump whose old release upstream no longer serves."""
+    current = current_version(pin)
+    urls = [source.url.format(version=current) for sources in pin.sources.values() for source in sources]
+    if all(downloadable(url) for url in urls):
+        return None
+    return bump(pin)
+
+
+def check_all(items: list, check) -> list[str]:
     changed, failed = [], []
     for item in items:
         try:
@@ -326,20 +358,26 @@ def check_all(items: list, check, summary_variable: str) -> None:
         if result:
             print(result)
             changed.append(result)
-    summary = os.environ.get(summary_variable)
-    if summary:
-        Path(summary).write_text("".join(f"{line}\n" for line in changed))
     if failed:
         print(f"::warning::could not check: {', '.join(failed)}", file=sys.stderr)
+    return changed
+
+
+def write_summary(variable: str, lines: list[str]) -> None:
+    summary = os.environ.get(variable)
+    if summary:
+        Path(summary).write_text("".join(f"{line}\n" for line in lines))
 
 
 def main(args: list[str]) -> int:
-    if args not in ([], ["--rolling"]):
-        print("usage: bump-pins.py [--rolling]", file=sys.stderr)
+    if args not in ([], ["--after-revert"]):
+        print("usage: bump-pins.py [--after-revert]", file=sys.stderr)
         return 2
-    if not args:
-        check_all(PINS, bump, "BUMP_SUMMARY")
-    check_all(ROLLING, refresh, "ROLLING_SUMMARY")
+    if args:
+        write_summary("ROLLING_SUMMARY", check_all(ROLLING, refresh) + check_all(PINS, rebump_if_gone))
+    else:
+        write_summary("BUMP_SUMMARY", check_all(PINS, bump))
+        write_summary("ROLLING_SUMMARY", check_all(ROLLING, refresh))
     return 0
 
 
