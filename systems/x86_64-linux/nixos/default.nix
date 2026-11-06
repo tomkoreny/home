@@ -52,8 +52,16 @@ in
     computer-use.enable = true;
 
     # Hermes (Matrix) can list, prompt and answer the herdr/OMP agents here
-    # through an SSH forced command; see the module for what it may do.
-    hermes-herdr-gate.enable = true;
+    # through an SSH forced command; see the module for what it may do. So can
+    # the car's display, with its own key and only from the car's Yggdrasil address.
+    hermes-herdr-gate = {
+      enable = true;
+      car = {
+        enable = true;
+        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOqxMV1CqkFVoeon6q4ogrlwBsxnaFP+4d9DwDaQQRtB car-display@horse-rally";
+        fromAddresses = [ common.yggdrasil.addresses.car ];
+      };
+    };
 
     # After a driver bump, keep new apps on the loaded module's GPU libraries
     # until reboot instead of falling back to CPU rendering.

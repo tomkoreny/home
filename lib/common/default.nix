@@ -82,6 +82,8 @@ rec {
   yggdrasil.addresses = {
     macos = "200:4c70:83f0:269e:e54c:525e:5ebf:39de";
     nixos = "204:f4f4:6226:ebeb:780b:1c4a:847e:4bbc";
+    # The BMW's Raspberry Pi (car-display), its key in /etc/yggdrasil/yggdrasil.conf there.
+    car = "200:9618:50ee:9b86:54f5:c8a1:980d:271c";
   };
 
   # Tom's Rex server on NixOS, which the Mac reaches at this endpoint
