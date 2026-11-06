@@ -170,7 +170,7 @@ let
   # selected style.
   catppuccinStylusExport = pkgs.fetchurl {
     url = "https://github.com/catppuccin/userstyles/releases/download/all-userstyles-export/import.json";
-    hash = "sha256-jtfTzowufqP6Yp9NuP8mTpIS3PfCKxucipVaJeAbEr0=";
+    hash = "sha256-bBz1KeFpa6WdiC596uuXvtUwOycYFG061xTjyD3q2Jc=";
   };
   # Upstream migrated the standard library to a versioned path and left
   # lib/lib.less as a two-line shim that imports this file. The shim is a moving
