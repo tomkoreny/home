@@ -70,6 +70,7 @@ Scope {
         implicitWidth: 360
         implicitHeight: timerCard.implicitHeight
         color: "transparent"
+        grabFocus: true
         visible: root.shown && root.anchorItem !== null
 
         Rectangle {

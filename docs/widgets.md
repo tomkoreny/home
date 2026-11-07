@@ -127,6 +127,8 @@ work is needed.
 
 Click the timer glyph in the bar to open the anchored popup. Enter a duration
 followed by an optional name, or use the `5m`, `10m`, `25m`, and `1h` presets.
+The popup captures keyboard focus so typing stays in the timer field. Press
+`Enter` to create the timer or `Escape` to close the popup and release focus.
 Accepted duration units are days, hours, minutes, and seconds and may be
 combined:
 
