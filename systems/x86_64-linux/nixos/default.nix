@@ -17,8 +17,8 @@ in
     # TCP tuning + IPv6 privacy-address fixes (modules/nixos is auto-imported)
     networking-fixes.enable = true;
 
-    # FortiVPN tunnel + its sops secret
-    openfortivpn.enable = true;
+    # T-Mobile IPsec tunnel (strongSwan) + its sops secret
+    vpn.enable = true;
 
     # Local I2P proxies and a stable, sops-backed Yggdrasil identity.
     privacy-networks.enable = true;

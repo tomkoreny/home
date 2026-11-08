@@ -36,7 +36,6 @@ in
   home.packages = [
     pkgs.nerd-fonts.jetbrains-mono
     pkgs.nerdfetch
-    pkgs.openfortivpn
     pkgs.kubectl
     pkgs.kubernetes-helm
     pkgs.kubeseal

@@ -55,7 +55,7 @@ in
     restartOnSwitch = lib.mkOption {
       type = with lib.types; listOf str;
       default = [ ];
-      example = [ "org.nixos.openfortivpn" ];
+      example = [ "org.nixos.strongswan" ];
       description = ''
         Labels of system launchd daemons to restart (`launchctl kickstart -k
         system/<label>`) whenever IPv4 moves into or out of the tunnel, for
@@ -110,8 +110,8 @@ in
       serviceConfig = {
         RunAtLoad = true;
         KeepAlive = true;
-        # Stopping removes its routes and restarts openfortivpn gracefully,
-        # which waits up to 20 s; launchd's default 20 s would cut that short.
+        # Stopping removes its routes and restarts the restartOnSwitch daemons
+        # gracefully, which waits up to 20 s each; launchd's default 20 s would cut that short.
         ExitTimeOut = 45;
         StandardOutPath = "/var/log/home-tunnel-failover.log";
         StandardErrorPath = "/var/log/home-tunnel-failover.log";
