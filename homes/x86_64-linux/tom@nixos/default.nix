@@ -28,7 +28,7 @@ let
   };
 
   jellyfinApiClient = python.jellyfin-apiclient-python.overridePythonAttrs (_: {
-    version = "1.20.2";
+    version = "1.21.0";
     src = inputs.jellyfin-apiclient-python-src;
   });
 

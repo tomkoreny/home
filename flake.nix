@@ -69,7 +69,7 @@
     # Ruby required `HOMEBREW_ORIGINAL_BREW_FILE`, which the 7.0.4 wrapper no
     # longer exports, so `brew bundle` died during activation).
     brew-src = {
-      url = "github:Homebrew/brew/7.0.11";
+      url = "github:Homebrew/brew/7.0.12";
       flake = false;
     };
     nix-homebrew = {
@@ -121,7 +121,7 @@
       flake = false;
     };
     jellyfin-apiclient-python-src = {
-      url = "github:jellyfin/jellyfin-apiclient-python/v1.20.2";
+      url = "github:jellyfin/jellyfin-apiclient-python/v1.21.0";
       flake = false;
     };
     python-mpv-jsonipc-src = {

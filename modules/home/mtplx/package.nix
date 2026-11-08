@@ -6,11 +6,11 @@
 }:
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "mtplx";
-  version = "2.12.2";
+  version = "2.12.3";
 
   src = fetchurl {
     url = "https://github.com/youssofal/MTPLX/releases/download/v${finalAttrs.version}/MTPLX-${finalAttrs.version}.dmg";
-    hash = "sha256-HX31gsbKnPmJT7NkIAYEKtfz5dFGIVfBO46d5zak/yA=";
+    hash = "sha256-nXdeyZOCWhmFmmdnYNvgT3n94oGoAUObEcKW5CzDuiQ=";
   };
 
   nativeBuildInputs = [ _7zz ];
