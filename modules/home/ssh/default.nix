@@ -98,6 +98,25 @@ let
       AddressFamily = "inet6";
     };
 
+    # The BMW's Raspberry Pi (car-display, horse-rally) over Yggdrasil, from any
+    # network while the Pi has internet in the car. Its firewall (car-display's
+    # dev/pi/ygg-guard.nft) lets SSH in from the Mac's Yggdrasil address only.
+    # Both car aliases share one known_hosts identity, horse-rally.local.
+    "car-pi" = {
+      HostName = common.yggdrasil.addresses.car;
+      User = "pi";
+      AddressFamily = "inet6";
+      HostKeyAlias = "horse-rally.local";
+    };
+
+    # The same Pi when cabled to the Mac's Internet Sharing: its mDNS name, as
+    # its DHCP address there has changed between .2 and .3.
+    "car-pi-lan" = {
+      HostName = "horse-rally.local";
+      User = "pi";
+      HostKeyAlias = "horse-rally.local";
+    };
+
     # Attach directly to the persistent NixOS tmux session.
     "nixos-session" = {
       HostName = "nixos.local";
