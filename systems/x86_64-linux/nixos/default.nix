@@ -83,6 +83,9 @@ in
       enable = true;
       # A Composer vendor directory; reinstalled from the lock file.
       disposableVolumes = [ "peppolapdashboard_vendor" ];
+      # A demo stack whose database and configuration are bind-mounted from
+      # under ~/.cache.
+      keep = [ "/home/tom/.cache/peppol-customer-relay-demo" ];
     };
   };
 

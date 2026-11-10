@@ -56,6 +56,16 @@ in
         being listed anywhere.
       '';
     };
+
+    keep = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      example = [ "/home/tom/.cache/some-project" ];
+      description = ''
+        Entries directly inside an excluded cache directory that are backed up
+        after all, for data that lives where caches normally do.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -83,25 +93,46 @@ in
         dumpDir
       ];
 
-      # Only what can be downloaded or rebuilt again.
+      # Only what can be downloaded or rebuilt again. Each entry names the
+      # regenerable subdirectory itself, never a parent that also holds
+      # something a person made: saves, generated images, volume data.
       exclude = [
-        "/home/*/.cache"
+        # Child by child, so that `keep` can bring one of them back.
+        "/home/*/.cache/*"
         "/home/*/.npm"
         "/home/*/.bun/install/cache"
         "/home/*/.cargo/registry"
         "/home/*/.cargo/git"
         "/home/*/.rustup"
-        "/home/*/.steam"
-        "/home/*/.local/share/Steam"
         "/home/*/.local/share/Trash"
         "/home/*/.local/share/pnpm/store"
         # IDE installations; settings live in ~/.config/JetBrains.
-        "/home/*/.local/share/JetBrains/Toolbox"
-        # Image store left behind by rootless Docker.
-        "/home/*/.local/share/docker"
-        # Model checkpoints.
-        "/home/*/stable-diffusion-webui"
-        "/home/*/stable-diffusion-webui-forge"
+        "/home/*/.local/share/JetBrains/Toolbox/apps"
+        # Steam: installed games, shader caches, workshop downloads and the
+        # client's own runtimes. Saves and settings (userdata, config and the
+        # Proton prefixes in steamapps/compatdata) stay in.
+        "/home/*/.local/share/Steam/steamapps/common"
+        "/home/*/.local/share/Steam/steamapps/shadercache"
+        "/home/*/.local/share/Steam/steamapps/workshop"
+        "/home/*/.local/share/Steam/steamapps/downloading"
+        "/home/*/.local/share/Steam/steamapps/temp"
+        "/home/*/.local/share/Steam/ubuntu12_32"
+        "/home/*/.local/share/Steam/ubuntu12_64"
+        "/home/*/.local/share/Steam/steamrt32"
+        "/home/*/.local/share/Steam/steamrt64"
+        "/home/*/.local/share/Steam/package"
+        "/home/*/.local/share/Steam/appcache"
+        "/home/*/.local/share/Steam/config/htmlcache"
+        # Rootless Docker: image layers and build cache. Its volumes stay in.
+        "/home/*/.local/share/docker/overlay2"
+        "/home/*/.local/share/docker/image"
+        "/home/*/.local/share/docker/buildkit"
+        "/home/*/.local/share/docker/volumes/${anonymousVolume}"
+        # Stable Diffusion: Python environments, cloned dependencies and base
+        # checkpoints. Outputs, settings and locally trained models stay in.
+        "/home/*/stable-diffusion-webui*/venv"
+        "/home/*/stable-diffusion-webui*/repositories"
+        "/home/*/stable-diffusion-webui*/models/Stable-diffusion"
         "node_modules"
         ".pnpm-store"
         ".next"
@@ -112,7 +143,9 @@ in
         "/home/*/.config/**/Service Worker/CacheStorage"
         "/var/lib/docker/volumes/${anonymousVolume}"
       ]
-      ++ map (volume: "/var/lib/docker/volumes/${volume}") cfg.disposableVolumes;
+      ++ map (volume: "/var/lib/docker/volumes/${volume}") cfg.disposableVolumes
+      # A negation has to follow the pattern it undoes.
+      ++ map (path: "!${path}") cfg.keep;
 
       extraBackupArgs = [
         "--one-file-system"
