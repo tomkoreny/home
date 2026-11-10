@@ -261,14 +261,24 @@ def replace_hash(text: str, marker: str, new_hash: str, path: str) -> str:
     return updated
 
 
-def open_issue(title: str, body: str) -> None:
-    existing = subprocess.run(
-        ["gh", "issue", "list", "--state", "open", "--search", f'"{title}" in:title', "--json", "title"],
+def open_issue(title: str, body: str, supersedes: str | None = None) -> None:
+    """File `title` once. `supersedes` is a title prefix: older open issues
+    carrying it are closed, so a pin has one open issue however many releases
+    upstream ships before someone bumps it."""
+    listed = subprocess.run(
+        ["gh", "issue", "list", "--state", "open", "--search", f'"{supersedes or title}" in:title',
+         "--json", "number,title"],
         check=True, capture_output=True, text=True,
     ).stdout
-    if any(issue["title"] == title for issue in json.loads(existing)):
-        return
-    subprocess.run(["gh", "issue", "create", "--title", title, "--body", body], check=True)
+    issues = json.loads(listed)
+    if not any(issue["title"] == title for issue in issues):
+        subprocess.run(["gh", "issue", "create", "--title", title, "--body", body], check=True)
+    for issue in issues if supersedes else []:
+        if issue["title"].startswith(supersedes) and issue["title"] != title:
+            subprocess.run(
+                ["gh", "issue", "close", str(issue["number"]), "--comment", f"Superseded by: {title}"],
+                check=True,
+            )
 
 
 def current_version(pin: Pin) -> str:
@@ -305,6 +315,7 @@ def bump(pin: Pin) -> str | None:
             f"`{pin.name}` is pinned to `{current}`; upstream's latest release is `{latest}`.\n\n"
             f"Its policy is `{pin.policy}`, so the scheduled update does not move it automatically. "
             f"Pinned in: {', '.join(f'`{path}`' for path in pin.versions)}.",
+            supersedes=f"Update pinned {pin.name} to ",
         )
         return None
 
