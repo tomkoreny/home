@@ -191,6 +191,14 @@ PINS = [
             "https://cdn.getmoshi.app/hook/v{version}/moshi-hook_Linux_x86_64.tar.gz",
         )]},
     ),
+    Pin(
+        "vibex", "auto", github_latest("vibex-ai/vibex"),
+        {"modules/home/vibex/default.nix": r'^  version = "([^"]+)";'},
+        {"modules/home/vibex/default.nix": [Source(
+            "vibex-ai/vibex/releases/download",
+            "https://github.com/vibex-ai/vibex/releases/download/v{version}/vibex-{version}-linux-x86_64-deb.deb",
+        )]},
+    ),
     Pin("herdr", "auto", github_latest("herdrdev/herdr"), {"flake.nix": flake_tag("herdrdev/herdr")}),
     # Homebrew's CLI must stay at least as new as the hourly-updated taps.
     Pin("brew", "same-major", github_latest("Homebrew/brew"), {"flake.nix": flake_tag("Homebrew/brew", "")}),
