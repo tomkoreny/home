@@ -55,8 +55,16 @@ in
     services.dbus.packages = [ package ];
     systemd.packages = [ package ];
 
-    # Upstream enables the backend for every user; the unit only starts once
-    # pairing has written ~/.config/blueferry/local.env.
-    systemd.user.services.blueferry.wantedBy = [ "default.target" ];
+    # Upstream enables the backend from default.target. Tom's user manager
+    # lingers (modules/nixos/rex), so that started it at boot, seconds before
+    # the desktop session existed: polkit refused the Class of Device helper
+    # (the rule above needs an active session), the keyring was still locked
+    # and no notification daemon was running. It recovered on a 60-second
+    # retry. Start it with the desktop instead. The unit still only starts
+    # once pairing has written ~/.config/blueferry/local.env.
+    systemd.user.services.blueferry = {
+      wantedBy = [ "graphical-session.target" ];
+      after = [ "graphical-session.target" ];
+    };
   };
 }
