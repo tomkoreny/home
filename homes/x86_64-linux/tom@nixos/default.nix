@@ -126,6 +126,7 @@ in
   # no explicit imports needed here, just per-host knobs.
 
   tomkoreny.mpv-ui.enable = true;
+  tomkoreny.steam-theme.enable = true;
 
   tomkoreny.quickshell-bar = {
     enable = true;

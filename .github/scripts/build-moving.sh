@@ -9,7 +9,9 @@
 #   binary cache: omp (a stale native-addon stamp left every host failing to
 #   upgrade in September 2026) and herdr;
 # - the Linux packages behind the release pins and rolling downloads in
-#   bump-pins.py, which are cheap downloads or small builds.
+#   bump-pins.py, which are cheap downloads or small builds;
+# - the Steam skin from modules/home/steam-theme, which follows upstream's
+#   branch and fails to build when upstream renames a variable it overrides.
 # Everything is taken from the host configuration so overrides and `follows`
 # match exactly what the hosts build.
 set -euo pipefail
@@ -27,5 +29,6 @@ nix build --no-link --print-build-logs --impure --expr '
   [
     tom.programs.omp.package
     flake.inputs.herdr.packages.x86_64-linux.default
+    tom.xdg.dataFile."Steam/millennium/themes/adwaita-stylix".source
   ]
   ++ map fromHome [ "helium-browser" "betterbird" "orca-ide" "komai" "jellyfin-mpv-shim" "moshi-hook" "vibex" "flectar-mail" ]'

@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "adwaita-for-steam-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1785363595,
+        "narHash": "sha256-wH0z2LZ94j5ErRI40f9IRBJXJ6yuL+NLgjmj9G8odxU=",
+        "owner": "tkashkin",
+        "repo": "Adwaita-for-Steam",
+        "rev": "1e92107a51f6ed53c59c38646444c9eb3a52b030",
+        "type": "github"
+      },
+      "original": {
+        "owner": "tkashkin",
+        "repo": "Adwaita-for-Steam",
+        "type": "github"
+      }
+    },
     "apple-fonts": {
       "inputs": {
         "ci": "ci",
@@ -1519,6 +1535,7 @@
     },
     "root": {
       "inputs": {
+        "adwaita-for-steam-src": "adwaita-for-steam-src",
         "apple-fonts": "apple-fonts",
         "brew-src": "brew-src",
         "darwin": "darwin",

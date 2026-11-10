@@ -469,3 +469,41 @@ Jellyfin MPRIS plugin are unchanged.
 Apply both the home configuration and the NixOS camera launcher, then open new
 players. Existing mpv processes retain their already-loaded scripts. Right-click
 opens the themed menu; standalone/web playback also use Tab to toggle controls.
+
+## Steam
+
+The Steam client is themed through Millennium, a loader that injects CSS and
+plugins into the client's own UI. `programs.steam.package` is
+`pkgs.steamWithMillennium` in `systems/x86_64-linux/nixos/default.nix`, so the
+loader is there for every user of that host. The look itself is per user.
+
+The Linux home enables `tomkoreny.steam-theme`. `modules/home/steam-theme` takes
+the Adwaita-for-Steam skin from the `adwaita-for-steam-src` flake input and adds
+one color theme to it, **Catppuccin Mocha (Stylix)**: the skin's own Catppuccin
+Mocha with the canvas surfaces on `common.stylix.background`, the accent and
+Catppuccin's blue on `common.stylix.accent`, and the shared sans-serif and
+monospace fonts. Cards, dialogs and popovers keep their Mocha values. The result
+is linked to `~/.local/share/Steam/millennium/themes/adwaita-stylix`.
+
+Millennium keeps its settings in `~/.config/millennium/config.json` and rewrites
+that file itself, so it is not a store symlink. Activation merges only the theme
+choice into it: the active theme, three of the skin's options (color theme,
+accent color and font) and Millennium's own accent color. Nix owns those keys: a
+different choice made in **Steam -> Millennium** reverts at the next activation.
+The skin's other options, such as window controls and rounded corners, and all
+plugin settings are left alone. Millennium writes the file again when Steam
+exits, so a change to the owned keys made while Steam is running is lost and
+lands with the following activation.
+
+Limits:
+
+- The Store, Community and profile tabs are web pages served by Valve. The skin
+  does not style them, so they keep Valve's own colors inside the themed frame.
+- The skin follows upstream's `master`, because upstream stopped tagging at
+  v3.1. The theme build fails when upstream renames a variable the layer
+  overrides, and `.github/scripts/build-moving.sh` builds the theme, so the
+  scheduled update holds such a lock back instead of pushing it to the hosts.
+- Going back to plain `pkgs.steam` leaves Millennium's bootstrap links behind:
+  delete `libXtst.so.6` in `~/.local/share/Steam/ubuntu12_32` and `ubuntu12_64`.
+
+Apply a change with `sw`, then restart Steam.

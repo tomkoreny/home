@@ -651,6 +651,12 @@ in
     };
     steam = {
       enable = true;
+      # Steam with the Millennium loader, which injects the skin from
+      # modules/home/steam-theme (and any Millennium plugins) into the client.
+      # The wrapper links its bootstrap over libXtst.so.6 in
+      # ~/.local/share/Steam/ubuntu12_32 and ubuntu12_64 on every start; when
+      # going back to plain `pkgs.steam`, delete those two links as well.
+      package = pkgs.steamWithMillennium;
       gamescopeSession.enable = true;
       extraCompatPackages = [ pkgs.proton-ge-bin ];
     };

@@ -133,6 +133,14 @@
       flake = false;
     };
 
+    # GNOME-style skin for the Steam client, loaded through Millennium and
+    # recoloured in modules/home/steam-theme. Upstream stopped tagging at v3.1
+    # and ships from master, so this follows the branch.
+    adwaita-for-steam-src = {
+      url = "github:tkashkin/Adwaita-for-Steam";
+      flake = false;
+    };
+
     # San Francisco Fonts | Apple Fonts
     apple-fonts.url = "github:Lyndeno/apple-fonts.nix";
     apple-fonts.inputs.nixpkgs.follows = "nixpkgs";
