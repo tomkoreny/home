@@ -76,6 +76,14 @@ in
 
     # iPhone messages, app notifications and contacts over Bluetooth.
     blueferry.enable = true;
+
+    # Nightly restic backup of the homes, Secure Boot keys and Docker volumes
+    # to the homelab's MinIO, which mirrors it to Backblaze B2.
+    desktop-backup = {
+      enable = true;
+      # A Composer vendor directory; reinstalled from the lock file.
+      disposableVolumes = [ "peppolapdashboard_vendor" ];
+    };
   };
 
   # typescript-language-server's pnpm dependency hash differs per platform, and
