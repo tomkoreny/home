@@ -207,6 +207,14 @@ PINS = [
             "https://github.com/flectar/mail/releases/download/v{version}/flectar-mail-{version}-linux-x64.AppImage",
         )]},
     ),
+    Pin(
+        "daruda", "auto", github_latest("daruda-ai/daruda"),
+        {"modules/home/daruda/package.nix": r'^  version = "([^"]+)";'},
+        {"modules/home/daruda/package.nix": [Source(
+            "daruda-ai/daruda/releases/download",
+            "https://github.com/daruda-ai/daruda/releases/download/v{version}/daruda-{version}-linux-x86_64.deb",
+        )]},
+    ),
     Pin("herdr", "auto", github_latest("herdrdev/herdr"), {"flake.nix": flake_tag("herdrdev/herdr")}),
     # Homebrew's CLI must stay at least as new as the hourly-updated taps.
     Pin("brew", "same-major", github_latest("Homebrew/brew"), {"flake.nix": flake_tag("Homebrew/brew", "")}),
