@@ -599,6 +599,28 @@ in
       default-address-pools = common.docker.addressPools lib;
     };
   };
+
+  # Docker publishes ports with its own NAT rules. Those packets are forwarded,
+  # so they never reach the INPUT chain `networking.firewall` filters: a
+  # compose file saying "5432:5432" was open to the whole LAN. DOCKER-USER is
+  # the chain Docker leaves for the host's own policy. Only replies and traffic
+  # that starts on a Docker bridge may enter a container network. Published
+  # ports stay reachable from this machine itself, which is the OUTPUT path.
+  # To expose one on purpose, RETURN it above the DROP rules.
+  networking.firewall = {
+    extraCommands = ''
+      ip46tables -N DOCKER-USER 2> /dev/null || true
+      ip46tables -F DOCKER-USER
+      ip46tables -A DOCKER-USER -m conntrack --ctstate ESTABLISHED,RELATED -j RETURN
+      ip46tables -A DOCKER-USER -i docker0 -j RETURN
+      ip46tables -A DOCKER-USER -i br-+ -j RETURN
+      ip46tables -A DOCKER-USER -o docker0 -j DROP
+      ip46tables -A DOCKER-USER -o br-+ -j DROP
+    '';
+    extraStopCommands = ''
+      ip46tables -F DOCKER-USER 2> /dev/null || true
+    '';
+  };
   programs = {
     evolution = {
       enable = true;
