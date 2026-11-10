@@ -199,6 +199,14 @@ PINS = [
             "https://github.com/vibex-ai/vibex/releases/download/v{version}/vibex-{version}-linux-x86_64-deb.deb",
         )]},
     ),
+    Pin(
+        "flectar-mail", "auto", github_latest("flectar/mail"),
+        {"modules/home/flectar-mail/default.nix": r'^  version = "([^"]+)";'},
+        {"modules/home/flectar-mail/default.nix": [Source(
+            "flectar/mail/releases/download",
+            "https://github.com/flectar/mail/releases/download/v{version}/flectar-mail-{version}-linux-x64.AppImage",
+        )]},
+    ),
     Pin("herdr", "auto", github_latest("herdrdev/herdr"), {"flake.nix": flake_tag("herdrdev/herdr")}),
     # Homebrew's CLI must stay at least as new as the hourly-updated taps.
     Pin("brew", "same-major", github_latest("Homebrew/brew"), {"flake.nix": flake_tag("Homebrew/brew", "")}),

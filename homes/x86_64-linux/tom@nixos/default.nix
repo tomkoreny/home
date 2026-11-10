@@ -149,6 +149,7 @@ in
 
   tomkoreny.komai.enable = true;
   tomkoreny.vibex.enable = true;
+  tomkoreny.flectar-mail.enable = true;
   tomkoreny.web-playback.enable = true;
   tomkoreny.moshi-hook.enable = true;
   tomkoreny.quickshell-osd = {
