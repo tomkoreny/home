@@ -718,7 +718,7 @@ UPGRADE_STALE_SECONDS = 24 * 60 * 60
 
 
 def ago(timestamp: float, now: float) -> str:
-    """Relative age, worded like UpgradeStatusService.qml."""
+    """Relative age, worded like UnitStatusService.qml."""
     if timestamp <= 0:
         return "never"
     minutes = int((now - timestamp) // 60)

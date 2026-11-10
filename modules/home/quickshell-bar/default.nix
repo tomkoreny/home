@@ -358,7 +358,7 @@ let
   headsetService = pkgs.replaceVars ./HeadsetService.qml {
     arctisHelper = lib.getExe arctisHelper;
   };
-  upgradeStatusService = pkgs.replaceVars ./UpgradeStatusService.qml {
+  unitStatusService = pkgs.replaceVars ./UnitStatusService.qml {
     cat = lib.getExe' pkgs.coreutils "cat";
     ghostty = lib.getExe pkgs.ghostty;
     # The system unit's journal reader; the bar module itself stays host-agnostic.
@@ -471,7 +471,7 @@ in
       "quickshell/tom-bar/HeadsetService.qml".source = headsetService;
       "quickshell/tom-bar/HeadsetAudioSwitch.qml".source = ./HeadsetAudioSwitch.qml;
       "quickshell/tom-bar/HeadsetDisplayFeed.qml".source = ./HeadsetDisplayFeed.qml;
-      "quickshell/tom-bar/UpgradeStatusService.qml".source = upgradeStatusService;
+      "quickshell/tom-bar/UnitStatusService.qml".source = unitStatusService;
       "quickshell/tom-bar/TimerPopup.qml".source = timerPopup;
       "quickshell/tom-bar/HeadsetSettingsPopup.qml".source = headsetSettingsPopup;
       "quickshell/tom-bar/VolumePopup.qml".source = volumePopup;

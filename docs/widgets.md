@@ -64,6 +64,7 @@ follows:
 | Widget | Display | Interaction |
 | --- | --- | --- |
 | NixOS upgrade | Red `upgrade` when the last hourly auto-upgrade failed, or `no upgrade` when none has finished for 24 hours; hidden otherwise | Click to open the `nixos-upgrade.service` journal; hover for the first Nix error and the time of the last successful upgrade. |
+| Desktop backup | Red `backup` when the last nightly restic backup failed, or `no backup` when none has finished for 50 hours; hidden otherwise | Click to open the `restic-backups-desktop.service` journal; hover for the first error and the time of the last successful backup. |
 | Herdr | Working-agent count and blocked count | Click to open the Herdr launcher mode; hover for the full working/blocked/idle summary. |
 | Timers | Remaining time for the next running timer and `+N` for additional timers | Click to open the timer popup. |
 | AI limits | OpenAI Codex weekly limit and Claude five-hour/weekly limits, including compact reset times | Click to invalidate and refresh OMP usage; hover for every reported limit and exact reset time. |
@@ -81,11 +82,12 @@ The Notion background refresh is intentionally the small `widget` query: Tom's
 incomplete tasks due today or earlier. Unassigned and All tasks are fetched only
 when those manager tabs open.
 
-The upgrade widget reads `/var/lib/nixos-upgrade-status/status.json`, which the
-`nixos-upgrade` unit's `ExecStopPost` hook rewrites after every run (see
-`systems/x86_64-linux/nixos/default.nix`). The file is checked once a minute. A
-new failure streak also sends one critical desktop notification; the hourly
-retries of the same streak stay quiet.
+The upgrade and backup widgets each read a status file that the unit's stop hook
+rewrites after every run: `/var/lib/nixos-upgrade-status/status.json` (see
+`systems/x86_64-linux/nixos/default.nix`) and `/var/lib/desktop-backup/status.json`
+(see `modules/nixos/desktop-backup`). The files are checked once a minute. A new
+failure streak also sends one critical desktop notification; later failures of
+the same streak stay quiet.
 
 ## Launcher
 

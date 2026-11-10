@@ -388,8 +388,16 @@ ShellRoot {
     HeadsetDisplayFeed {
         headset: headset
     }
-    UpgradeStatusService {
+    UnitStatusService {
         id: upgradeStatus
+    }
+    UnitStatusService {
+        id: backupStatus
+        statusFile: "/var/lib/desktop-backup/status.json"
+        subject: "Desktop backup"
+        unit: "restic-backups-desktop.service"
+        // Nightly, with a catch-up at boot: two missed nights mean it stalled.
+        staleSeconds: 50 * 60 * 60
     }
 
     Connections {
@@ -558,6 +566,7 @@ ShellRoot {
             notificationService: notifications
             headsetService: headset
             upgradeStatusService: upgradeStatus
+            backupStatusService: backupStatus
             overlayController: overlays
             timerPopupController: timerPopup
             headsetPopupController: headsetPopup

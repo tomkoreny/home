@@ -11,6 +11,7 @@ PanelWindow {
     required property var notificationService
     required property var headsetService
     required property var upgradeStatusService
+    required property var backupStatusService
     required property var overlayController
     required property var timerPopupController
     required property var headsetPopupController
@@ -99,43 +100,58 @@ PanelWindow {
             height: 26
             spacing: 3
 
-            Item {
-                id: upgradeIndicator
-                visible: upgradeStatusService.needsAttention
-                width: upgradeText.implicitWidth + 12
-                height: parent.height
+            // One indicator per watched unit. Each stays hidden until its unit
+            // fails or stops reporting.
+            Repeater {
+                model: [
+                    { service: upgradeStatusService, label: "upgrade" },
+                    { service: backupStatusService, label: "backup" }
+                ]
 
-                Text {
-                    id: upgradeText
-                    anchors.centerIn: parent
-                    text: upgradeStatusService.failed ? "󰀦 upgrade" : "󰀦 no upgrade"
-                    color: "@muted@"
-                    font.family: "@fontFamily@"
-                    font.pixelSize: 12
-                    font.weight: Font.DemiBold
-                }
+                Row {
+                    id: attention
+                    required property var modelData
 
-                MouseArea {
-                    id: upgradeMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: upgradeStatusService.openLog()
+                    visible: modelData.service.needsAttention
+                    height: statusRow.height
+                    spacing: statusRow.spacing
 
-                    HoverPopover {
-                        anchorItem: upgradeMouse
-                        hovered: upgradeMouse.containsMouse
-                        text: upgradeStatusService.tooltip()
-                        alignRight: true
+                    Item {
+                        width: attentionText.implicitWidth + 12
+                        height: parent.height
+
+                        Text {
+                            id: attentionText
+                            anchors.centerIn: parent
+                            text: attention.modelData.service.failed ? `󰀦 ${attention.modelData.label}` : `󰀦 no ${attention.modelData.label}`
+                            color: "@muted@"
+                            font.family: "@fontFamily@"
+                            font.pixelSize: 12
+                            font.weight: Font.DemiBold
+                        }
+
+                        MouseArea {
+                            id: attentionMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: attention.modelData.service.openLog()
+
+                            HoverPopover {
+                                anchorItem: attentionMouse
+                                hovered: attentionMouse.containsMouse
+                                text: attention.modelData.service.tooltip()
+                                alignRight: true
+                            }
+                        }
+                    }
+                    Rectangle {
+                        width: 1
+                        height: 16
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: "@border@"
                     }
                 }
-            }
-            Rectangle {
-                visible: upgradeIndicator.visible
-                width: 1
-                height: 16
-                anchors.verticalCenter: parent.verticalCenter
-                color: "@border@"
             }
 
             Item {

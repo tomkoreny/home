@@ -2,13 +2,17 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 
-// Outcome of the hourly NixOS auto-upgrade, recorded by the system unit's
-// ExecStopPost hook. The bar only surfaces it when something needs attention.
+// Outcome of a scheduled system unit, read from the status file its stop hook
+// rewrites after every run. The bar only surfaces it when something needs
+// attention. The defaults describe the hourly NixOS auto-upgrade.
 Scope {
     id: root
 
-    // An hourly timer that has not finished a run for this long has stalled.
-    readonly property int staleSeconds: 24 * 60 * 60
+    property string statusFile: "/var/lib/nixos-upgrade-status/status.json"
+    property string subject: "NixOS auto-upgrade"
+    property string unit: "nixos-upgrade.service"
+    // A unit that has not finished a run for this long has stalled.
+    property int staleSeconds: 24 * 60 * 60
 
     property string result: ""
     property string error: ""
@@ -37,17 +41,17 @@ Scope {
     function tooltip(): string {
         const lines = [];
         if (failed)
-            lines.push(`NixOS auto-upgrade failed · ${age(finishedAt)}`, error);
+            lines.push(`${subject} failed · ${age(finishedAt)}`, error);
         else
-            lines.push(`NixOS auto-upgrade has not run · last run ${age(finishedAt)}`);
-        lines.push(`Last successful upgrade · ${age(lastSuccessAt)}`, "Click to open the upgrade log");
+            lines.push(`${subject} has not run · last run ${age(finishedAt)}`);
+        lines.push(`Last success · ${age(lastSuccessAt)}`, "Click to open the log");
         return lines.join("\n");
     }
 
     function openLog(): void {
         Quickshell.execDetached([
             "@uwsm@", "app", "--", "@ghostty@", "-e",
-            "@journalctl@", "--unit", "nixos-upgrade.service", "--lines", "300", "--pager-end"
+            "@journalctl@", "--unit", unit, "--lines", "300", "--pager-end"
         ]);
     }
 
@@ -63,18 +67,18 @@ Scope {
             finishedAt = 0;
         }
         now = Date.now() / 1000;
-        // Hourly retries keep failing the same way; notify once per failure streak.
+        // Retries keep failing the same way; notify once per failure streak.
         if (failed && !notifiedFailure)
             Quickshell.execDetached([
                 "@notifySend@", "-a", "NixOS", "-u", "critical",
-                "NixOS auto-upgrade failed", error
+                `${subject} failed`, error
             ]);
         notifiedFailure = failed;
     }
 
     Process {
         id: reader
-        command: ["@cat@", "/var/lib/nixos-upgrade-status/status.json"]
+        command: ["@cat@", root.statusFile]
         stdout: StdioCollector {
             onStreamFinished: root.update(this.text)
         }
