@@ -370,6 +370,21 @@ in
       };
     };
 
+    # SMART health for the NVMe drives. A failing attribute raises a desktop
+    # notification through systembus-notify; the xmessage path that
+    # services.xserver.enable would switch on shows nothing under Wayland.
+    smartd = {
+      enable = true;
+      notifications = {
+        x11.enable = false;
+        systembus-notify.enable = true;
+      };
+    };
+
+    # Firmware inventory and LVFS updates (`fwupdmgr get-updates`). The EFI
+    # capsule app is signed for Secure Boot by nixos/lanzaboote-compat.nix.
+    fwupd.enable = true;
+
     # Disable systemd-resolved to prevent excessive cache flushes that
     # trigger application-level network change events.
     resolved.enable = lib.mkForce false;
