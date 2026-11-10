@@ -373,7 +373,6 @@ in
     pkgs.libnotify # notify-send, used by hyprshot to confirm captures
     teamsForLinux
     pkgs.slack
-    pkgs.git-credential-oauth
     pkgs.gnome-keyring
     pkgs.seahorse
     pkgs.toybox

@@ -1,4 +1,5 @@
 {
+  lib,
   pkgs,
   ...
 }:
@@ -6,6 +7,9 @@ let
   common = import ../../../lib/common { };
 in
 {
+  # The "oauth" credential helper below is a separate binary, not part of git.
+  home.packages = lib.optionals pkgs.stdenv.hostPlatform.isLinux [ pkgs.git-credential-oauth ];
+
   programs.git = {
     # Build git with the libsecret credential helper compiled in, so the
     # "libsecret" helper below resolves on PATH. Without this, pkgs.git ships
