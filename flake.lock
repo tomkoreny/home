@@ -1158,18 +1158,16 @@
       "inputs": {
         "bun2nix": "bun2nix",
         "flake-parts": "flake-parts_2",
-        "nixpkgs": [
-          "nixpkgs"
-        ],
+        "nixpkgs": "nixpkgs_4",
         "systems": "systems_4",
         "treefmt-nix": "treefmt-nix_3"
       },
       "locked": {
-        "lastModified": 1794277792,
-        "narHash": "sha256-sjytOnBfBG0BTJUongIbNAT3Xxlkou7OnlfWUjWB21M=",
+        "lastModified": 1794314311,
+        "narHash": "sha256-wlYcdwKprAYt59pBjhasVnJRWRwhX4BqgGcHpDbZJTs=",
         "owner": "numtide",
         "repo": "nix-ai-tools",
-        "rev": "5cf73febc46a1251854b305a44916b60022cc319",
+        "rev": "a36f95f182c6c4db9878ec75155f303dc4449001",
         "type": "github"
       },
       "original": {
@@ -1300,6 +1298,22 @@
     },
     "nixpkgs_4": {
       "locked": {
+        "lastModified": 1793977579,
+        "narHash": "sha256-WrSODdZFVIs/Hh2NzC0bY+ROByi0bATg8WfePX8dPj8=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "4fe25e12eb9f4c744966dd3de5a05246cf098601",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_5": {
+      "locked": {
         "lastModified": 1794042290,
         "narHash": "sha256-ziZn2PvCJE5JEEpqTdxXwJpPB+L3YqoCpTAMCzyaP3U=",
         "owner": "nixos",
@@ -1314,7 +1328,7 @@
         "type": "github"
       }
     },
-    "nixpkgs_5": {
+    "nixpkgs_6": {
       "locked": {
         "lastModified": 1786384358,
         "narHash": "sha256-RzPPiWeUtuvymnpuEWsdtzli5w4kjZs49FqEs3/1u+I=",
@@ -1395,7 +1409,7 @@
         "bun2nix-darwin-x64": "bun2nix-darwin-x64",
         "crane": "crane_2",
         "nix-bun": "nix-bun",
-        "nixpkgs": "nixpkgs_5",
+        "nixpkgs": "nixpkgs_6",
         "nixpkgs-darwin-x64": "nixpkgs-darwin-x64",
         "rust-overlay": [
           "rust-overlay"
@@ -1545,7 +1559,7 @@
         "mac-app-util": "mac-app-util",
         "nix-ai-tools": "nix-ai-tools",
         "nix-homebrew": "nix-homebrew",
-        "nixpkgs": "nixpkgs_4",
+        "nixpkgs": "nixpkgs_5",
         "nvf": "nvf",
         "omp": "omp",
         "pi2-nvim": "pi2-nvim",

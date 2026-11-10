@@ -137,10 +137,12 @@
     apple-fonts.url = "github:Lyndeno/apple-fonts.nix";
     apple-fonts.inputs.nixpkgs.follows = "nixpkgs";
 
-    # Fast-moving AI CLIs (claude-code, codex, *-acp) as native binaries,
-    # auto-updated daily and served from Numtide's binary cache.
+    # Fast-moving AI tools (claude-code, codex, hermes). Deliberately does NOT
+    # follow our nixpkgs: upstream builds and tests only against its own pin,
+    # and cache.numtide.com (lib/common) holds exactly those builds. Following
+    # nixos-unstable took nixos-upgrade down twice, on hermes' dependency pins
+    # (2026-10-23) and on a primp that would not build (2026-11-08).
     nix-ai-tools.url = "github:numtide/nix-ai-tools";
-    nix-ai-tools.inputs.nixpkgs.follows = "nixpkgs";
 
     # Rex's prebuilt release flake. The Mac's Rex Beta app updates from the
     # preview channel, so NixOS runs the same build as the Mac.

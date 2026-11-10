@@ -241,17 +241,23 @@ rec {
     };
   };
 
-  # Nix binary caches (shared between NixOS and Darwin)
+  # Nix binary caches for the NixOS host. The Mac's nix.conf belongs to
+  # Determinate (nix.enable is off there), so it does not read this list.
   nix = {
     substituters = [
       "https://cache.nixos.org/"
       "https://hyprland.cachix.org"
       "https://lan-mouse.cachix.org"
+      # Prebuilt nix-ai-tools packages; codex is a full Rust build otherwise.
+      # The cache advertises priority 30, ahead of cache.nixos.org's 40, so
+      # rank it last: it should only serve the paths nobody else has.
+      "https://cache.numtide.com?priority=50"
     ];
     trustedPublicKeys = [
       "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
       "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
       "lan-mouse.cachix.org-1:KlE2AEZUgkzNKM7BIzMQo8w9yJYqUpor1CAUNRY6OyM="
+      "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g="
     ];
   };
 }
