@@ -23,7 +23,7 @@ let
     # Keep its writable settings and packaged application code untouched.
     postBuild = ''
       wrapProgram "$out/bin/teams-for-linux" \
-        --add-flags "--appIcon ${teamsTrayIcon}"
+        --add-flags "--tray.icon ${teamsTrayIcon}"
     '';
   };
 

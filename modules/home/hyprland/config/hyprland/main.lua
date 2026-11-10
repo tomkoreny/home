@@ -19,7 +19,7 @@ hl.env("XCURSOR_SIZE", "32")
 -- Autostart only on compositor startup, not on config reload.
 hl.on("hyprland.start", function()
     hl.exec_cmd("systemctl --user start --no-block @desktopBarService@ jellyfin-mpv-shim.service quickshell-idle.service quickshell-osd.service hyprland-aspect-tiling.service")
-    hl.exec_cmd("uwsm app -- teams-for-linux --minimized")
+    hl.exec_cmd("uwsm app -- teams-for-linux --window.minimized")
     hl.exec_cmd("uwsm app -- komai -p verification-recovery")
     hl.exec_cmd("wl-paste --type text --watch cliphist store")
     hl.exec_cmd("wl-paste --type image --watch cliphist store")
