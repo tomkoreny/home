@@ -482,8 +482,10 @@ the Adwaita-for-Steam skin from the `adwaita-for-steam-src` flake input and adds
 one color theme to it, **Catppuccin Mocha (Stylix)**: the skin's own Catppuccin
 Mocha with the canvas surfaces on `common.stylix.background`, the accent and
 Catppuccin's blue on `common.stylix.accent`, and the shared sans-serif and
-monospace fonts. Cards, dialogs and popovers keep their Mocha values. The result
-is linked to `~/.local/share/Steam/millennium/themes/adwaita-stylix`.
+monospace fonts. Cards, dialogs and popovers keep their Mocha values. Labels on
+accent-filled buttons use Mocha's crust: the skin would pick white, which is
+only 2.8:1 on the shared accent. The result is linked to
+`~/.local/share/Steam/millennium/themes/adwaita-stylix`.
 
 Millennium keeps its settings in `~/.config/millennium/config.json` and rewrites
 that file itself, so it is not a store symlink. Activation merges only the theme

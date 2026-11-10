@@ -26,6 +26,11 @@ let
   # accent's OKLab lightness to 0.85, which turns the shared accent into a
   # second, cyan-leaning blue (#64d5ff); the shared accent already reads at
   # 7.5:1 on the black canvas, so it is used unchanged.
+  #
+  # `--adw-accent-fg` is the label on an accent fill. The skin picks black or
+  # white from the accent's lightness and lands on white for the shared accent,
+  # which is only 2.8:1. Mocha's crust is what the skin's Catppuccin Mocha puts
+  # on its other filled buttons, and it reads at 6.7:1 here.
   stylixCss = pkgs.writeText "stylix.css" ''
     @import url("../catppuccin-mocha/catppuccin-mocha.css");
 
@@ -33,6 +38,7 @@ let
       --adw-accent-bg-light: var(--adw-system-accent, ${accent}) !important;
       --adw-accent-bg-dark: var(--adw-system-accent, ${accent}) !important;
       --adw-accent: ${accent} !important;
+      --adw-accent-fg: #11111b !important;
       --adw-accent-blue: ${accent} !important;
       --adw-user-online: ${accent} !important;
 
