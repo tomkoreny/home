@@ -382,7 +382,7 @@ in
     };
 
     # Firmware inventory and LVFS updates (`fwupdmgr get-updates`). The EFI
-    # capsule app is signed for Secure Boot by nixos/lanzaboote-compat.nix.
+    # capsule app is signed for Secure Boot by the lanzaboote module.
     fwupd.enable = true;
 
     # Disable systemd-resolved to prevent excessive cache flushes that
