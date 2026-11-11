@@ -8,31 +8,22 @@
 }:
 stdenvNoCC.mkDerivation {
   pname = "herdr-chat";
-  version = "0-unstable-2026-11-10";
+  version = "0-unstable-2026-11-11";
 
-  # A Herdr mod is unsandboxed code with the user's access, and this one is a
-  # young single-author project. The commit below was read before pinning (it
-  # runs python3, hc, sh, env and rm, and opens no network connection), and
-  # bump-pins.py does not move it: read the diff, then change rev and hash.
+  # Tom's fork of azaeldrm/herdr-chat, a young single-author project: upstream
+  # plus OMP (its chat, its slash commands with their choices, and a status
+  # line with the model and thinking level), on the fork's `omp` branch. A
+  # Herdr mod is unsandboxed code with the user's access; upstream was read
+  # before forking (it runs python3, hc, sh, env and rm, and opens no network
+  # connection; the fork adds `omp --mode rpc --no-session`). bump-pins.py does
+  # not move it: merge upstream into the branch after reading its diff, then
+  # change rev and hash.
   src = fetchFromGitHub {
-    owner = "azaeldrm";
+    owner = "tomkoreny";
     repo = "herdr-chat";
-    rev = "81ab4f44c83ce6c2d311b71a090d077883a5c583";
-    hash = "sha256-AVfRl17vrYNGfOfGBHUcgv9Zd2IWUFF6v/3ONYUD2ac=";
+    rev = "19373a4701dcf1b22ff5fea0fbdbfc82322243aa";
+    hash = "sha256-W/j/Dt9dR+YLpyjsZVQzi+U7UBcsk2+XC/dzfuXGhWY=";
   };
-
-  # Upstream's way to add an agent: an adapter in harnesses/ and a reader in
-  # readers/, each registered in its list. --replace-fail stops the build when
-  # upstream reshapes either list.
-  postPatch = ''
-    cp ${./omp-adapter/omp.js} mods/herdr-chat/harnesses/omp.js
-    cp ${./omp-adapter/omp.py} mods/herdr-chat/readers/omp.py
-    substituteInPlace mods/herdr-chat/harnesses/index.js \
-      --replace-fail 'import opencode from "./opencode.js";' 'import opencode from "./opencode.js"; import omp from "./omp.js";' \
-      --replace-fail '[claudeCode, codex, pi, opencode]' '[claudeCode, codex, pi, opencode, omp]'
-    substituteInPlace mods/herdr-chat/readers/manifest.json \
-      --replace-fail '"opencode.py", "main.py"' '"opencode.py", "omp.py", "main.py"'
-  '';
 
   dontConfigure = true;
   dontBuild = true;
@@ -66,8 +57,8 @@ stdenvNoCC.mkDerivation {
   '';
 
   meta = {
-    description = "Herdr layout and mod that show a coding agent's terminal as a chat, with an OMP adapter";
-    homepage = "https://github.com/azaeldrm/herdr-chat";
+    description = "Herdr layout and mod that show a coding agent's terminal as a chat, with OMP support";
+    homepage = "https://github.com/tomkoreny/herdr-chat";
     license = lib.licenses.mit;
     platforms = [ "x86_64-linux" ];
   };

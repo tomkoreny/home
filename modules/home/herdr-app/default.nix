@@ -8,9 +8,10 @@
 # OMP runs in it as its ordinary TUI in a terminal, and reports its own status
 # to the sidebar. Three pieces make that graphical and durable:
 #
-# - herdr-chat (chat.nix), a third-party layout and mod that swaps an agent's
-#   terminal for a chat view read from the agent's session log, with a
-#   Chat | Terminal toggle. omp-adapter/ teaches it OMP.
+# - herdr-chat (chat.nix), a layout and mod that swaps an agent's terminal for
+#   a chat view read from the agent's session log, with a Chat | Terminal
+#   toggle. It comes from Tom's fork, which adds OMP: its chat, its slash
+#   commands in the / menu, and a status line with the model and thinking level.
 # - A seeded programs.json entry, so OMP is in the app's + menu. Upstream's
 #   table of agents does not list it (herdrdev/herdr-app#730).
 # - omp-resume.py, a user service. After a reboot herdr-core brings each
