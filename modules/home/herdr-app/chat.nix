@@ -21,8 +21,8 @@ stdenvNoCC.mkDerivation {
   src = fetchFromGitHub {
     owner = "tomkoreny";
     repo = "herdr-chat";
-    rev = "2d62a7e580524e2d2f407804045e466432716c1e";
-    hash = "sha256-HfeAGWh8gZO1RUpEi2Cx96y9fK2zO3IaYt77UmD7VXA=";
+    rev = "e65de6dcd8bf542915047a93057769f4fd027d64";
+    hash = "sha256-rppwHUPLr4ZeSfKajj8V0loMzFEctHuS79mxySHwPKY=";
   };
 
   dontConfigure = true;
