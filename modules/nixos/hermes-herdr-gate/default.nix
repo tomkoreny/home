@@ -61,7 +61,8 @@ in
     };
 
     # No defaults: enabling the car without its real key and address fails
-    # evaluation instead of authorizing a placeholder.
+    # evaluation instead of authorizing a placeholder. The car is part of the
+    # gate: switching `enable` off withdraws its key too.
     car = {
       enable = lib.mkEnableOption "the car display's access to herdr (list, read, prompt) through an SSH forced command";
 
@@ -85,7 +86,7 @@ in
         ''from="${lib.concatStringsSep "," cfg.fromAddresses}",restrict,command="${gate}/bin/herdr-hermes-gate" ${cfg.publicKey}''
       ];
     })
-    (lib.mkIf cfg.car.enable {
+    (lib.mkIf (cfg.enable && cfg.car.enable) {
       users.users.${cfg.user}.openssh.authorizedKeys.keys = [
         ''from="${lib.concatStringsSep "," cfg.car.fromAddresses}",restrict,command="${carGate}/bin/herdr-car-gate" ${cfg.car.publicKey}''
       ];
