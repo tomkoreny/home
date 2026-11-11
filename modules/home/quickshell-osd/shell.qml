@@ -392,7 +392,11 @@ PanelWindow {
 
         function run(action: string): void {
             close();
-            sessionCommand.exec(["@systemctl@", action]);
+            // Windows is a reboot with a one-time choice of systemd-boot's
+            // Windows entry; the boot after that is NixOS again.
+            sessionCommand.exec(action === "windows"
+                ? ["@systemctl@", "reboot", "--boot-loader-entry=auto-windows"]
+                : ["@systemctl@", action]);
         }
 
         component ActionTile: Rectangle {
@@ -497,7 +501,7 @@ PanelWindow {
                 id: sessionCard
 
                 anchors.centerIn: parent
-                width: 600
+                width: 782
                 height: 284
                 radius: 28
                 color: "@surface@"
@@ -528,7 +532,9 @@ PanelWindow {
                             ? "Session"
                             : sessionPopup.pendingAction === "reboot"
                                 ? "Reboot this desktop?"
-                                : "Shut down this desktop?"
+                                : sessionPopup.pendingAction === "windows"
+                                    ? "Reboot into Windows?"
+                                    : "Shut down this desktop?"
                         color: "@text@"
                         font.family: "@fontFamily@"
                         font.pixelSize: 24
@@ -571,6 +577,16 @@ PanelWindow {
                         labelText: "Reboot"
                         onActivated: sessionPopup.request("reboot")
                         KeyNavigation.left: sleepAction
+                        KeyNavigation.right: windowsAction
+                    }
+
+                    ActionTile {
+                        id: windowsAction
+
+                        iconText: "󰖳"
+                        labelText: "Windows"
+                        onActivated: sessionPopup.request("windows")
+                        KeyNavigation.left: rebootAction
                         KeyNavigation.right: shutdownAction
                     }
 
@@ -581,7 +597,7 @@ PanelWindow {
                         labelText: "Shutdown"
                         danger: true
                         onActivated: sessionPopup.request("poweroff")
-                        KeyNavigation.left: rebootAction
+                        KeyNavigation.left: windowsAction
                         KeyNavigation.right: sleepAction
                     }
                 }
@@ -608,8 +624,12 @@ PanelWindow {
                         id: confirmAction
 
                         width: 210
-                        iconText: sessionPopup.pendingAction === "reboot" ? "󰜉" : "󰐥"
-                        labelText: sessionPopup.pendingAction === "reboot" ? "Reboot" : "Shutdown"
+                        iconText: sessionPopup.pendingAction === "reboot"
+                            ? "󰜉"
+                            : sessionPopup.pendingAction === "windows" ? "󰖳" : "󰐥"
+                        labelText: sessionPopup.pendingAction === "reboot"
+                            ? "Reboot"
+                            : sessionPopup.pendingAction === "windows" ? "Windows" : "Shutdown"
                         danger: true
                         onActivated: sessionPopup.run(sessionPopup.pendingAction)
                         KeyNavigation.left: cancelAction
@@ -704,7 +724,7 @@ PanelWindow {
         function request(action: string): void {
             if (!sessionPopup.shown)
                 return;
-            if (action === "reboot" || action === "poweroff")
+            if (action === "reboot" || action === "windows" || action === "poweroff")
                 sessionPopup.request(action);
         }
     }

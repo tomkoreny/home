@@ -446,10 +446,12 @@ Playing or Paused; otherwise ignore that shim and target another player.
 
 ### Session menu
 
-The full-screen session overlay offers Sleep, Reboot, and Shutdown. Sleep runs
-immediately. Reboot and Shutdown require a second confirmation step. Arrow-key
-focus navigation, Enter, mouse activation, outside click, and Escape are all
-supported.
+The full-screen session overlay offers Sleep, Reboot, Windows, and Shutdown.
+Sleep runs immediately. Reboot, Windows, and Shutdown require a second
+confirmation step. Windows runs `systemctl reboot --boot-loader-entry=auto-windows`:
+one boot into systemd-boot's Windows entry, after which the default is NixOS
+again. Arrow-key focus navigation, Enter, mouse activation, outside click, and
+Escape are all supported.
 
 ## macOS bar
 
