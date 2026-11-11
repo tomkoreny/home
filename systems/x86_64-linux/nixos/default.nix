@@ -93,6 +93,9 @@ in
 
     # A desktop notification when fwupd has firmware to install.
     fwupd-notify.enable = true;
+
+    # Weekly removal of images and build cache nothing has used for a month.
+    docker-cleanup.enable = true;
   };
 
   # typescript-language-server's pnpm dependency hash differs per platform, and
