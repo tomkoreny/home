@@ -31,4 +31,4 @@ nix build --no-link --print-build-logs --impure --expr '
     flake.inputs.herdr.packages.x86_64-linux.default
     tom.xdg.dataFile."Steam/millennium/themes/adwaita-stylix".source
   ]
-  ++ map fromHome [ "helium-browser" "betterbird" "orca-ide" "komai" "jellyfin-mpv-shim" "moshi-hook" "vibex" "flectar-mail" "daruda" ]'
+  ++ map fromHome [ "helium-browser" "betterbird" "orca-ide" "komai" "jellyfin-mpv-shim" "moshi-hook" "flectar-mail" "daruda" ]'

@@ -1,8 +1,7 @@
 # Daruda (github.com/daruda-ai/daruda): a native GPUI workspace that runs
 # coding agents side by side over the Agent Client Protocol (ACP), one git
 # worktree per task, with terminal panes beside the chats. On trial as a GUI
-# for OMP after Vibex (modules/home/vibex) turned out unable to start custom
-# agents.
+# for OMP.
 #
 # OMP is not one of Daruda's agent presets, but its catalog accepts custom
 # rows: an `[[agents]]` entry in ~/.config/daruda/config.toml with an id, a

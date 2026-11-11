@@ -192,14 +192,6 @@ PINS = [
         )]},
     ),
     Pin(
-        "vibex", "auto", github_latest("vibex-ai/vibex"),
-        {"modules/home/vibex/default.nix": r'^  version = "([^"]+)";'},
-        {"modules/home/vibex/default.nix": [Source(
-            "vibex-ai/vibex/releases/download",
-            "https://github.com/vibex-ai/vibex/releases/download/v{version}/vibex-{version}-linux-x86_64-deb.deb",
-        )]},
-    ),
-    Pin(
         "flectar-mail", "auto", github_latest("flectar/mail"),
         {"modules/home/flectar-mail/default.nix": r'^  version = "([^"]+)";'},
         {"modules/home/flectar-mail/default.nix": [Source(
