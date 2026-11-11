@@ -209,14 +209,6 @@ PINS = [
             "https://github.com/flectar/mail/releases/download/v{version}/flectar-mail-{version}-linux-x64.AppImage",
         )]},
     ),
-    Pin(
-        "daruda", "auto", github_latest("daruda-ai/daruda"),
-        {"modules/home/daruda/package.nix": r'^  version = "([^"]+)";'},
-        {"modules/home/daruda/package.nix": [Source(
-            "daruda-ai/daruda/releases/download",
-            "https://github.com/daruda-ai/daruda/releases/download/v{version}/daruda-{version}-linux-x86_64.deb",
-        )]},
-    ),
     # The herdr-chat mod in chat.nix is pinned to a commit that was read, and
     # stays put; building it loads the mod in the bumped app (build-moving.sh).
     Pin(

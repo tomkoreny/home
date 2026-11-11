@@ -34,4 +34,4 @@ nix build --no-link --print-build-logs --impure --expr '
     tom.xdg.dataFile."Steam/millennium/themes/adwaita-stylix".source
     tom.tomkoreny.herdr-app.chatPackage
   ]
-  ++ map fromHome [ "helium-browser" "betterbird" "orca-ide" "komai" "jellyfin-mpv-shim" "moshi-hook" "flectar-mail" "daruda" "herdr-app" "herdr-core" ]'
+  ++ map fromHome [ "helium-browser" "betterbird" "orca-ide" "komai" "jellyfin-mpv-shim" "moshi-hook" "flectar-mail" "herdr-app" "herdr-core" ]'
