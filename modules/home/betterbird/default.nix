@@ -78,7 +78,7 @@ let
   # mailboxes. Other users get the client and set up their own profile.
   isTom = config.home.username == common.user.name;
 in
-{
+lib.mkIf config.tomkoreny.desktop.enable {
   # Betterbird uses Thunderbird's profile/account directory layout. Home
   # Manager's Thunderbird module is still the right declarative generator.
   programs.thunderbird = {

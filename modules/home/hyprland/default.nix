@@ -202,7 +202,7 @@ let
   isTom = config.home.username == common.user.name;
 in
 {
-  config = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
+  config = lib.mkIf (pkgs.stdenv.hostPlatform.isLinux && config.tomkoreny.desktop.enable) {
     wayland.windowManager.hyprland = {
       enable = true; # enable Hyprland
       systemd.enableXdgAutostart = true; # enable HyprlandAutostart

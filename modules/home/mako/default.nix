@@ -6,6 +6,13 @@
 }:
 let
   cfg = config.tomkoreny.mako;
+  # Mako serves Linux desktop profiles that still use Waybar. The Quickshell
+  # bar owns the notification DBus service when enabled, so both daemons must
+  # not start in the same session.
+  wanted =
+    pkgs.stdenv.hostPlatform.isLinux
+    && config.tomkoreny.desktop.enable
+    && !config.tomkoreny.quickshell-bar.enable;
 in
 {
   options.tomkoreny.mako = {
@@ -16,10 +23,7 @@ in
     };
   };
 
-  # Keep Mako for Linux profiles that still use Waybar. The Quickshell bar
-  # owns the notification DBus service when enabled, so both daemons must not
-  # start in the same session.
-  config = lib.mkIf (pkgs.stdenv.hostPlatform.isLinux && !config.tomkoreny.quickshell-bar.enable) {
+  config = lib.mkIf wanted {
     services.mako = {
       enable = true;
       settings = {

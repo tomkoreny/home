@@ -1,5 +1,10 @@
-{ pkgs, ... }:
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+lib.mkIf config.tomkoreny.desktop.enable {
   # Keep JetBrains installation declarative via Nix.
   # Manage user settings/plugins via JetBrains Backup and Sync
   # (JetBrains Account) instead of version-pinned XML files in git.

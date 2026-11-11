@@ -1,4 +1,5 @@
 {
+  config,
   pkgs,
   lib,
   inputs,
@@ -217,7 +218,7 @@ let
         PY
       '';
 in
-{
+lib.mkIf config.tomkoreny.desktop.enable {
   # Element Desktop loads config.json from a platform-specific per-user path.
   # The config provides and defaults to the generated Catppuccin/Stylix theme.
   home.file = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {

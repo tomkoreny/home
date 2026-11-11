@@ -1,4 +1,5 @@
 {
+  config,
   inputs,
   lib,
   pkgs,
@@ -24,7 +25,7 @@ in
   imports = [ inputs.lan-mouse.homeManagerModules.default ];
 
   programs.lan-mouse = {
-    enable = true;
+    enable = config.tomkoreny.desktop.enable;
     # Set these explicitly rather than evaluating the upstream module's
     # deprecated stdenv.isLinux/isDarwin defaults.
     systemd = pkgs.stdenv.hostPlatform.isLinux;

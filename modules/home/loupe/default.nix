@@ -1,4 +1,5 @@
 {
+  config,
   pkgs,
   lib,
   ...
@@ -23,7 +24,7 @@ let
     "image/vnd.microsoft.icon"
   ];
 in
-{
+lib.mkIf config.tomkoreny.desktop.enable {
   # Loupe (GNOME Image Viewer): GTK4/libadwaita, so it follows the Stylix GTK
   # theme and matches Nautilus.
   home.packages = lib.optionals pkgs.stdenv.hostPlatform.isLinux [

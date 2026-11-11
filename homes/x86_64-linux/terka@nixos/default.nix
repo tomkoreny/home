@@ -7,6 +7,9 @@
   home.username = "terka";
   home.homeDirectory = "/home/terka";
 
+  # No graphical session: leave out the compositor and the GUI applications.
+  tomkoreny.desktop.enable = false;
+
   # The shared git module sets tom's identity; override it for her.
   programs.git.settings.user = {
     name = lib.mkForce "Terka";

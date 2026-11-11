@@ -976,7 +976,7 @@ let
   '';
   heliumLaunchLink = ".local/share/helium/helium-launch";
 in
-{
+lib.mkIf config.tomkoreny.desktop.enable {
   sops.secrets.karakeep-floccus-api-key = lib.mkIf floccusEnabled {
     sopsFile = ../../../secrets/karakeep.yaml;
     key = "floccus-api-key";

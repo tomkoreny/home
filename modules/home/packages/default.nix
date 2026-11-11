@@ -1,4 +1,5 @@
 {
+  config,
   inputs,
   lib,
   pkgs,
@@ -6,6 +7,10 @@
 }:
 let
   aiTools = inputs.nix-ai-tools.packages.${pkgs.stdenv.hostPlatform.system};
+
+  # Fonts and applications that need a screen are left out of a profile
+  # without a graphical session. Tagged in place so the list keeps its order.
+  desktopOnly = lib.optional config.tomkoreny.desktop.enable;
 in
 {
   programs.omp = {
@@ -13,8 +18,8 @@ in
     package = lib.mkDefault (import ./omp.nix { inherit inputs lib pkgs; });
   };
 
-  home.packages = [
-    pkgs.nerd-fonts.jetbrains-mono
+  home.packages = lib.flatten [
+    (desktopOnly pkgs.nerd-fonts.jetbrains-mono)
     pkgs.nerdfetch
     pkgs.kubectl
     pkgs.kubernetes-helm
@@ -22,17 +27,17 @@ in
     pkgs.k9s
     pkgs.nodejs_22
     pkgs.node-gyp
-    (if pkgs.stdenv.hostPlatform.isDarwin then pkgs.ghostty-bin else pkgs.ghostty)
+    (desktopOnly (if pkgs.stdenv.hostPlatform.isDarwin then pkgs.ghostty-bin else pkgs.ghostty))
     pkgs.glab
 
     pkgs.php
 
-    (
+    (desktopOnly (
       if pkgs.stdenv.hostPlatform.isLinux then
         pkgs.callPackage ./discord-tray-icons { }
       else
         pkgs.discord.override { withVencord = true; }
-    )
+    ))
 
     pkgs.qmk
 
@@ -68,15 +73,16 @@ in
     pkgs.mkcert
     pkgs.cloudflared
     pkgs.argocd
-  ]
-  ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
-    # Clipboard image provider used by img-clip.nvim/PiPasteImage.
-    pkgs.pngpaste
-  ]
-  ++ lib.optionals (!pkgs.stdenv.hostPlatform.isDarwin) [
-    # Native desktop shell for Hermes Agent on the Linux workstation.
-    aiTools.hermes-desktop
-    pkgs.kicad
-    pkgs.zed-editor
+
+    (lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
+      # Clipboard image provider used by img-clip.nvim/PiPasteImage.
+      pkgs.pngpaste
+    ])
+    (lib.optionals (config.tomkoreny.desktop.enable && !pkgs.stdenv.hostPlatform.isDarwin) [
+      # Native desktop shell for Hermes Agent on the Linux workstation.
+      aiTools.hermes-desktop
+      pkgs.kicad
+      pkgs.zed-editor
+    ])
   ];
 }

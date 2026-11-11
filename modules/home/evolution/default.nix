@@ -1,9 +1,10 @@
 {
+  config,
   lib,
   pkgs,
   ...
 }:
-{
+lib.mkIf config.tomkoreny.desktop.enable {
   xdg.mimeApps = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
     enable = true;
     defaultApplications = {
