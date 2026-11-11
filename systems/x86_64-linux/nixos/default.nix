@@ -179,7 +179,9 @@ in
   boot = {
     loader = {
       systemd-boot.enable = lib.mkForce false;
-      systemd-boot.configurationLimit = 5;
+      # Boot menu entries. The hourly auto-upgrade can add a dozen generations
+      # a day, so five covered only a few hours of fallback.
+      systemd-boot.configurationLimit = 20;
       #boot.loader.systemd-boot.netbootxyz.enable = true;
       efi.canTouchEfiVariables = true;
     };
@@ -202,8 +204,6 @@ in
       # THESE 2 LINES ARE FIX FOR SHITTY NETWORK CARD, thanks intel
       "pcie_port_pm=off"
       "pcie_aspm.policy=performance"
-      # Add delay to ensure second NVMe drive is ready
-      "rootdelay=10"
       "nvme_core.default_ps_max_latency_us=0"
     ];
   };
@@ -270,10 +270,10 @@ in
       enable = true;
       nssmdns4 = true;
       openFirewall = true;
-      publish = {
-        enable = true;
-        addresses = true;
-        workstation = true;
+      settings.publish = {
+        disable-publishing = false;
+        publish-addresses = true;
+        publish-workstation = true;
       };
       # OpenSSH is enabled below; advertise only that intentional service.
       extraServiceFiles.ssh = "${pkgs.avahi}/etc/avahi/services/ssh.service";
