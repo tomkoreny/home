@@ -286,6 +286,9 @@
           (homeManagerSystemConfig "x86_64-linux")
           {
             nixpkgs.config.allowUnfree = true;
+            # The commit this system was built from; `nixos-version
+            # --configuration-revision` prints it.
+            system.configurationRevision = inputs.self.rev or inputs.self.dirtyRev or null;
             home-manager.users.tom = import linuxHome;
             home-manager.users.terka = import terkaHome;
           }

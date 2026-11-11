@@ -11,6 +11,9 @@ let
   # Shortcuts for frequently used values
   inherit (common.network) upstreamDns;
   inherit (common.user) name fullName;
+
+  # Where the hourly auto-upgrade takes this configuration from.
+  upgradeRepo = "https://github.com/tomkoreny/home";
 in
 {
   tomkoreny.nixos = {
@@ -97,14 +100,31 @@ in
   ];
 
   # Pull the latest pushed config and rebuild (CI keeps flake.lock fresh).
-  # Fetches straight from GitHub, so there is no local clone to go stale.
+  # system.autoUpgrade provides the hourly timer and the unit; the unit's
+  # script is replaced below.
   system.autoUpgrade = {
     enable = true;
-    flake = "github:tomkoreny/home#nixos";
-    operation = "switch";
     dates = "hourly";
     randomizedDelaySec = "10min";
   };
+
+  # Ask the remote for the head of main and build exactly that commit. Left to
+  # resolve the branch itself, Nix falls back to the last revision it fetched
+  # whenever GitHub cannot be reached (or, with a `github:` URL, when the
+  # anonymous API quota is used up), deploys that again and reports success:
+  # an old commit that looks like an upgrade, and a rollback of anything newer
+  # that was deployed by hand. A commit that cannot be resolved or fetched
+  # fails the run instead.
+  systemd.services.nixos-upgrade.script = lib.mkForce ''
+    rev=$(git ls-remote ${upgradeRepo} refs/heads/main | cut -f1)
+    if [[ ! $rev =~ ^[0-9a-f]{40}$ ]]; then
+      echo "error: cannot resolve the main branch of ${upgradeRepo}" >&2
+      exit 1
+    fi
+    echo "upgrading to $rev"
+    exec ${config.system.build.nixos-rebuild}/bin/nixos-rebuild switch \
+      --flake "git+${upgradeRepo}?ref=main&rev=$rev#nixos"
+  '';
 
   # Let later scheduled updates retry instead of waiting forever on a stuck build.
   # Every run's outcome lands in /var/lib/nixos-upgrade-status/status.json,
