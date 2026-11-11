@@ -1,7 +1,9 @@
 # Nightly restic backup of this desktop to the homelab's MinIO (bucket `desktop`
 # on the storage container). The homelab mirrors its buckets to Backblaze B2
 # every night (homelab-services: clusters/proxmox-lab/proxmox/offsite-sync),
-# and that mirror is the off-site copy.
+# and that mirror is the off-site copy. The bucket is versioned and the mirror
+# reads it as it was when the mirror started, so a backup or prune running at
+# the same time cannot leave a half-updated repository in B2.
 #
 # What goes in: every home directory, the Secure Boot keys, every named Docker
 # volume, and dumps of the databases in running containers (dump-databases.sh).
@@ -89,6 +91,11 @@ in
       paths = [
         "/home"
         "/etc/secureboot"
+        # Host keys: one of the two keys the sops secrets are encrypted to is
+        # derived from the ed25519 one, so a reinstall needs it back.
+        "/etc/ssh"
+        "/var/lib/bluetooth" # pairings
+        "/var/lib/nixos" # uid and gid assignments
         "/var/lib/docker/volumes"
         dumpDir
       ];
@@ -166,9 +173,9 @@ in
       ];
       runCheck = true;
 
-      # After the homelab's own 01:00 backups have started, well before its
+      # After the homelab's own 01:00 backups have started and before its
       # 05:00 mirror to B2. Persistent: a night the desktop was off is made up
-      # at the next boot.
+      # at the next boot, whatever the mirror is doing then.
       timerConfig = {
         OnCalendar = "01:30";
         Persistent = true;
@@ -176,6 +183,11 @@ in
     };
 
     systemd.services.restic-backups-desktop = {
+      # The dumps come from running containers. On a catch-up run at boot
+      # Docker would otherwise still be starting.
+      after = [ "docker.service" ];
+      wants = [ "docker.service" ];
+
       serviceConfig = {
         StateDirectory = "desktop-backup";
         # A catch-up run after a missed night happens while the desktop is in use.

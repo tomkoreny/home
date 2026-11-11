@@ -7,7 +7,8 @@
 # run inside the container and read its own credentials there.
 #
 # One failed dump never stops the others. Each failure is appended to
-# $FAILURES; the backup unit still writes its snapshot and then fails.
+# $FAILURES; the backup unit still writes its snapshot and then fails. Not
+# being able to list the containers at all is such a failure too.
 
 dump_dir=${DUMP_DIR:?}
 failures=${FAILURES:?}
@@ -48,7 +49,17 @@ mssql_dump='
   done
   exec tar -C "$out" -cf - .'
 
-for id in $(docker ps --quiet); do
+# Without the list there is nothing to dump. Leave the previous dumps where
+# they are, so the snapshot still carries the last good ones.
+if ! running=$(docker ps --quiet); then
+  record_failure "listing the containers (is Docker running?)"
+  rm -rf "$new"
+  exit 0
+fi
+mapfile -t ids <<< "$running"
+
+for id in "${ids[@]}"; do
+  [ -n "$id" ] || continue
   name=$(docker inspect --format '{{.Name}}' "$id") || continue
   name=${name#/}
   variables=$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$id" | cut -d= -f1) || continue
@@ -63,12 +74,17 @@ for id in $(docker ps --quiet); do
     continue
   fi
 
-  if docker exec "$id" sh -c "$command" > "$out" && [ -s "$out" ]; then
-    echo "dumped $name ($engine, $(stat -c %s "$out") bytes)"
-  else
-    rm -f "$out"
-    record_failure "$name ($engine)"
-  fi
+  # A database that has only just started, as on a catch-up run right after
+  # boot, may refuse connections for a few seconds.
+  for attempt in 1 2 3; do
+    if docker exec "$id" sh -c "$command" > "$out" && [ -s "$out" ]; then
+      echo "dumped $name ($engine, $(stat -c %s "$out") bytes)"
+      continue 2
+    fi
+    [ "$attempt" = 3 ] || sleep 10
+  done
+  rm -f "$out"
+  record_failure "$name ($engine)"
 done
 
 rm -rf "$dump_dir"
