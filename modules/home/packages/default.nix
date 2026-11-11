@@ -27,7 +27,14 @@ in
     pkgs.k9s
     pkgs.nodejs_22
     pkgs.node-gyp
-    (desktopOnly (if pkgs.stdenv.hostPlatform.isDarwin then pkgs.ghostty-bin else pkgs.ghostty))
+    (
+      if config.tomkoreny.desktop.enable then
+        (if pkgs.stdenv.hostPlatform.isDarwin then pkgs.ghostty-bin else pkgs.ghostty)
+      else
+        # A session over SSH from Ghostty still needs its terminfo entry, which
+        # nothing else on the system provides.
+        lib.optional pkgs.stdenv.hostPlatform.isLinux pkgs.ghostty.terminfo
+    )
     pkgs.glab
 
     pkgs.php
