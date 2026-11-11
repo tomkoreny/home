@@ -59,8 +59,8 @@ This is Tom Koreny's NixOS/Darwin configuration repository using plain Nix flake
 
 ### Platform-Specific Features
 - **macOS**: Uses nix-darwin with Homebrew integration for casks
-- **NixOS**: Includes Hyprland window manager, Secure Boot via lanzaboote, rootless Docker
-- **NixOS multi-seat**: seat0 (tom, NVIDIA GPU, greetd autologin) + seat1 (terka, AMD iGPU + motherboard video output, autologin via the `hyprland-seat1` systemd service — no display manager). The seat1 autologin is currently off (`multiseat.autologin = false`) because nobody uses it and no monitor is attached. See `modules/nixos/multiseat/`. SDDM must NOT be re-enabled: it spawns a greeter on every graphical seat and fights the seat1 session.
+- **NixOS**: Includes Hyprland window manager, Secure Boot via lanzaboote, Docker (rootful; published ports are firewalled from the LAN)
+- **NixOS users**: `tom` has the only seat (NVIDIA GPU, greetd autologin into Hyprland). `terka` is an admin account used over SSH only; the second seat she once had is gone.
 - **Both**: Stylix theming, development tools
 
 ### Keyboard Layout (important for keybinds)

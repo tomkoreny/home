@@ -114,9 +114,9 @@ then log out completely and back in (or reboot) to pick up the new
 Check it with `systemctl --user status espanso`.
 
 Permissions live in `modules/nixos/espanso/default.nix`. The unprivileged
-daemon can read seat0 event devices and write `/dev/uinput`; it is not given
-the global `input` group or `CAP_DAC_OVERRIDE`, which would expose seat1's
-keyboard. This does grant other processes running as Tom raw seat0 input
+daemon can read the event devices and write `/dev/uinput` through the
+`seat0-input` group; it is not given the global `input` group or
+`CAP_DAC_OVERRIDE`. This does grant other processes running as Tom raw input
 access too. Terka's profile and macOS do not enable Espanso.
 
 The keyboard layout is explicitly US, matching the QMK/Hyprland setup.

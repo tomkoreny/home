@@ -39,13 +39,6 @@ in
       displayName = "NixOS Desktop";
     };
 
-    # Second seat (Terka): AMD iGPU + her USB ports. Hardware specifics
-    # (PCI/USB paths) live in the module's option defaults.
-    multiseat.enable = true;
-    # Unused for now and no monitor is attached, so the autologin session
-    # would crash-loop. Her user, home, and seat hardware split are kept.
-    multiseat.autologin = false;
-
     # Super+U opens connected Protect cameras in the Quickshell launcher.
     # Protect's Enhanced H.265 streams play in mpv because Helium has no HEVC
     # decoder. Inventory and stream URLs come from the local Integration API.
@@ -320,10 +313,7 @@ in
     };
 
     gnome.gnome-keyring.enable = true;
-    # Seat0 login: greetd autologin straight into Hyprland. SDDM was replaced
-    # when the second seat was added — SDDM starts a greeter on every
-    # graphical logind seat and would fight the dedicated seat1 session
-    # service (see modules/nixos/multiseat); greetd only manages seat0's VT.
+    # Login: greetd autologin straight into Hyprland.
     greetd = {
       enable = true;
       settings = rec {
@@ -468,7 +458,7 @@ in
     }
     # Terka gets unrestricted passwordless sudo on this host.
     {
-      users = [ config.tomkoreny.nixos.multiseat.user ];
+      users = [ "terka" ];
       commands = [
         {
           command = "ALL";
@@ -504,11 +494,16 @@ in
     ];
   };
 
-  # The account itself is created by modules/nixos/multiseat. On this host she
-  # is also an admin (passwordless sudo, see security.sudo.extraRules above,
-  # plus docker, which is root-equivalent) and logs in from her MacBook.
-  users.users.${config.tomkoreny.nixos.multiseat.user} = {
+  # Terka's account. She uses this host over SSH from her MacBook and is an
+  # admin here: passwordless sudo (see security.sudo.extraRules above) plus
+  # docker, which is root-equivalent.
+  users.users.terka = {
+    isNormalUser = true;
+    description = "Terka";
     extraGroups = [
+      "networkmanager"
+      "video"
+      "render"
       "wheel"
       "docker"
     ];
