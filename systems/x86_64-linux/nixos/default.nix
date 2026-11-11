@@ -194,6 +194,9 @@ in
       systemd-boot.configurationLimit = 20;
       #boot.loader.systemd-boot.netbootxyz.enable = true;
       efi.canTouchEfiVariables = true;
+      # One second at the boot menu instead of five. Any key pressed during
+      # boot still opens it, to pick an older generation or Windows.
+      timeout = 1;
     };
 
     lanzaboote = {
