@@ -128,6 +128,16 @@ def moshi_hook_latest() -> str:
     return urllib.request.urlopen(request, timeout=60).read().decode().strip().removeprefix("v")
 
 
+def herdr_release_latest(product: str):
+    """The Herdr app and herdr-core publish to their own release server."""
+    def fetch() -> str:
+        request = urllib.request.Request(
+            f"https://releases.herdr.dev/{product}/latest.json", headers={"User-Agent": "tomkoreny-home-ci"}
+        )
+        return json.loads(urllib.request.urlopen(request, timeout=60).read())["version"]
+    return fetch
+
+
 def flake_tag(repo: str, prefix: str = "v") -> str:
     return rf'url = "github:{re.escape(repo)}/{prefix}([^"]+)"'
 
@@ -205,6 +215,24 @@ PINS = [
         {"modules/home/daruda/package.nix": [Source(
             "daruda-ai/daruda/releases/download",
             "https://github.com/daruda-ai/daruda/releases/download/v{version}/daruda-{version}-linux-x86_64.deb",
+        )]},
+    ),
+    # The herdr-chat mod in chat.nix is pinned to a commit that was read, and
+    # stays put; building it loads the mod in the bumped app (build-moving.sh).
+    Pin(
+        "herdr-app", "auto", herdr_release_latest("app"),
+        {"modules/home/herdr-app/package.nix": r'^  version = "([^"]+)";'},
+        {"modules/home/herdr-app/package.nix": [Source(
+            "releases.herdr.dev/app",
+            "https://releases.herdr.dev/app/{version}/herdr-app-linux-x86_64.tar.gz",
+        )]},
+    ),
+    Pin(
+        "herdr-core", "auto", herdr_release_latest("core"),
+        {"modules/home/herdr-app/core.nix": r'^  version = "([^"]+)";'},
+        {"modules/home/herdr-app/core.nix": [Source(
+            "releases.herdr.dev/core",
+            "https://releases.herdr.dev/core/{version}/herdr-core-linux-x86_64.tar.gz",
         )]},
     ),
     Pin("herdr", "auto", github_latest("herdrdev/herdr"), {"flake.nix": flake_tag("herdrdev/herdr")}),

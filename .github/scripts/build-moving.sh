@@ -11,7 +11,9 @@
 # - the Linux packages behind the release pins and rolling downloads in
 #   bump-pins.py, which are cheap downloads or small builds;
 # - the Steam skin from modules/home/steam-theme, which follows upstream's
-#   branch and fails to build when upstream renames a variable it overrides.
+#   branch and fails to build when upstream renames a variable it overrides;
+# - the herdr-chat mod from modules/home/herdr-app, whose build loads it in
+#   the Herdr app and fails when a bumped app no longer accepts it.
 # Everything is taken from the host configuration so overrides and `follows`
 # match exactly what the hosts build.
 set -euo pipefail
@@ -30,5 +32,6 @@ nix build --no-link --print-build-logs --impure --expr '
     tom.programs.omp.package
     flake.inputs.herdr.packages.x86_64-linux.default
     tom.xdg.dataFile."Steam/millennium/themes/adwaita-stylix".source
+    tom.tomkoreny.herdr-app.chatPackage
   ]
-  ++ map fromHome [ "helium-browser" "betterbird" "orca-ide" "komai" "jellyfin-mpv-shim" "moshi-hook" "flectar-mail" "daruda" ]'
+  ++ map fromHome [ "helium-browser" "betterbird" "orca-ide" "komai" "jellyfin-mpv-shim" "moshi-hook" "flectar-mail" "daruda" "herdr-app" "herdr-core" ]'
