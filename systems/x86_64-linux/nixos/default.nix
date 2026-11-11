@@ -90,6 +90,9 @@ in
       # under ~/.cache.
       keep = [ "/home/tom/.cache/peppol-customer-relay-demo" ];
     };
+
+    # A desktop notification when fwupd has firmware to install.
+    fwupd-notify.enable = true;
   };
 
   # typescript-language-server's pnpm dependency hash differs per platform, and
