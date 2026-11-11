@@ -86,10 +86,10 @@ jobs:
             echo "No changes to flake inputs or pins"
           elif [ -s "$BUMP_SUMMARY" ] || [ -s "$ROLLING_SUMMARY" ]; then
             git commit -a -m "chore: bump pinned versions and flake inputs" -m "$(cat "$BUMP_SUMMARY" "$ROLLING_SUMMARY")"
-            git push
+            .github/scripts/push-update.sh
           else
             git commit -a -m "flake.lock: update inputs"
-            git push
+            .github/scripts/push-update.sh
           fi
 
       # Nothing else closes the issue the step below opens, so it stayed open
