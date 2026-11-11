@@ -33,6 +33,13 @@ let
   #   mute=yes             these are yard cameras; nine of them unmuted at once
   #                        is unusable. Muted rather than --no-audio so the
   #                        track is still there and `m` toggles it back on.
+  #   target-colorspace-hint=no
+  #                        the feeds are SDR bt.709, so there is nothing to
+  #                        pass through. With force-window=immediate the
+  #                        NVIDIA 615 Vulkan driver already owns the window's
+  #                        wp_color_management_surface_v1 when mpv asks for
+  #                        its own, and Hyprland kills mpv with "CM Surface
+  #                        already exists" about a second after it opens.
   mpvFlags = lib.concatStringsSep " " [
     "--profile=low-latency"
     "--hwdec=auto-safe"
@@ -41,6 +48,7 @@ let
     "--no-terminal"
     "--force-window=immediate"
     "--mute=yes"
+    "--target-colorspace-hint=no"
   ];
 
   camerasScript = pkgs.writeShellScriptBin "unifi-cam" ''
