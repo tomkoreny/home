@@ -33,12 +33,6 @@ in
     # Always-on split-tunnel WireGuard link (10.71.71.3, internal routes only).
     wireguard.enable = true;
 
-    # Temporarily disabled: node startup failures were failing system activation.
-    clawdbot-node = {
-      enable = false;
-      displayName = "NixOS Desktop";
-    };
-
     # Super+U opens connected Protect cameras in the Quickshell launcher.
     # Protect's Enhanced H.265 streams play in mpv because Helium has no HEVC
     # decoder. Inventory and stream URLs come from the local Integration API.
