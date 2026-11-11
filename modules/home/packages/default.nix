@@ -66,6 +66,7 @@ in
     pkgs.git-crypt
     pkgs.gh
     pkgs.htop
+    pkgs.jq
     pkgs.nssTools
     pkgs.lazyssh
     pkgs.usql
