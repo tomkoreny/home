@@ -216,13 +216,21 @@ in
     services.omp-tab-janitor = {
       Unit.Description = "Close finished and park stale OMP sessions in Herdr";
       Service = {
-        Type = "oneshot";
+        # Not oneshot: systemd only reruns a long-running service type on
+        # RestartForceExitStatus.
+        Type = "exec";
         ExecStart = "${pkgs.python3}/bin/python3 ${./omp-tab-janitor.py}";
         # The script shells out to herdr and omp; a user unit does not inherit
         # the login shell PATH.
         Environment = [ "PATH=${config.home.profileDirectory}/bin:/run/current-system/sw/bin" ];
         Nice = 10;
-        TimeoutStartSec = "2h";
+        RuntimeMaxSec = "2h";
+        # Exit 75: no Herdr server is running. Herdr starts with the first
+        # terminal, which is after the catch-up run of a day the desktop was
+        # off at 04:30. That is not a failure; try again until it is there.
+        SuccessExitStatus = 75;
+        RestartForceExitStatus = 75;
+        RestartSec = "15min";
       };
     };
     timers.omp-tab-janitor = {

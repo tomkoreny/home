@@ -62,9 +62,20 @@ ENV = {key: value for key, value in os.environ.items() if not key.startswith("HE
 log_lock = threading.Lock()
 
 
+# Exit status for "try again later" (EX_TEMPFAIL). The systemd unit reruns the
+# janitor after it instead of recording a failure.
+EX_TEMPFAIL = 75
+
+
+class HerdrNotRunning(RuntimeError):
+    """No Herdr server exists yet, so there are no tabs to look at."""
+
+
 def herdr(*args):
     out = subprocess.run(["herdr", *args], env=ENV, text=True, capture_output=True, timeout=120)
     if out.returncode:
+        if '"server_not_running"' in out.stderr:
+            raise HerdrNotRunning(out.stderr.strip())
         raise RuntimeError(f"herdr {' '.join(args)}: {out.stderr.strip()}")
     # `pane run` acknowledges with an empty stdout; failures exit non-zero.
     return json.loads(out.stdout)["result"] if out.stdout.strip() else None
@@ -376,6 +387,9 @@ def main():
 
     try:
         panes = inventory()
+    except HerdrNotRunning:
+        print("omp-tab-janitor: no Herdr server is running yet; trying again later", file=sys.stderr)
+        return EX_TEMPFAIL
     except (OSError, subprocess.SubprocessError, RuntimeError, ValueError) as error:
         print(f"omp-tab-janitor: cannot reach Herdr: {error}", file=sys.stderr)
         return 1
