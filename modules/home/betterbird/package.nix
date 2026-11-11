@@ -16,17 +16,17 @@ let
   # falls behind stops being fetchable at all: bb24 now 404s. Bump this in step
   # with https://www.betterbird.eu/downloads/ rather than waiting for a rebuild
   # to fail on a dead URL.
-  version = "153.6.0esr-bb12";
+  version = "153.7.0esr-bb13";
 
   sources = {
     x86_64-linux = fetchurl {
       url = "https://www.betterbird.eu/downloads/LinuxArchive/betterbird-${version}.en-US.linux-x86_64.tar.xz";
-      hash = "sha256-nYC2s0Jcl9k87qutPy3gxyLg/QVTHY0to0SVhqhV9B8=";
+      hash = "sha256-FF0Ho0/AW7pQpBstk7xXaS4GkOV+b9nKQTwvy2QsOTQ=";
     };
 
     aarch64-darwin = fetchurl {
       url = "https://www.betterbird.eu/downloads/MacDiskImage/betterbird-${version}.en-US.mac-arm64.dmg";
-      hash = "sha256-mB/Dtgb+jlMEysIZoQ0Ra/CvBc/OcaLCfE4PlbjZlZU=";
+      hash = "sha256-terLK6HBG24bNsc4mGESRrCn84Qxpz37tHYhFjk6mNk=";
     };
   };
 
