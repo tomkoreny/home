@@ -15,9 +15,11 @@ shell in it, `omp --resume <file>` is typed into it.
 
 A terminal counts as recreated when its shell is a different process from the
 recorded one. OMP gone from the same shell means the user quit it, and the
-record is dropped. At most one session is resumed per pass, so a restart does
-not start every OMP at once. The core is never started from here: nothing
-happens until the app or `hc` has started it.
+record is dropped. Text is only ever typed at a shell: a returned terminal whose
+shell has been replaced (`exec nvim` keeps its process id) is left alone. At
+most one session is resumed per pass, so a restart does not start every OMP at
+once. The core is never started from here: nothing happens until the app or
+`hc` has started it.
 
 usage: omp-resume.py HC
 """
@@ -26,6 +28,7 @@ from __future__ import annotations
 
 import json
 import os
+import pwd
 import shlex
 import socket
 import subprocess
@@ -46,6 +49,20 @@ CRUMBS = Path.home() / ".omp/agent/terminal-sessions"
 BOOT = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
 BOOT_TIME = next(int(line.split()[1]) for line in Path("/proc/stat").read_text().splitlines() if line.startswith("btime "))
 TICKS = os.sysconf("SC_CLK_TCK")
+
+
+def shell_names() -> frozenset[str]:
+    """What a shell is called here: /etc/shells, the login shell, $SHELL and the usual ones."""
+    names = {"sh", "bash", "zsh", "fish", "dash", "ksh", "nu"}
+    try:
+        names.update(Path(line).name for line in Path("/etc/shells").read_text().split() if line.startswith("/"))
+    except OSError:
+        pass
+    names.update(Path(shell).name for shell in (os.environ.get("SHELL"), pwd.getpwuid(os.getuid()).pw_shell) if shell)
+    return frozenset(names)
+
+
+SHELLS = shell_names()
 
 
 def log(message: str) -> None:
@@ -91,6 +108,14 @@ def pty_of(pid: int) -> str | None:
     except OSError:
         return None
     return "pts-" + tty.removeprefix("/dev/pts/") if tty.startswith("/dev/pts/") else None
+
+
+def is_shell(pid: int) -> bool:
+    """Whether a process is a shell, by the name it runs under now."""
+    try:
+        return Path(f"/proc/{pid}/comm").read_text().strip() in SHELLS
+    except OSError:
+        return False
 
 
 def crumb_session(pty: str, since: float) -> tuple[bool, str | None]:
@@ -148,10 +173,14 @@ def note_other(address: str, records: dict, now: float, may_resume: bool) -> boo
         del records[address]
         return False
     info = hc("get", address)
-    shell = process_id(info["pid"])
+    root = info.get("pid")
+    shell = process_id(root) if root else None
     if info.get("created_ms") != record["created"]:
         log(f"{address}: another terminal took this address, forgetting {record['session']}")
         del records[address]
+        return False
+    if shell is None:
+        # The core is up but has not started this terminal's shell yet.
         return False
     if shell == record["shell"]:
         if now - record.get("sent", 0) > SETTLE:
@@ -159,7 +188,8 @@ def note_other(address: str, records: dict, now: float, may_resume: bool) -> boo
             del records[address]
         return False
     lost = record.setdefault("lost", now)
-    idle = (info.get("foreground") or {}).get("pid") == info["pid"]
+    # The shell itself in the foreground, and still a shell: `exec cat` keeps its pid.
+    idle = (info.get("foreground") or {}).get("pid") == root and is_shell(root)
     if not idle:
         if now - lost > RESUME_WINDOW:
             log(f"{address}: recreated but in use, forgetting {record['session']}")
@@ -171,12 +201,12 @@ def note_other(address: str, records: dict, now: float, may_resume: bool) -> boo
         return False
     if not may_resume:
         return False
-    pty = pty_of(info["pid"])
-    if shell is None or pty is None:
+    pty = pty_of(root)
+    if pty is None:
         return False
     hc("send", address, "omp --resume " + shlex.quote(record["session"]))
     log(f"{address}: resumed {record['session']}")
-    record.update(shell=shell, shell_pid=info["pid"], pty=pty, omp_since=now - 5, sent=now, seen=now)
+    record.update(shell=shell, shell_pid=root, pty=pty, omp_since=now - 5, sent=now, seen=now)
     record.pop("lost", None)
     return True
 
