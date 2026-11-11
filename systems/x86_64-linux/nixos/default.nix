@@ -71,8 +71,21 @@ in
     # to the homelab's MinIO, which mirrors it to Backblaze B2.
     desktop-backup = {
       enable = true;
-      # A Composer vendor directory; reinstalled from the lock file.
-      disposableVolumes = [ "peppolapdashboard_vendor" ];
+      disposableVolumes = [
+        # A Composer vendor directory; reinstalled from the lock file.
+        "peppolapdashboard_vendor"
+        # Databases of development worktrees whose containers are gone.
+        "worktree-dev-20250814-232910_postgres_data"
+        "worktree-dev-20250814-232910_redis_data"
+        "worktree-public-status-page-cache-fix_postgres_data"
+        "worktree-public-status-page-cache-fix_redis_data"
+        "worktree-test3_postgres_data"
+        "worktree-test3_redis_data"
+        "worktree-test4_postgres_data"
+        "worktree-test4_redis_data"
+      ];
+      # Material collected during the August 2026 Peppol HA recovery, 85 GiB.
+      exclude = [ "/home/tom/WebstormProjects/peppol-ha-recovery" ];
       # A demo stack whose database and configuration are bind-mounted from
       # under ~/.cache.
       keep = [ "/home/tom/.cache/peppol-customer-relay-demo" ];

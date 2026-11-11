@@ -53,9 +53,20 @@ in
       default = [ ];
       example = [ "myproject_vendor" ];
       description = ''
-        Named Docker volumes that are deliberately not backed up. Every other
-        named volume is included, so a new compose project is covered without
-        being listed anywhere.
+        Named Docker volumes that are deliberately not backed up, in the
+        system's Docker root and in a user's rootless one. Every other named
+        volume is included, so a new compose project is covered without being
+        listed anywhere.
+      '';
+    };
+
+    exclude = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      example = [ "/home/tom/scratch" ];
+      description = ''
+        Further paths on this host that are not worth a backup, in restic's
+        exclude syntax.
       '';
     };
 
@@ -150,7 +161,11 @@ in
         "/home/*/.config/**/Service Worker/CacheStorage"
         "/var/lib/docker/volumes/${anonymousVolume}"
       ]
-      ++ map (volume: "/var/lib/docker/volumes/${volume}") cfg.disposableVolumes
+      ++ lib.concatMap (volume: [
+        "/var/lib/docker/volumes/${volume}"
+        "/home/*/.local/share/docker/volumes/${volume}"
+      ]) cfg.disposableVolumes
+      ++ cfg.exclude
       # A negation has to follow the pattern it undoes.
       ++ map (path: "!${path}") cfg.keep;
 
