@@ -151,7 +151,11 @@ let
           ;;
         blank)
           call_idle blank
-          set_side_dpms off
+          # Input that does not enable DPMS (mouse motion) restarts the idle
+          # stages after the full power-off stage; keep every output off then.
+          if main_is_on; then
+            set_side_dpms off
+          fi
           ;;
         wake)
           # The side outputs are off only during the clock stage. After the
@@ -177,6 +181,25 @@ let
           exit 2
           ;;
       esac
+    '';
+  };
+  # hypridle uses input-only idle timers (see below), so each stage checks
+  # Wayland idle inhibitors (mpv, browser video) here. A stage passes only once
+  # no window has inhibited idle for its own timeout, which keeps the stages
+  # counting from the end of playback as Hyprland's own inhibitor handling did.
+  idleUninhibited = pkgs.writeShellApplication {
+    name = "idle-uninhibited";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.jq
+    ];
+    text = ''
+      stamp="''${XDG_RUNTIME_DIR:?XDG_RUNTIME_DIR is unset}/tom-idle-inhibited"
+      if ! "${hyprlandPackage}/bin/hyprctl" clients -j | jq -e 'all(.[]; .inhibitingIdle | not)' >/dev/null; then
+        touch "$stamp"
+        exit 1
+      fi
+      [[ ! -e "$stamp" ]] || (($(date +%s) - $(stat -c %Y "$stamp") >= ''${1:?usage: idle-uninhibited SECONDS}))
     '';
   };
   mediaControl = pkgs.writeShellApplication {
@@ -317,29 +340,46 @@ in
       general = {
         after_sleep_cmd = "${oledIdle}/bin/oled-idle dpms-on";
         ignore_dbus_inhibit = false;
+        # Hyprland restarts inhibitor-aware idle timers, and reports a resume,
+        # whenever any window maps, unmaps or takes focus. Steam's notification
+        # toasts did that every few minutes and woke the saver with nobody at
+        # the desk. Input-only timers restart on real input alone; D-Bus and
+        # systemd inhibitors still apply, and idle-uninhibited covers Wayland
+        # inhibitors.
+        ignore_wayland_inhibit = true;
         # This remains a visual OLED saver rather than an authenticated lock.
         lock_cmd = "${oledIdle}/bin/oled-idle blank";
       };
 
-      listener = [
-        {
-          timeout = 120;
-          on-timeout = "${oledIdle}/bin/oled-idle dim";
-          on-resume = "${oledIdle}/bin/oled-idle wake";
-        }
-        {
-          # Side outputs go off here; the saver powers every output off ten
-          # minutes later.
-          timeout = 300;
-          on-timeout = "${oledIdle}/bin/oled-idle blank";
-          on-resume = "${oledIdle}/bin/oled-idle wake";
-        }
-        {
-          # Backstop in case the Quickshell saver is not running.
-          timeout = 900;
-          on-timeout = "${oledIdle}/bin/oled-idle dpms-off";
-        }
-      ];
+      listener =
+        map
+          (
+            listener:
+            listener
+            // {
+              condition_cmd = "${idleUninhibited}/bin/idle-uninhibited ${toString listener.timeout}";
+              condition_retry = 10;
+            }
+          )
+          [
+            {
+              timeout = 120;
+              on-timeout = "${oledIdle}/bin/oled-idle dim";
+              on-resume = "${oledIdle}/bin/oled-idle wake";
+            }
+            {
+              # Side outputs go off here; the saver powers every output off ten
+              # minutes later.
+              timeout = 300;
+              on-timeout = "${oledIdle}/bin/oled-idle blank";
+              on-resume = "${oledIdle}/bin/oled-idle wake";
+            }
+            {
+              # Backstop in case the Quickshell saver is not running.
+              timeout = 900;
+              on-timeout = "${oledIdle}/bin/oled-idle dpms-off";
+            }
+          ];
     };
   };
 }
