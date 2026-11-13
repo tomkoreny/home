@@ -146,6 +146,8 @@ let
 
       case "''${1:-}" in
         dim)
+          # The saver watches for players that start without input from here on.
+          call_idle dim || true
           capture_brightness
           set_saved_brightness 20
           ;;
@@ -187,6 +189,9 @@ let
   # Wayland idle inhibitors (mpv, browser video) here. A stage passes only once
   # no window has inhibited idle for its own timeout, which keeps the stages
   # counting from the end of playback as Hyprland's own inhibitor handling did.
+  # The saver also calls it to notice players that start during the dim and
+  # clock stages. Exit 1 means a window inhibits idle; 2 means Hyprland did not
+  # answer.
   idleUninhibited = pkgs.writeShellApplication {
     name = "idle-uninhibited";
     runtimeInputs = [
@@ -195,7 +200,9 @@ let
     ];
     text = ''
       stamp="''${XDG_RUNTIME_DIR:?XDG_RUNTIME_DIR is unset}/tom-idle-inhibited"
-      if ! "${hyprlandPackage}/bin/hyprctl" clients -j | jq -e 'all(.[]; .inhibitingIdle | not)' >/dev/null; then
+      clients="$("${hyprlandPackage}/bin/hyprctl" clients -j)" || exit 2
+      inhibitors="$(jq '[.[] | select(.inhibitingIdle)] | length' <<<"$clients")" || exit 2
+      if ((inhibitors > 0)); then
         touch "$stamp"
         exit 1
       fi
@@ -219,6 +226,7 @@ let
   idleShell = pkgs.replaceVars ./idle.qml {
     inherit fontFamily;
     oledIdle = lib.getExe oledIdle;
+    idleUninhibited = lib.getExe idleUninhibited;
   };
   # The OLED idle helpers address Tom's seat0 monitors by serial and output
   # name. Other users get neither them nor hypridle.
