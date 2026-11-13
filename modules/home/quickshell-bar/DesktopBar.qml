@@ -163,8 +163,8 @@ PanelWindow {
                     id: herdrText
 
                     anchors.centerIn: parent
-                    text: shellRoot.herdrBlocked > 0 ? `π ${shellRoot.herdrWorking}  󰅖 ${shellRoot.herdrBlocked}` : `π ${shellRoot.herdrWorking}`
-                    color: shellRoot.herdrBlocked > 0 ? "@muted@" : shellRoot.herdrWorking > 0 ? "@accent@" : "@subdued@"
+                    text: shellRoot.agentsBlocked > 0 ? `π ${shellRoot.agentsWorking}  󰅖 ${shellRoot.agentsBlocked}` : `π ${shellRoot.agentsWorking}`
+                    color: shellRoot.agentsBlocked > 0 ? "@muted@" : shellRoot.agentsWorking > 0 ? "@accent@" : "@subdued@"
                     font.family: "@fontFamily@"
                     font.pixelSize: 12
                     font.weight: Font.DemiBold
@@ -180,7 +180,7 @@ PanelWindow {
                     HoverPopover {
                         anchorItem: herdrMouse
                         hovered: herdrMouse.containsMouse
-                        text: shellRoot.herdrSummary
+                        text: shellRoot.agentsSummary
                         alignRight: true
                     }
                 }

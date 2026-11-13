@@ -33,6 +33,13 @@ ShellRoot {
     property int herdrBlocked: 0
     property int herdrIdle: 0
     property string herdrSummary: "Herdr · unavailable"
+    // The π item counts both Herdrs: the TUI's server above and the app's herdr-core.
+    readonly property int agentsWorking: herdrWorking + herdrApp.working
+    readonly property int agentsBlocked: herdrBlocked + herdrApp.blocked
+    readonly property string herdrAppSummary: herdrApp.running
+        ? agentSummary("Herdr app", herdrApp.working, herdrApp.blocked, herdrApp.idle)
+        : "Herdr app · not running"
+    readonly property string agentsSummary: herdrApp.enabled ? `${herdrSummary}\n${herdrAppSummary}` : herdrSummary
     property string foregroundAppId: ""
     property var aiUsageAccounts: []
     property bool aiUsageStale: false
@@ -90,6 +97,17 @@ ShellRoot {
         herdrSnapshot.running = true;
     }
 
+    function agentSummary(label: string, working: int, blocked: int, idle: int): string {
+        const parts = [];
+        if (working > 0)
+            parts.push(`${working} working`);
+        if (blocked > 0)
+            parts.push(`${blocked} blocked`);
+        if (idle > 0)
+            parts.push(`${idle} idle`);
+        return parts.length > 0 ? `${label} · ${parts.join(" · ")}` : `${label} · no agents`;
+    }
+
     function updateHerdr(payload: string): void {
         try {
             const snapshot = JSON.parse(payload).result.snapshot;
@@ -102,16 +120,7 @@ ShellRoot {
             herdrBlocked = agents.filter(agent => agent.agent_status === "blocked").length;
             herdrIdle = agents.filter(agent => agent.agent_status === "idle"
                 || agent.agent_status === "done").length;
-            const parts = [];
-            if (herdrWorking > 0)
-                parts.push(`${herdrWorking} working`);
-            if (herdrBlocked > 0)
-                parts.push(`${herdrBlocked} blocked`);
-            if (herdrIdle > 0)
-                parts.push(`${herdrIdle} idle`);
-            herdrSummary = parts.length > 0
-                ? `Herdr · ${parts.join(" · ")}`
-                : "Herdr · no agents";
+            herdrSummary = agentSummary("Herdr", herdrWorking, herdrBlocked, herdrIdle);
         } catch (error) {
             herdrWorking = 0;
             herdrBlocked = 0;
@@ -401,6 +410,10 @@ ShellRoot {
     }
     SystemUsageService {
         id: systemUsage
+    }
+    HerdrAppService {
+        id: herdrApp
+        enabled: @herdrAppEnabled@
     }
 
     Connections {

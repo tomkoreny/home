@@ -165,6 +165,18 @@ let
       fi
     '';
   };
+  # `hc` starts herdr-core when none is running, and a starting core brings
+  # back every kept terminal, whose OMP sessions herdr-omp-resume then
+  # reopens. The bar only looks: it asks a core that already answers.
+  herdrAppAgents = pkgs.writeShellApplication {
+    name = "herdr-app-agents";
+    runtimeInputs = [ pkgs.socat ];
+    text = ''
+      socket="''${XDG_RUNTIME_DIR:?}/herdr-core/default.sock"
+      socat -u OPEN:/dev/null "UNIX-CONNECT:$socket" 2>/dev/null || exit 0
+      exec ${config.home.profileDirectory}/bin/hc ls --json
+    '';
+  };
 
   launcherAiConfig = pkgs.writeText "launcher-ai-config.yml" ''
     advisor:
@@ -247,6 +259,7 @@ let
       videoStatusOutput = builtins.toJSON cfg.videoStatusOutput;
       headsetFallbackSink = builtins.toJSON cfg.headsetFallbackSink;
       workTasksEnabled = builtins.toJSON backends.workTasks.enable;
+      herdrAppEnabled = builtins.toJSON config.tomkoreny.herdr-app.enable;
       herdr = lib.getExe herdrPackage;
       hyprctl = lib.getExe' config.wayland.windowManager.hyprland.package "hyprctl";
       omp = lib.getExe config.programs.omp.package;
@@ -374,6 +387,9 @@ let
     usageHelper = "${./system-usage.py}";
     uwsm = lib.getExe pkgs.uwsm;
   };
+  herdrAppService = pkgs.replaceVars ./HerdrAppService.qml {
+    herdrAppAgents = lib.getExe herdrAppAgents;
+  };
   systemUsageIndicator = pkgs.replaceVars ./SystemUsageIndicator.qml {
     inherit (themeVars) fontFamily muted text;
   };
@@ -485,6 +501,7 @@ in
       "quickshell/tom-bar/UnitStatusService.qml".source = unitStatusService;
       "quickshell/tom-bar/SystemUsageService.qml".source = systemUsageService;
       "quickshell/tom-bar/SystemUsageIndicator.qml".source = systemUsageIndicator;
+      "quickshell/tom-bar/HerdrAppService.qml".source = herdrAppService;
       "quickshell/tom-bar/TimerPopup.qml".source = timerPopup;
       "quickshell/tom-bar/HeadsetSettingsPopup.qml".source = headsetSettingsPopup;
       "quickshell/tom-bar/VolumePopup.qml".source = volumePopup;
