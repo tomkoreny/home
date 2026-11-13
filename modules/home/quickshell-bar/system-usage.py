@@ -3,6 +3,7 @@
 
 Processes are grouped by the name of their executable (a Nix wrapper's
 `.name-wrapped` counts as `name`), so fifteen OMP sessions are one row.
+Another person's processes carry their owner, as in `node (terka)`.
 
 Memory is PSS: a page several processes share is split between them, so the
 rows add up to what is in use, where RSS counts a browser's shared pages once
@@ -20,6 +21,7 @@ from __future__ import annotations
 
 import json
 import os
+import pwd
 import time
 
 SAMPLE = 0.5
@@ -45,16 +47,33 @@ def readings() -> dict[str, tuple[str, int, bool]]:
     return found
 
 
+def owner_tag(pid: str) -> str:
+    """ " (terka)" for a process of another person on this machine, else nothing."""
+    uid = os.stat(f"/proc/{pid}").st_uid
+    if uid == os.getuid() or uid < 1000:
+        return ""
+    try:
+        return f" ({pwd.getpwuid(uid).pw_name})"
+    except KeyError:
+        return ""  # a container's user, unknown on the host
+
+
 def program(pid: str) -> str:
     try:
         name = os.path.basename(os.readlink(f"/proc/{pid}/exe")).removesuffix(" (deleted)")
     except OSError:
-        # Another user's process: its 15-character command name.
-        with open(f"/proc/{pid}/comm") as file:
-            name = file.read().strip()
+        # Another user's process hides its exe link but not its command line.
+        # Its first word: next-server, for one, puts its version after it. The
+        # command name is no use here: node's is "MainThread".
+        with open(f"/proc/{pid}/cmdline", "rb") as file:
+            command = file.read().split(b"\0", 1)[0].decode(errors="replace")
+        name = os.path.basename(command).split(" ", 1)[0].rstrip(":")
+        if not name:
+            with open(f"/proc/{pid}/comm") as file:
+                name = file.read().strip()
     if name.startswith(".") and name.endswith("-wrapped"):
         name = name[1:-len("-wrapped")]
-    return name
+    return name + owner_tag(pid)
 
 
 def memory_kib(pid: str) -> int:
