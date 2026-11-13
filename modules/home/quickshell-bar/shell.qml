@@ -399,6 +399,9 @@ ShellRoot {
         // Nightly, with a catch-up at boot: two missed nights mean it stalled.
         staleSeconds: 50 * 60 * 60
     }
+    SystemUsageService {
+        id: systemUsage
+    }
 
     Connections {
         target: overlays
@@ -576,6 +579,7 @@ ShellRoot {
             todoService: todos
             workManagerController: workManager
             workService: workTasks
+            usageService: systemUsage
         }
     }
 }

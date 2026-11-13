@@ -366,6 +366,17 @@ let
     notifySend = lib.getExe pkgs.libnotify;
     uwsm = lib.getExe pkgs.uwsm;
   };
+  systemUsageService = pkgs.replaceVars ./SystemUsageService.qml {
+    cat = lib.getExe' pkgs.coreutils "cat";
+    ghostty = lib.getExe pkgs.ghostty;
+    htop = lib.getExe pkgs.htop;
+    python = lib.getExe pkgs.python3;
+    usageHelper = "${./system-usage.py}";
+    uwsm = lib.getExe pkgs.uwsm;
+  };
+  systemUsageIndicator = pkgs.replaceVars ./SystemUsageIndicator.qml {
+    inherit (themeVars) fontFamily muted text;
+  };
   todoService = pkgs.replaceVars ./TodoService.qml {
     todoHelper = lib.getExe backends.helpers.notion;
     xdgOpen = lib.getExe' pkgs.xdg-utils "xdg-open";
@@ -472,6 +483,8 @@ in
       "quickshell/tom-bar/HeadsetAudioSwitch.qml".source = ./HeadsetAudioSwitch.qml;
       "quickshell/tom-bar/HeadsetDisplayFeed.qml".source = ./HeadsetDisplayFeed.qml;
       "quickshell/tom-bar/UnitStatusService.qml".source = unitStatusService;
+      "quickshell/tom-bar/SystemUsageService.qml".source = systemUsageService;
+      "quickshell/tom-bar/SystemUsageIndicator.qml".source = systemUsageIndicator;
       "quickshell/tom-bar/TimerPopup.qml".source = timerPopup;
       "quickshell/tom-bar/HeadsetSettingsPopup.qml".source = headsetSettingsPopup;
       "quickshell/tom-bar/VolumePopup.qml".source = volumePopup;

@@ -21,6 +21,7 @@ PanelWindow {
     required property var todoService
     required property var workManagerController
     required property var workService
+    required property var usageService
 
     required property var modelData
     readonly property var displayMonitor: Hyprland.monitors.values.find(monitor => monitor.name === modelData.name) ?? null
@@ -314,6 +315,16 @@ PanelWindow {
                 }
             }
 
+            Rectangle {
+                width: 1
+                height: 16
+                anchors.verticalCenter: parent.verticalCenter
+                color: "@border@"
+            }
+
+            SystemUsageIndicator {
+                service: usageService
+            }
             Rectangle {
                 width: 1
                 height: 16
