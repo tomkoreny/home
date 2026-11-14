@@ -1,20 +1,6 @@
 {
-  # Snowfall Lib provides a customized `lib` instance with access to your flake's library
-  # as well as the libraries available from your flake's inputs.
-  lib,
-  # An instance of `pkgs` with your overlays and packages applied is also available.
   pkgs,
-  # You also have access to your flake's inputs.
   inputs,
-  # Additional metadata is provided by Snowfall Lib.
-  # namespace, # The namespace used for your flake, defaulting to "internal" if not set.
-  # system, # The system architecture for this host (eg. `x86_64-linux`).
-  # target, # The Snowfall Lib target for this system (eg. `x86_64-iso`).
-  # format, # A normalized name for the system target (eg. `iso`).
-  # virtual, # A boolean to determine whether this system is a virtual target using nixos-generators.
-  # systems, # An attribute map of your defined hosts.
-  # All other arguments come from the system system.
-  config,
   ...
 }:
 let
@@ -46,7 +32,9 @@ let
   '';
 in
 {
-  # Enable auto-upgrade from git (modules/darwin/* are auto-imported by Snowfall)
+  # Every half hour: pull the configuration CI validated and activate it.
+  # (Every directory under modules/darwin is imported by autoModules in
+  # flake.nix; these lines only switch the ones this host uses on.)
   tomkoreny.darwin.auto-upgrade.enable = true;
   # T-Mobile IPsec tunnel (strongSwan) + its sops secret
   tomkoreny.darwin.vpn.enable = true;
@@ -64,8 +52,6 @@ in
   # Avoid collisions with pre-existing manual backups like ~/.ssh/config.bak.
   home-manager.backupFileExtension = "hm-bak";
 
-  # List packages installed in system profile. To search by name, run:
-  # $ nix-env -qaP | grep wget
   environment.systemPackages = [
     # rustup manages its own rustc/cargo toolchains; do not also install
     # pkgs.rustc or the two collide in the profile.
@@ -76,7 +62,7 @@ in
   # Disable nix-darwin's native Nix management to avoid activation conflicts.
   nix.enable = false;
 
-  networking.hostName = "macos"; # Define your hostname.
+  networking.hostName = "macos";
   networking.knownNetworkServices = [
     "Wi-Fi"
     "Thunderbolt Bridge"

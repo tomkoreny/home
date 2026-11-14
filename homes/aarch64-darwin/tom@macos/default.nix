@@ -7,8 +7,8 @@ let
   common = import ../../../lib/common { };
 in
 {
-  # NOTE: all modules under modules/home/ are auto-imported by Snowfall Lib —
-  # no explicit imports needed here, just per-host settings.
+  # Every directory under modules/home is imported for every profile
+  # (autoModules in flake.nix); only this profile's settings live here.
 
   home.username = "tom";
   home.homeDirectory = "/Users/tom";
@@ -44,7 +44,7 @@ in
   home.stateVersion = "24.05";
   programs.direnv = {
     enable = true;
-    enableBashIntegration = true; # see note on other shells below
+    enableBashIntegration = true;
     nix-direnv.enable = true;
   };
 
