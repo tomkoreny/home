@@ -11,7 +11,8 @@
 # - herdr-chat (chat.nix), a layout and mod that swaps an agent's terminal for
 #   a chat view read from the agent's session log, with a Chat | Terminal
 #   toggle. It comes from Tom's fork, which adds OMP: its chat, its slash
-#   commands in the / menu, and a status line with the model and thinking level.
+#   commands in the / menu, a status line with the model and thinking level,
+#   and a card with its to-do list and running subagents above the reply box.
 # - OMP's entry in programs.json, so OMP is in the app's + menu with its own
 #   mark (omp-icon.svg, tinted like the app's other agents). Upstream's table of
 #   agents does not list it (herdrdev/herdr-app#730).

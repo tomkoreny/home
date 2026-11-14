@@ -8,12 +8,13 @@
 }:
 stdenvNoCC.mkDerivation {
   pname = "herdr-chat";
-  version = "0-unstable-2026-11-11";
+  version = "0-unstable-2026-11-14";
 
   # Tom's fork of azaeldrm/herdr-chat, a young single-author project: upstream
-  # plus OMP (its chat, its slash commands with their choices, and a status
-  # line with the model and thinking level), on the fork's `omp` branch. A
-  # Herdr mod is unsandboxed code with the user's access; upstream was read
+  # plus OMP (its chat, its slash commands with their choices, a status line
+  # with the model and thinking level, and a card with its to-do list and
+  # running subagents), on the fork's `omp` branch. A Herdr mod is
+  # unsandboxed code with the user's access; upstream was read
   # before forking (it runs python3, hc, sh, env and rm, and opens no network
   # connection; the fork adds `omp --mode rpc --no-session`). bump-pins.py does
   # not move it: merge upstream into the branch after reading its diff, then
@@ -21,8 +22,8 @@ stdenvNoCC.mkDerivation {
   src = fetchFromGitHub {
     owner = "tomkoreny";
     repo = "herdr-chat";
-    rev = "d4ff688a1c11871373d0937938ee87ee024a901f";
-    hash = "sha256-SC/sSuAk9Hu8gXwNYbMZ+ayf7xuJxZNyplWiuihI8y4=";
+    rev = "d5d9a962cdc4a9a7f32f13c713a3d42f8fb9c596";
+    hash = "sha256-LA6sktHShVGpGtBfPZAIerJj75lbbYzcm3oHPVzRVng=";
   };
 
   dontConfigure = true;
