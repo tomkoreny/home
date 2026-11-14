@@ -30,6 +30,22 @@ let
     substituteInPlace $out/Library/Homebrew/brew.sh \
       --replace-fail 'set-homebrew-version-from-git' 'set-homebrew-version-from-git''\nHOMEBREW_VERSION="${brewVersion}"'
   '';
+
+  # Xcode and the Android SDK, for everything that builds for Apple or
+  # Android. Set twice below because the two reach different programs:
+  # launchd's variables go to apps started from the Dock or Finder,
+  # environment.variables to shells.
+  devEnv = {
+    DEVELOPER_DIR = "/Applications/Xcode.app/Contents/Developer";
+    # The MacOSX SDK: anything compiling for this host needs it, and the
+    # iPhoneOS SDK breaks such builds. Point mobile toolchains at the
+    # iPhoneOS SDK explicitly where needed instead.
+    SDKROOT = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk";
+    # The SDK the android-commandlinetools cask keeps. Android Studio's own,
+    # ~/Library/Android/sdk, does not exist on this Mac.
+    ANDROID_SDK_ROOT = "/opt/homebrew/share/android-commandlinetools";
+    ANDROID_HOME = "/opt/homebrew/share/android-commandlinetools";
+  };
 in
 {
   # Every half hour: pull the configuration CI validated and activate it.
@@ -120,20 +136,20 @@ in
         Sound = false;
       };
       dock = {
+        # Apps Nix builds are linked into homeManagerApps; one of them listed
+        # under /Applications opens a stale copy from before it moved to Nix.
         persistent-apps = [
           "/Applications/Helium.app"
           "${homeManagerApps}/Betterbird.app"
           "/Applications/Element.app"
           "/System/Applications/Calendar.app"
           "/System/Applications/Notes.app"
-          "/Applications/Ghostty.app"
+          "${homeManagerApps}/Ghostty.app"
           "${homeManagerApps}/Herdr.app"
-          "/Applications/Codex.app"
           "/Applications/Claude.app"
-          "${homeDir}/Applications/WebStorm.app"
+          "${homeManagerApps}/WebStorm.app"
           "${homeManagerApps}/DataGrip.app"
           "/Applications/Zed.app"
-          "${homeDir}/Applications/Android Studio.app"
           "/Applications/Original Prusa Drivers/PrusaSlicer.app"
           "/Applications/Bitwarden.app"
           "/Applications/OrbStack.app"
@@ -192,24 +208,8 @@ in
     KeepAlive = true;
   };
 
-  launchd.user.envVariables = {
-    DEVELOPER_DIR = "/Applications/Xcode.app/Contents/Developer";
-    # Keep this the MacOSX SDK (same as environment.variables below): anything
-    # compiling from a GUI-launched app inherits it, and the iPhoneOS SDK
-    # breaks host builds. Point mobile toolchains at the iPhoneOS SDK
-    # explicitly where needed instead.
-    SDKROOT = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk";
-    ANDROID_SDK_ROOT = "${homeDir}/Library/Android/sdk";
-    ANDROID_HOME = "${homeDir}/Library/Android/sdk";
-  };
-
-  environment.variables = {
-    DEVELOPER_DIR = "/Applications/Xcode.app/Contents/Developer";
-    # Optional but keeps clang/cctools from the same SDK:
-    SDKROOT = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk";
-    ANDROID_SDK_ROOT = "${homeDir}/Library/Android/sdk";
-    ANDROID_HOME = "${homeDir}/Library/Android/sdk";
-  };
+  launchd.user.envVariables = devEnv;
+  environment.variables = devEnv;
 
   sops = {
     age = {
@@ -267,31 +267,23 @@ in
     Defaults:${name} !tty_tickets
   '';
   nix-homebrew = {
-    # Install Homebrew under the default prefix
     enable = true;
-
-    # Apple Silicon Only: Also install Homebrew under the default Intel prefix for Rosetta 2
-    enableRosetta = true;
 
     # Ships the brew tree from our `brew-src` input, labelled to match.
     package = brewSource // {
       version = brewVersion;
     };
 
-    # User owning the Homebrew prefix
+    # Owner of the Homebrew prefix.
     user = name;
-    # Optional: Declarative tap management
     taps = {
       "homebrew/homebrew-core" = inputs.homebrew-core;
       "homebrew/homebrew-cask" = inputs.homebrew-cask;
-      "homebrew/homebrew-bundle" = inputs.homebrew-bundle;
       "puma/homebrew-puma" = inputs.puma-rails;
       "sikarugir-app/homebrew-sikarugir" = inputs.sikarugir-tap;
     };
 
-    # Optional: Enable fully-declarative tap management
-    #
-    # With mutableTaps disabled, taps can no longer be added imperatively with `brew tap`.
+    # Only the taps above exist: `brew tap` cannot add another.
     mutableTaps = false;
   };
 
@@ -306,7 +298,6 @@ in
       # Development
       "android-commandlinetools"
       "android-platform-tools"
-      "android-studio"
       "arduino-ide"
       "flutter"
       "kicad"
@@ -319,9 +310,8 @@ in
       "tor-browser"
       "zen"
 
-      # Communication
-      "beeper"
-      "discord"
+      # Communication. Discord is the Nix build with Vencord
+      # (modules/home/packages).
       {
         # The cask is flagged auto_updates, so plain `brew upgrade` skips it;
         # greedy keeps it current since Element's in-app updater is disabled
@@ -329,7 +319,6 @@ in
         name = "element";
         greedy = true;
       }
-      "loom"
       # Not greedy: the cask is flagged auto_updates, and upgrading it through
       # brew uninstalls Teams' system packages with sudo, which the unattended
       # auto-upgrade agent cannot do. Teams' own updater daemon keeps it current.
@@ -338,8 +327,6 @@ in
       "signal"
 
       # Productivity
-      "affinity-designer"
-      "readdle-spark"
       "shottr"
       "xnapper"
 
@@ -347,7 +334,6 @@ in
       "anydesk"
       "bitwarden"
       "home-assistant"
-      "openclaw"
       "orbstack"
       "rustdesk"
       "teamviewer"

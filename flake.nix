@@ -77,17 +77,14 @@
       inputs.brew-src.follows = "brew-src";
     };
 
-    # Optional: Declarative tap management
+    # The Mac's Homebrew taps (systems/aarch64-darwin/macos), as inputs so the
+    # lock pins them.
     homebrew-core = {
       url = "github:homebrew/homebrew-core";
       flake = false;
     };
     homebrew-cask = {
       url = "github:homebrew/homebrew-cask";
-      flake = false;
-    };
-    homebrew-bundle = {
-      url = "github:homebrew/homebrew-bundle";
       flake = false;
     };
     # Note: no `inputs.nixpkgs.follows` here — building lan-mouse against
