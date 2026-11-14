@@ -1,5 +1,6 @@
 # The controller of the Mac's backup. default.nix sets the variables below and
-# calls `main`; test_backup.py sets them itself and calls the functions.
+# calls `main`; test_backup.py does the same with stand-ins for what needs a
+# Mac.
 #
 #   RESTIC            restic with the repository, password and cache given
 #   JQ                jq
@@ -9,7 +10,9 @@
 #   SNAPSHOT_JOB      launchd label of the job that takes the snapshot
 #   SNAPSHOT_PROGRAM  that job's program, named when files could not be read
 #   UNCONFIRMED       the tag that job gives every snapshot it writes
-#   MINIO_HOST, MINIO_PORT
+#   MINIO_HOST        MinIO's IPv6 address
+#   MINIO_PORT
+#   HOME_PREFIX       what the Mac's own IPv6 addresses start with at home
 
 say() { echo "$(date '+%F %T') $*"; }
 
@@ -50,13 +53,15 @@ due() {
 
 on_mains() { pmset -g batt | grep -q "AC Power"; }
 
-# MinIO has to answer, and not through a tunnel: the home tunnel rides on
-# whatever uplink the Mac has, which away from home is often a phone's.
+# At home the interface that leads to MinIO holds an address of the home's
+# prefix, and MinIO answers. Anywhere else the first is not so, whichever way
+# MinIO may be reached from there.
 at_home() {
   local interface
-  interface=$(route -n get "$MINIO_HOST" 2>/dev/null | awk '/interface:/ { print $2 }')
-  case "$interface" in "" | utun*) return 1 ;; esac
-  curl -fsS -m 5 -o /dev/null "http://$MINIO_HOST:$MINIO_PORT/minio/health/live" 2>/dev/null
+  interface=$(route -n get -inet6 "$MINIO_HOST" 2>/dev/null | awk '/interface:/ { print $2 }')
+  [ -n "$interface" ] || return 1
+  ifconfig "$interface" 2>/dev/null | grep -q "inet6 $HOME_PREFIX" || return 1
+  curl -g -fsS -m 5 -o /dev/null "http://[$MINIO_HOST]:$MINIO_PORT/minio/health/live" 2>/dev/null
 }
 
 # The id of this host's newest snapshot; nothing when there is none or the

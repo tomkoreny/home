@@ -9,11 +9,11 @@
 #
 # When: a laptop is not always home, and MinIO is on the home network. The
 # controller (backup.sh) runs every three hours and takes a snapshot when the
-# last one is older than 20 hours, the Mac is on mains power, and MinIO
-# answers without a tunnel in between (the home tunnel rides on whatever
-# uplink there is, often a phone's). Otherwise it does nothing and records
-# nothing. SketchyBar shows `backup` when a run failed and `no backup` when
-# none has finished for a week.
+# last one is older than 20 hours, the Mac is on mains power and it is at
+# home: the interface that leads to MinIO has an address of the home's IPv6
+# prefix, and MinIO answers. Otherwise it does nothing and records nothing.
+# SketchyBar shows `backup` when a run failed and `no backup` when none has
+# finished for a week.
 #
 # Full Disk Access. macOS keeps Mail, Messages, Photos, other apps' data and
 # more from every program without it, root included, and grants it to one
@@ -56,11 +56,19 @@ let
   inherit (common.darwinBackup) log statusFile;
 
   secretsFile = ../../../secrets/restic/macos.yaml;
-  minioHost = "10.10.50.33";
+  # The storage container's address in the home's IPv6 prefix, not the IPv4
+  # one (10.10.50.33) that the desktop uses: the home Wi-Fi hands out IPv6
+  # only, and IPv4 from it does not reach the storage VLAN. The lower half
+  # comes from the container's MAC address, so the address holds for as long
+  # as the provider's prefix does.
+  minioHost = "2a0d:3344:78f0:9f06:7c5c:7eff:fe2d:db2b";
   minioPort = "9000";
-  # Plain HTTP on the private storage VLAN; restic encrypts everything before
-  # it leaves this machine.
-  repository = "s3:http://${minioHost}:${minioPort}/macos";
+  # The Wi-Fi, desktop and storage VLANs are 2a0d:3344:78f0:9f01, :9f07 and
+  # :9f06; what they share stands for the home network.
+  homePrefix = "2a0d:3344:78f0:9f";
+  # Plain HTTP inside the home network; restic encrypts everything before it
+  # leaves this machine.
+  repository = "s3:http://[${minioHost}]:${minioPort}/macos";
   password = config.sops.secrets."mac-backup/password".path;
   s3Credentials = config.sops.secrets."mac-backup/s3-credentials".path;
   cacheDir = "/Library/Caches/mac-backup";
@@ -166,6 +174,7 @@ let
     UNCONFIRMED=${unconfirmedTag}
     MINIO_HOST=${minioHost}
     MINIO_PORT=${minioPort}
+    HOME_PREFIX=${homePrefix}
     . ${./backup.sh}
     main
   '';

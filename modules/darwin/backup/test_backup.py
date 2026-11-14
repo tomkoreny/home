@@ -92,6 +92,7 @@ class Controller(unittest.TestCase):
             "UNCONFIRMED": TAG,
             "MINIO_HOST": "unused",
             "MINIO_PORT": "0",
+            "HOME_PREFIX": "unused",
             "SOURCE": str(self.source),
             "SNAPSHOT_TIME": when,
             "SNAPSHOT_STATUS": str(job_status),
