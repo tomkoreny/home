@@ -7,6 +7,17 @@
 # exclude list below) and minus iCloud Drive, whose files macOS may keep
 # online-only: reading one downloads it, and a backup would download them all.
 #
+# What stays out: everything outside /Users. The one place there that can
+# hold something a person made is Homebrew's service data in
+# /opt/homebrew/var. On 2026-11-14 none of those services was running or
+# started at login, and nothing in there was worth a dump: PostgreSQL 14 has
+# eight development databases with 32 kB of tables in one and none in the
+# others, last written in July 2025; PostgreSQL 15 and 18 and MariaDB hold
+# only what a new installation has; Redis has a 1.6 kB dump from April 2026.
+# A database there that comes to hold real data needs a dump written into
+# /Users before the snapshot, as modules/nixos/desktop-backup does for its
+# containers: a copy of a running server's files is not a consistent one.
+#
 # When: a laptop is not always home, and MinIO is on the home network. The
 # controller (backup.sh) runs every three hours and takes a snapshot when the
 # last one is older than 20 hours, the Mac is on mains power and it is at
