@@ -4,7 +4,7 @@ This documents the declaratively managed tmux setup for `tom` on NixOS (tmux 3.7
 
 ## Quick start
 
-Ghostty currently starts Herdr by default for the experiment. tmux remains installed as a fallback: run `mux` manually to create or attach to a session named `main`.
+Ghostty opens a plain login shell; workspaces live in the Herdr app. Accounts without the Herdr app still get the Herdr TUI from Ghostty. tmux remains installed as a fallback: run `mux` manually to create or attach to a session named `main`.
 
 ```console
 mux                 # create or attach to the main session
@@ -226,7 +226,7 @@ The live config is:
 ~/.config/tmux/tmux.conf
 ```
 
-It is a Home Manager-managed symlink into the Nix store, so do **not** edit it directly. The tmux fallback, `mux`, persistence, and Herdr's Ghostty launch are declared in:
+It is a Home Manager-managed symlink into the Nix store, so do **not** edit it directly. The tmux fallback, `mux`, persistence, and Ghostty's start command are declared in:
 
 ```text
 modules/home/session-management/default.nix
