@@ -30,11 +30,12 @@ rec {
     upstreamDns = "1.1.1.1";
   };
 
-  # OMP voice (dictation, live mode, TTS) on NixOS while the MacBook is
-  # attached through herdr. The Mac serves its microphone and speakers with
-  # PulseAudio; SSH reverse-forwards that socket to NixOS; the NixOS `omp`
-  # wrapper lists it before the local server, so voice follows the Mac while
-  # the forward is live and falls back to NixOS audio once it is gone.
+  # OMP voice (dictation, live mode, TTS) on NixOS while the MacBook's Herdr
+  # is connected to it: the TUI attached, or the Herdr app's herdr-core
+  # running. The Mac serves its microphone and speakers with PulseAudio; SSH
+  # reverse-forwards that socket to NixOS; the NixOS `omp` wrapper lists it
+  # before the local server, so voice follows the Mac while the forward is
+  # live and falls back to NixOS audio once it is gone.
   ompVoice = {
     # PULSE_RUNTIME_PATH of the Mac server. PulseAudio creates it 0700 and
     # listens on `native` inside, which keeps the anonymous socket private.

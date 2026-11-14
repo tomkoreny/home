@@ -66,7 +66,8 @@ let
     # over IPv4 through public peers, so it works on networks that give the
     # Mac no IPv6, such as the phone hotspot. Never route this via wg0: that
     # tunnel is a company VPN.
-    # Herdr's saved "nixos" machine on the Mac connects through this alias.
+    # Herdr's "nixos" machine on the Mac connects through this alias, in the
+    # TUI and in the Herdr app.
     "nixos-ygg" = {
       HostName = nixosYggAddress;
       User = "tom";
@@ -74,11 +75,15 @@ let
       HostKeyAlias = "nixos.local";
     }
     // lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
-      # OMP voice while herdr is attached from the Mac (common.ompVoice): the
+      # OMP voice while Herdr on the Mac is connected (common.ompVoice): the
       # Mac's PulseAudio socket appears on NixOS where the omp wrapper looks
-      # first. The forward lives as long as the ControlMaster herdr's bridge
-      # rides on, so the persist window is cut to 60 s: quitting herdr hands
-      # voice back to NixOS within a minute instead of ten.
+      # first. Every connection through this alias asks for the forward. The
+      # Herdr TUI's bridge rides on a ControlMaster, so the persist window is
+      # cut to 60 s: quitting the TUI hands voice back to NixOS within a
+      # minute instead of ten. The Herdr app's herdr-core keeps a connection
+      # of its own (ControlMaster=no) for as long as it runs, with or without
+      # the app's window, so with the app voice stays on the Mac for as long
+      # as that core is connected.
       RemoteForward = [
         {
           bind.address = common.ompVoice.nixosSocket;
@@ -89,9 +94,9 @@ let
     };
 
     # The reverse of nixos-ygg: the Mac roams, and Yggdrasil is the one path
-    # that reaches it on any network. Herdr's saved "macos" machine on NixOS
-    # connects through this alias; the Mac's sshd and the key it accepts live
-    # in systems/aarch64-darwin/macos.
+    # that reaches it on any network. Herdr's "macos" machine on NixOS, in the
+    # Herdr app, connects through this alias; the Mac's sshd and the key it
+    # accepts live in systems/aarch64-darwin/macos.
     "macos-ygg" = {
       HostName = macosYggAddress;
       User = "tom";
