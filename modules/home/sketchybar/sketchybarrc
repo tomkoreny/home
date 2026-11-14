@@ -100,7 +100,8 @@ sketchybar --add bracket workspace space.1 space.2 space.3 space.4 space.5 space
 
 # Right island. SketchyBar adds `right` items from the edge inwards, so this is
 # the Quickshell order reversed: battery, clock, work, todos, AI usage, timers,
-# herdr, upgrade. `sep.*` are the one-pixel dividers between neighbours.
+# herdr, upgrade, backup. `sep.*` are the one-pixel dividers between
+# neighbours.
 add_separator() {
   sketchybar --add item "sep.$1" right \
     --set "sep.$1" \
@@ -188,9 +189,16 @@ sketchybar --set sep.upgrade drawing=off \
   --add item upgrade right \
   --set upgrade drawing=off update_freq=60 script="$plugin upgrade" click_script="$plugin upgrade click"
 
+# Shown only when this Mac's backup failed or none has succeeded for a week,
+# like the backup warning in the Quickshell status island.
+add_separator backup
+sketchybar --set sep.backup drawing=off \
+  --add item backup right \
+  --set backup drawing=off update_freq=60 script="$plugin backup" click_script="$plugin backup click"
+
 sketchybar --add bracket status battery sep.clock clock sep.work work sep.todos todos sep.ai \
   ai.3.top ai.3.bot ai.3 ai.2.top ai.2.bot ai.2 ai.1.top ai.1.bot ai.1 ai.0.top ai.0.bot ai.0 \
-  sep.timers timers sep.herdr herdr sep.upgrade upgrade \
+  sep.timers timers sep.herdr herdr sep.upgrade upgrade sep.backup backup \
   --set status \
   background.color=@surface@ \
   background.border_color=@border@ \

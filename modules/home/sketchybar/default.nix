@@ -83,6 +83,8 @@ let
           "@aerospace@"
           "@upgradeStatus@"
           "@upgradeLog@"
+          "@backupStatus@"
+          "@backupLog@"
           "@accent@"
           "@accentSurface@"
           "@surface@"
@@ -108,6 +110,8 @@ let
           (lib.optionalString config.tomkoreny.aerospace.enable (lib.getExe pkgs.aerospace))
           common.darwinAutoUpgrade.statusFile
           common.darwinAutoUpgrade.log
+          (lib.optionalString cfg.backupWarning common.darwinBackup.statusFile)
+          common.darwinBackup.log
           theme.accent
           theme.accentSurface
           theme.surface
@@ -144,6 +148,9 @@ in
   options.tomkoreny.sketchybar = {
     enable = lib.mkEnableOption "the SketchyBar status island on macOS";
     package = lib.mkPackageOption pkgs "sketchybar" { };
+    # A home profile cannot see the system's options when it is evaluated on
+    # its own, so the host that enables modules/darwin/backup says so here.
+    backupWarning = lib.mkEnableOption "the warning about this Mac's backup (modules/darwin/backup)";
   };
 
   config = lib.mkIf cfg.enable {

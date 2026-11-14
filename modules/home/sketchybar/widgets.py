@@ -39,6 +39,10 @@ AEROSPACE = "@aerospace@"  # empty when AeroSpace is disabled
 # Written by the auto-upgrade launchd agent (modules/darwin/auto-upgrade).
 UPGRADE_STATUS = "@upgradeStatus@"
 UPGRADE_LOG = "@upgradeLog@"
+# Written by the backup launchd daemons (modules/darwin/backup); empty when
+# this Mac has no backup to warn about.
+BACKUP_STATUS = "@backupStatus@"
+BACKUP_LOG = "@backupLog@"
 COLOR = {
     "accent": "@accent@",
     "accentSurface": "@accentSurface@",
@@ -804,11 +808,7 @@ def work(args: list[str]) -> None:
     rebuild_popup("work", rows)
 
 
-# --- auto-upgrade ------------------------------------------------------------
-
-# The agent runs every 30 minutes; a day without a finished run means it has
-# stalled, as on Linux.
-UPGRADE_STALE_SECONDS = 24 * 60 * 60
+# --- warnings about scheduled jobs --------------------------------------------
 
 
 def ago(timestamp: float, now: float) -> str:
@@ -824,49 +824,86 @@ def ago(timestamp: float, now: float) -> str:
     return f"{hours // 24} days ago"
 
 
-def upgrade(args: list[str]) -> None:
-    """The Quickshell bar's upgrade warning: shown only when the last auto-upgrade
-    failed or none has finished for a day."""
+def status_warning(
+    item: str, args: list[str], *, status_path: str, log_path: str, title: str, stale_seconds: int, before_first_run: bool
+) -> None:
+    """A warning that stays hidden while a scheduled job is fine, as in the Quickshell bar.
+
+    `item` names the bar item and is the word on it: `<item>` when the last run
+    failed, `no <item>` when none has finished for `stale_seconds`. The job
+    records each finished run in `status_path`; one that has never finished
+    counts as stale only with `before_first_run`.
+    """
     if args[:1] == ["row"]:
-        detach(["ghostty", "-e", "/usr/bin/less", "+G", UPGRADE_LOG])
-        sketchybar("--set", "upgrade", "popup.drawing=off")
+        detach(["ghostty", "-e", "/usr/bin/less", "+G", log_path])
+        sketchybar("--set", item, "popup.drawing=off")
         return
     try:
-        status = json.loads(Path(UPGRADE_STATUS).read_text())
+        status = json.loads(Path(status_path).read_text())
     except (OSError, ValueError):
         status = {}  # no run has finished since the recorder was deployed
     now = time.time()
     finished = status.get("finishedAt") or 0
     failed = finished > 0 and status.get("result") != "success"
-    stale = finished > 0 and now - finished > UPGRADE_STALE_SECONDS
+    stale = now - finished > stale_seconds if finished > 0 else before_first_run
     visible = failed or stale
 
-    # Retries fail the same way every 30 minutes; notify once per failure streak.
-    notified = cache_path("upgrade-notified")
+    # Retries fail the same way run after run; notify once per failure streak.
+    notified = cache_path(f"{item}-notified")
     if failed and not notified.exists():
-        notify("macOS auto-upgrade failed", status.get("error") or "")
+        notify(f"{title} failed", status.get("error") or "")
         notified.touch()
     elif not failed:
         notified.unlink(missing_ok=True)
 
-    label = f"{ICON_ALERT} upgrade" if failed else f"{ICON_ALERT} no upgrade"
-    show("upgrade", visible, f"label={label}", f"label.color={COLOR['muted']}")
-    show("sep.upgrade", visible)
-    opened = toggle_popup("upgrade") if args[:1] == ["click"] else popup_open("upgrade")
+    label = f"{ICON_ALERT} {item}" if failed else f"{ICON_ALERT} no {item}"
+    show(item, visible, f"label={label}", f"label.color={COLOR['muted']}")
+    show(f"sep.{item}", visible)
+    opened = toggle_popup(item) if args[:1] == ["click"] else popup_open(item)
     if not opened or not visible:
         return
     if failed:
         rows = [
-            {"label": f"macOS auto-upgrade failed · {ago(finished, now)}", "color": COLOR["muted"]},
+            {"label": f"{title} failed · {ago(finished, now)}", "color": COLOR["muted"]},
             {"label": (status.get("error") or "")[:120]},
         ]
     else:
-        rows = [{"label": f"macOS auto-upgrade has not run · last run {ago(finished, now)}", "color": COLOR["muted"]}]
+        rows = [{"label": f"{title} has not run · last run {ago(finished, now)}", "color": COLOR["muted"]}]
     rows += [
-        {"label": f"Last successful upgrade · {ago(status.get('lastSuccessAt') or 0, now)}", "color": COLOR["subdued"]},
-        {"label": "Open the upgrade log", "click": row_command("upgrade", "row")},
+        {"label": f"Last successful {item} · {ago(status.get('lastSuccessAt') or 0, now)}", "color": COLOR["subdued"]},
+        {"label": f"Open the {item} log", "click": row_command(item, "row")},
     ]
-    rebuild_popup("upgrade", rows)
+    rebuild_popup(item, rows)
+
+
+def upgrade(args: list[str]) -> None:
+    """The agent runs every 30 minutes; a day without a finished run means it
+    has stalled, as on Linux."""
+    status_warning(
+        "upgrade",
+        args,
+        status_path=UPGRADE_STATUS,
+        log_path=UPGRADE_LOG,
+        title="macOS auto-upgrade",
+        stale_seconds=24 * 60 * 60,
+        before_first_run=False,
+    )
+
+
+def backup(args: list[str]) -> None:
+    """The backup only runs at home, so it may rightly skip days; a week
+    without one, or none at all yet, is worth a warning."""
+    if not BACKUP_STATUS:
+        return
+    status_warning(
+        "backup",
+        args,
+        status_path=BACKUP_STATUS,
+        log_path=BACKUP_LOG,
+        title="Mac backup",
+        stale_seconds=7 * 24 * 60 * 60,
+        before_first_run=True,
+    )
 
 
 WIDGETS = {
@@ -880,6 +917,7 @@ WIDGETS = {
     "todos": todos,
     "work": work,
     "upgrade": upgrade,
+    "backup": backup,
 }
 
 

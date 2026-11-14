@@ -18,6 +18,8 @@ in
   tomkoreny.herdr-app.enable = true;
   # Status island in the menu bar: Notion todos, Polaris tasks, timers, herdr, AI usage.
   tomkoreny.sketchybar.enable = true;
+  # This Mac is backed up (systems/aarch64-darwin/macos), so the bar watches it.
+  tomkoreny.sketchybar.backupWarning = true;
   # Tiling with Caps Lock as Super, mirroring the Hyprland binds.
   tomkoreny.aerospace.enable = true;
   # The Waveshare bar panel to the left shows a BetterDisplay stream of the

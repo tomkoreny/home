@@ -483,6 +483,7 @@ Every item runs
 | Item | Popup rows | Row actions |
 | --- | --- | --- |
 | upgrade | shown only when the last auto-upgrade run failed (`upgrade`) or none has finished for 24 hours (`no upgrade`): age, first error line, last success, `Open the upgrade log` | opens `~/Library/Logs/auto-upgrade.log` in `less` in Ghostty |
+| backup | shown only when the last backup run failed (`backup`) or none has succeeded for a week, or yet (`no backup`): age, first error line, last success, `Open the backup log` | opens `/var/log/mac-backup.log` in `less` in Ghostty |
 | herdr | the count covers the Herdr TUI and the Herdr app; one row per TUI pane (workspace, agent, status, title) and per Herdr app terminal (machine, space and tab, program, status) | a pane opens with `herdr-view` in Ghostty; an app terminal is shown in the Herdr app, which comes forward |
 | timers | `New timer…` (native text dialog, `20m pasta`), then each timer with its remaining time | click pauses or resumes, right-click cancels |
 | AI usage | update age, account, every limit with reset time, `Refresh usage` | refresh runs `omp usage invalidate` |

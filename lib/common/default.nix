@@ -52,6 +52,14 @@ rec {
     statusFile = "${user.homeDir { isDarwin = true; }}/.local/state/auto-upgrade/status.json";
   };
 
+  # macOS backup (modules/darwin/backup). Its jobs log to `log` and record
+  # each finished run's outcome in `statusFile`, in the shape above, which the
+  # SketchyBar backup warning reads.
+  darwinBackup = {
+    log = "/var/log/mac-backup.log";
+    statusFile = "/var/db/mac-backup/status.json";
+  };
+
   # Public Yggdrasil peers shared by the Mac and NixOS. Both hosts dial the
   # same nearby nodes, so Mac-to-NixOS traffic crosses one relay close to
   # both instead of a US node (~270 ms round trip before this list). Picked

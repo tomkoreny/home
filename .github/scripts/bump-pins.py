@@ -232,6 +232,12 @@ PINS = [
     Pin("brew", "same-major", github_latest("Homebrew/brew"), {"flake.nix": flake_tag("Homebrew/brew", "")}),
     # Boot-critical Secure Boot tooling: always a human decision.
     Pin("lanzaboote", "manual", github_latest("nix-community/lanzaboote"), {"flake.nix": flake_tag("nix-community/lanzaboote")}),
+    # The Mac's backup binary holds Full Disk Access, which macOS ties to its
+    # exact bytes: a new version has to be granted again by hand.
+    Pin(
+        "restic-macos", "manual", github_latest("restic/restic"),
+        {"modules/darwin/backup/default.nix": r'^  resticVersion = "([^"]+)";'},
+    ),
     Pin(
         "jellyfin-mpv-shim", "same-major", github_latest("jellyfin/jellyfin-mpv-shim"),
         {

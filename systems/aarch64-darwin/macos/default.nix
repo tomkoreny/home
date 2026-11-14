@@ -65,6 +65,9 @@ in
   tomkoreny.darwin.privacy-networks.enable = true;
   # Weekly: drop Nix generations older than 14 days, then collect garbage.
   tomkoreny.darwin.nix-gc.enable = true;
+  # restic to the homelab's MinIO whenever the Mac is home and on power; the
+  # bar warns when it fails or a week passes without one.
+  tomkoreny.darwin.backup.enable = true;
   # Avoid collisions with pre-existing manual backups like ~/.ssh/config.bak.
   home-manager.backupFileExtension = "hm-bak";
 
