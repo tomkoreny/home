@@ -54,6 +54,51 @@ let
       NodeInfoPrivacy = true;
     }
   );
+
+  # Yggdrasil is a public mesh: any node on it can route to this Mac's
+  # address. Nothing filtered that path, so every listener here (Screen
+  # Sharing, AirPlay, a container's published port) answered from the mesh,
+  # as a probe from NixOS showed on 2026-11-14. These pf rules admit what this
+  # Mac starts itself and, from the mesh, only the NixOS desktop: its ssh
+  # (Herdr, administration) and its ping.
+  #
+  # `flags any` lets connections that are already open when the rules load
+  # carry on, the ssh session that deploys them included.
+  firewallRules = pkgs.writeText "yggdrasil-firewall.pf" ''
+    pass out quick inet6 from any to 200::/7 flags any keep state
+    pass in quick inet6 proto tcp from ${common.yggdrasil.addresses.nixos} to any port 22 flags any keep state
+    pass in quick inet6 proto icmp6 from ${common.yggdrasil.addresses.nixos} to any icmp6-type echoreq keep state
+    block drop in quick inet6 from 200::/7 to any
+  '';
+  # macOS's /etc/pf.conf evaluates the anchors under com.apple and nothing
+  # else, and a system update restores that file, so the rules go into an
+  # anchor of their own under that name instead of into the file.
+  firewallAnchor = "com.apple/300.Yggdrasil";
+  # For trying changed rules without locking the NixOS desktop out, which is
+  # the only way in while the Mac is away: create this file, deploy, test from
+  # NixOS, then delete it. While it exists, freshly loaded rules are dropped
+  # again after five minutes.
+  firewallTrial = "${homeDir}/.local/state/yggdrasil-firewall/trial";
+  firewall = pkgs.writeShellScript "yggdrasil-firewall" ''
+    set -u
+    say() { echo "$(/bin/date '+%F %T') $*"; }
+    # pf filters nothing until it is enabled; a second -E only adds a reference.
+    /sbin/pfctl -E >/dev/null 2>&1
+    if ! output=$(/sbin/pfctl -q -a ${firewallAnchor} -f ${firewallRules} 2>&1); then
+      say "loading ${firewallRules} failed: $output"
+      exit 1
+    fi
+    if [ -e ${lib.escapeShellArg firewallTrial} ]; then
+      say "trial: rules loaded, dropped again in 300 s unless ${firewallTrial} is removed"
+      /bin/sleep 300
+      if [ -e ${lib.escapeShellArg firewallTrial} ]; then
+        /sbin/pfctl -q -a ${firewallAnchor} -F rules
+        say "trial not confirmed: rules dropped"
+      else
+        say "trial confirmed: rules stay"
+      fi
+    fi
+  '';
 in
 {
   options.tomkoreny.darwin.privacy-networks = {
@@ -106,6 +151,27 @@ in
         RunAtLoad = true;
         StandardOutPath = "/var/log/yggdrasil.log";
         StandardErrorPath = "/var/log/yggdrasil.log";
+      };
+    };
+
+    launchd.daemons.yggdrasil-firewall = {
+      command = "${firewall}";
+      serviceConfig = {
+        RunAtLoad = true;
+        # pf keeps loaded rules until a reboot or until something flushes
+        # them, and other software on this Mac drives pf as well (VPN
+        # clients, Internet Sharing). Loading the same rules again is a
+        # no-op, so do it every quarter of an hour. Calendar slots, because
+        # macOS 27 parks StartInterval jobs (see modules/darwin/auto-upgrade).
+        StartCalendarInterval = map (minute: { Minute = minute; }) [
+          0
+          15
+          30
+          45
+        ];
+        # Written only when loading fails or a trial runs.
+        StandardOutPath = "/var/log/yggdrasil-firewall.log";
+        StandardErrorPath = "/var/log/yggdrasil-firewall.log";
       };
     };
   };
