@@ -82,8 +82,14 @@ let
         "/Users/*/Documents"
         "/Users/*/Library/Caches"
         "/Users/*/Library/Logs"
-        # Xcode's derived data and simulators.
-        "/Users/*/Library/Developer"
+        # What Xcode builds or downloads again: build products, simulators,
+        # device symbols, documentation. Its user data (key bindings,
+        # provisioning profiles) and archives are in the same folder and stay.
+        "/Users/*/Library/Developer/Xcode/DerivedData"
+        "/Users/*/Library/Developer/Xcode/DocumentationCache"
+        "/Users/*/Library/Developer/Xcode/* DeviceSupport"
+        "/Users/*/Library/Developer/CoreSimulator"
+        "/Users/*/Library/Developer/XCTestDevices"
         "/Users/*/Library/Containers/*/Data/Library/Caches"
         "/Users/*/.cache"
         "/Users/*/.Trash"
