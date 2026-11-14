@@ -8,12 +8,12 @@
 # online-only: reading one downloads it, and a backup would download them all.
 #
 # When: a laptop is not always home, and MinIO is on the home network. The
-# controller runs every three hours and takes a snapshot when the last good
-# one is older than 20 hours, the Mac is on mains power, and MinIO answers
-# without a tunnel in between (the home tunnel rides on whatever uplink there
-# is, often a phone's). Otherwise it does nothing and records nothing.
-# SketchyBar shows `backup` when a run failed and `no backup` when none has
-# succeeded for a week.
+# controller (backup.sh) runs every three hours and takes a snapshot when the
+# last one is older than 20 hours, the Mac is on mains power, and MinIO
+# answers without a tunnel in between (the home tunnel rides on whatever
+# uplink there is, often a phone's). Otherwise it does nothing and records
+# nothing. SketchyBar shows `backup` when a run failed and `no backup` when
+# none has finished for a week.
 #
 # Full Disk Access. macOS keeps Mail, Messages, Photos, other apps' data and
 # more from every program without it, root included, and grants it to one
@@ -22,8 +22,20 @@
 # (resticPath), run as a launchd job of its own so that it is the program
 # macOS judges. It needs the grant once, by hand: System Settings > Privacy &
 # Security > Full Disk Access > +, then that file. A new `resticVersion` needs
-# it again, which is why bump-pins.py only opens an issue for it. Without the
-# grant the snapshot holds everything else, and the run counts as failed.
+# it again, which is why bump-pins.py only opens an issue for it.
+#
+# Incomplete snapshots. restic also writes a snapshot when it could not read
+# some files (exit status 3), which without the grant is every run. Every
+# snapshot is therefore written with the tag `unconfirmed`, and the controller
+# takes the tag off only after a run in which restic read everything. Only
+# such a run is followed by `forget --prune`, and that thins the two kinds out
+# apart: an unconfirmed snapshot is never the one kept for a day, week or
+# month in place of a complete one, and a run that went wrong deletes nothing.
+# An incomplete run shows as failed on the bar.
+#
+#   nix shell nixpkgs#restic nixpkgs#jq -c python3 -B modules/darwin/backup/test_backup.py
+#
+# runs those decisions against a scratch repository.
 #
 # Restoring, as root:
 #   mac-backup-restic snapshots
@@ -67,6 +79,7 @@ let
   # A store path would move with every nixpkgs bump and take the grant along.
   resticPath = "/usr/local/libexec/mac-backup/restic";
   snapshotLabel = "${config.launchd.labelPrefix}.mac-backup-snapshot";
+  unconfirmedTag = "unconfirmed";
 
   # Only what can be downloaded or rebuilt again. Each entry names the
   # regenerable directory itself, never a parent that also holds something a
@@ -142,75 +155,19 @@ let
 
   controller = pkgs.writeShellScript "mac-backup" ''
     set -u
-    status=${statusFile}
-    say() { echo "$(/bin/date '+%F %T') $*"; }
-
-    now=$(/bin/date +%s)
-    last_success=$(${lib.getExe pkgs.jq} -r '.lastSuccessAt // 0' "$status" 2>/dev/null || echo 0)
-    # Not due, on battery, or not at home: nothing to do and nothing to record.
-    [ $((now - last_success)) -ge $((20 * 3600)) ] || exit 0
-    /usr/bin/pmset -g batt | /usr/bin/grep -q "AC Power" || exit 0
-    interface=$(/sbin/route -n get ${minioHost} 2>/dev/null | /usr/bin/awk '/interface:/ { print $2 }')
-    case "$interface" in "" | utun*) exit 0 ;; esac
-    /usr/bin/curl -fsS -m 5 -o /dev/null http://${minioHost}:${minioPort}/minio/health/live 2>/dev/null || exit 0
-
-    record() {
-      local result=$1 error=$2 finished
-      finished=$(/bin/date +%s)
-      [ "$result" = success ] && last_success=$finished
-      /bin/mkdir -p "$(/usr/bin/dirname "$status")"
-      ${lib.getExe pkgs.jq} -n \
-        --arg result "$result" \
-        --arg error "$error" \
-        --argjson finishedAt "$finished" \
-        --argjson lastSuccessAt "$last_success" \
-        '{result: $result, error: $error, finishedAt: $finishedAt, lastSuccessAt: $lastSuccessAt}' \
-        > "$status.tmp"
-      /bin/mv "$status.tmp" "$status"
-    }
-    # The first line restic wrote about a failure since this run began.
-    offset=$(/usr/bin/stat -f %z ${log} 2>/dev/null || echo 0)
-    first_error() {
-      /usr/bin/tail -c "+$((offset + 1))" ${log} | /usr/bin/grep -m1 -i -E '^(fatal|error):' | /usr/bin/cut -c1-200
-    }
-    fail() {
-      local error
-      error=$(first_error)
-      say "backup failed: $1"
-      record failure "''${error:-$1}"
-      exit 1
-    }
-
-    say "backup started"
-    # A run cut short by a reboot leaves its lock in the repository; this
-    # removes only locks whose process is gone.
-    ${lib.getExe restic} unlock >/dev/null 2>&1
-
-    # The snapshot is the other job, so that macOS judges resticPath itself.
-    /bin/launchctl kickstart system/${snapshotLabel} || fail "the snapshot job could not be started"
-    /bin/sleep 2
-    while /bin/launchctl print system/${snapshotLabel} | /usr/bin/grep -q 'state = running'; do
-      /bin/sleep 15
-    done
-    code=$(/bin/launchctl print system/${snapshotLabel} | /usr/bin/awk '/last exit code/ { print $5; exit }')
-    # restic exits 3 when the snapshot was written but some files could not
-    # be read, which without Full Disk Access is every run.
-    case "$code" in
-      0 | 3) ;;
-      *) fail "restic backup exited with status $code" ;;
-    esac
-
-    ${lib.getExe restic} forget --prune --keep-daily 7 --keep-weekly 4 --keep-monthly 6 \
-      || fail "restic forget exited with status $?"
-    ${lib.getExe restic} check || fail "restic check exited with status $?"
-
-    if [ "$code" = 3 ]; then
-      say "backup incomplete: some files could not be read"
-      record failure "incomplete: $(first_error) (does ${resticPath} have Full Disk Access?)"
-      exit 1
-    fi
-    say "backup finished"
-    record success ""
+    PATH=/usr/bin:/bin:/usr/sbin:/sbin
+    RESTIC=${lib.getExe restic}
+    JQ=${lib.getExe pkgs.jq}
+    HOST=${config.networking.hostName}
+    STATUS=${statusFile}
+    LOG=${log}
+    SNAPSHOT_JOB=${snapshotLabel}
+    SNAPSHOT_PROGRAM=${resticPath}
+    UNCONFIRMED=${unconfirmedTag}
+    MINIO_HOST=${minioHost}
+    MINIO_PORT=${minioPort}
+    . ${./backup.sh}
+    main
   '';
 in
 {
@@ -265,6 +222,8 @@ in
         "--host"
         config.networking.hostName
         "--one-file-system"
+        "--tag"
+        unconfirmedTag
         "--exclude-caches"
         "--exclude-file"
         "${excludeFile}"
