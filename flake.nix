@@ -303,6 +303,9 @@
           (homeManagerSystemConfig "aarch64-darwin")
           {
             nixpkgs.config.allowUnfree = true;
+            # The commit this system was built from; `darwin-version
+            # --configuration-revision` prints it.
+            system.configurationRevision = inputs.self.rev or inputs.self.dirtyRev or null;
             home-manager.users.tom = import darwinHome;
           }
           ./systems/aarch64-darwin/macos
