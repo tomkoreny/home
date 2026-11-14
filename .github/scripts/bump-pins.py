@@ -214,18 +214,18 @@ PINS = [
     Pin(
         "herdr-app", "auto", herdr_release_latest("app"),
         {"modules/home/herdr-app/package.nix": r'^  version = "([^"]+)";'},
-        {"modules/home/herdr-app/package.nix": [Source(
-            "releases.herdr.dev/app",
-            "https://releases.herdr.dev/app/{version}/herdr-app-linux-x86_64.tar.gz",
-        )]},
+        {"modules/home/herdr-app/package.nix": [
+            Source("herdr-app-linux-x86_64", "https://releases.herdr.dev/app/{version}/herdr-app-linux-x86_64.tar.gz"),
+            Source("herdr-app-macos-aarch64", "https://releases.herdr.dev/app/{version}/herdr-app-macos-aarch64.tar.gz"),
+        ]},
     ),
     Pin(
         "herdr-core", "auto", herdr_release_latest("core"),
         {"modules/home/herdr-app/core.nix": r'^  version = "([^"]+)";'},
-        {"modules/home/herdr-app/core.nix": [Source(
-            "releases.herdr.dev/core",
-            "https://releases.herdr.dev/core/{version}/herdr-core-linux-x86_64.tar.gz",
-        )]},
+        {"modules/home/herdr-app/core.nix": [
+            Source("herdr-core-linux-x86_64", "https://releases.herdr.dev/core/{version}/herdr-core-linux-x86_64.tar.gz"),
+            Source("herdr-core-macos-aarch64", "https://releases.herdr.dev/core/{version}/herdr-core-macos-aarch64.tar.gz"),
+        ]},
     ),
     Pin("herdr", "auto", github_latest("herdrdev/herdr"), {"flake.nix": flake_tag("herdrdev/herdr")}),
     # Homebrew's CLI must stay at least as new as the hourly-updated taps.

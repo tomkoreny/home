@@ -76,6 +76,8 @@ let
           "@timer@"
           "@herdr@"
           "@herdrView@"
+          "@hc@"
+          "@herdrApp@"
           "@omp@"
           "@logoDir@"
           "@aerospace@"
@@ -97,6 +99,10 @@ let
           (lib.getExe backends.helpers.timer)
           (lib.getExe herdrPackage)
           "${config.home.profileDirectory}/bin/herdr-view"
+          # The Herdr app's programs through the profile, so a version bump
+          # does not rebuild the plugin; empty when the app is not set up.
+          (lib.optionalString config.tomkoreny.herdr-app.enable "${config.home.profileDirectory}/bin/hc")
+          (lib.optionalString config.tomkoreny.herdr-app.enable "${config.home.profileDirectory}/bin/herdr-app")
           (lib.getExe config.programs.omp.package)
           "${providerLogos}"
           (lib.optionalString config.tomkoreny.aerospace.enable (lib.getExe pkgs.aerospace))

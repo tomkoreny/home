@@ -42,9 +42,10 @@ stdenvNoCC.mkDerivation {
   '';
 
   # The app loads the mod once, without a window. A Herdr release that drops
-  # something the mod imports fails here, in CI, instead of in the chat view.
-  # The app needs a font to start, and the sandbox has none. It writes its
-  # type files beside a mod it loads, so it gets a copy.
+  # something the mod imports fails here instead of in the chat view: in CI for
+  # the Linux build, on the Mac when it builds its own. On Linux the app needs
+  # a font to start, and the sandbox has none. It writes its type files beside
+  # a mod it loads, so it gets a copy.
   doInstallCheck = true;
   nativeInstallCheckInputs = [ herdr-app ];
   installCheckPhase = ''
@@ -61,6 +62,6 @@ stdenvNoCC.mkDerivation {
     description = "Herdr layout and mod that show a coding agent's terminal as a chat, with OMP support";
     homepage = "https://github.com/tomkoreny/herdr-chat";
     license = lib.licenses.mit;
-    platforms = [ "x86_64-linux" ];
+    inherit (herdr-app.meta) platforms;
   };
 }

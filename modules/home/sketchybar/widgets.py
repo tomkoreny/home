@@ -15,6 +15,7 @@ import math
 import os
 import re
 import shlex
+import socket
 import subprocess
 import sys
 import time
@@ -28,6 +29,8 @@ WORK_LABEL = "@workLabel@"
 TIMER = "@timer@"
 HERDR = "@herdr@"
 HERDR_VIEW = "@herdrView@"
+HC = "@hc@"  # empty when the Herdr app is disabled
+HERDR_APP = "@herdrApp@"
 OMP = "@omp@"
 # <provider>-<tone>.png for every provider id and COLOR key: SketchyBar cannot
 # tint images, so the logos are pre-rendered in each status colour.
@@ -356,10 +359,54 @@ def battery(args: list[str]) -> None:
 
 # --- herdr -------------------------------------------------------------------
 
+# The π item counts both Herdrs, as the Quickshell bar does: the TUI's server
+# and the Herdr app's herdr-core, each while it runs. macOS has no runtime
+# directory, so herdr-core keeps its socket with its state.
+CORE_SOCKET = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state") / "herdr-core/default/default.sock"
+
+
+def app_terminals() -> list[dict] | None:
+    """The Herdr app's live terminals, or None while its herdr-core is not running.
+
+    `hc` starts herdr-core when none runs, and a starting core brings back
+    every kept terminal, whose OMP sessions herdr-omp-resume then reopens.
+    The bar only looks: it asks a core that already answers on its socket.
+    """
+    if not HC:
+        return None
+    try:
+        with socket.socket(socket.AF_UNIX) as probe:
+            probe.settimeout(2)
+            probe.connect(str(CORE_SOCKET))
+    except OSError:
+        return None
+    payload = run_json([HC, "ls", "--json"], timeout=10)
+    return None if payload is None else payload.get("terminals") or []
+
+
+def tally(statuses: list, blocked: tuple[str, ...]) -> tuple[int, int, int]:
+    """(working, blocked, idle) among agent statuses."""
+    return (
+        sum(1 for status in statuses if status == "working"),
+        sum(1 for status in statuses if status in blocked),
+        sum(1 for status in statuses if status in ("idle", "done")),
+    )
+
+
+def agent_summary(label: str, working: int, blocked: int, idle: int) -> str:
+    parts = [f"{count} {word}" for count, word in ((working, "working"), (blocked, "blocked"), (idle, "idle")) if count]
+    return f"{label} · " + (" · ".join(parts) if parts else "no agents")
+
 
 def herdr(args: list[str]) -> None:
     if args[:1] == ["row"]:
         detach([HERDR_VIEW, args[1]])
+        sketchybar("--set", "herdr", "popup.drawing=off")
+        return
+    if args[:1] == ["app-row"]:
+        # Show the agent in the Herdr app, then bring the app forward.
+        subprocess.run([HERDR_APP, "do", "agent.focus", "--terminal", args[1]], capture_output=True, timeout=10, check=False)
+        detach(["/usr/bin/open", "-b", "dev.herdr.app"])
         sketchybar("--set", "herdr", "popup.drawing=off")
         return
     opened = toggle_popup("herdr") if args[:1] == ["click"] else popup_open("herdr")
@@ -367,38 +414,61 @@ def herdr(args: list[str]) -> None:
     payload = run_json([HERDR, "api", "snapshot"], timeout=10)
     snapshot = (payload or {}).get("result", {}).get("snapshot") if payload else None
     if not isinstance(snapshot, dict):
+        snapshot = None
+    terminals = app_terminals()
+    if snapshot is None and terminals is None:
         sketchybar("--set", "herdr", "label=π –", f"label.color={COLOR['subdued']}")
         if opened:
             rebuild_popup("herdr", [{"label": "Herdr · unavailable", "color": COLOR["subdued"]}])
         return
 
-    agents = snapshot.get("agents") or []
-    working = sum(1 for agent in agents if agent.get("agent_status") == "working")
-    blocked = sum(1 for agent in agents if agent.get("agent_status") == "blocked")
-    idle = sum(1 for agent in agents if agent.get("agent_status") in ("idle", "done"))
+    tui = tally([agent.get("agent_status") for agent in (snapshot or {}).get("agents") or []], ("blocked",))
+    # A terminal is an agent once its program reports a status. One that
+    # reports an error waits for the user as a blocked one does.
+    app = tally([terminal.get("status") for terminal in terminals or []], ("blocked", "error"))
+    working, blocked = tui[0] + app[0], tui[1] + app[1]
     label = f"π {working}  {ICON_CLOSE} {blocked}" if blocked else f"π {working}"
     color = COLOR["muted"] if blocked else COLOR["accent"] if working else COLOR["subdued"]
     sketchybar("--set", "herdr", f"label={label}", f"label.color={color}")
 
     if not opened:
         return
-    parts = [f"{count} {word}" for count, word in ((working, "working"), (blocked, "blocked"), (idle, "idle")) if count]
-    rows = [{"label": "Herdr · " + (" · ".join(parts) if parts else "no agents"), "color": COLOR["subdued"]}]
-    workspaces = {ws.get("workspace_id"): ws.get("label") for ws in snapshot.get("workspaces") or []}
-    for pane in snapshot.get("panes") or []:
-        pane_id = pane.get("pane_id", "")
-        title = pane.get("terminal_title_stripped") or pane.get("terminal_title") or pane_id
-        workspace = workspaces.get(pane.get("workspace_id")) or pane.get("workspace_id", "")
-        status = pane.get("agent_status") or "terminal"
-        agent = pane.get("agent") or "terminal"
-        status_color = {"working": COLOR["accent"], "blocked": COLOR["muted"]}.get(status, COLOR["text"])
-        rows.append(
-            {
-                "label": f"{workspace} · {agent} · {status}   {title[:60]}",
-                "color": status_color,
-                "click": row_command("herdr", "row", pane_id),
-            }
-        )
+    status_colors = {"working": COLOR["accent"], "blocked": COLOR["muted"], "error": COLOR["muted"]}
+    rows = []
+    if snapshot is not None:
+        rows.append({"label": agent_summary("Herdr", *tui), "color": COLOR["subdued"]})
+        workspaces = {ws.get("workspace_id"): ws.get("label") for ws in snapshot.get("workspaces") or []}
+        for pane in snapshot.get("panes") or []:
+            pane_id = pane.get("pane_id", "")
+            title = pane.get("terminal_title_stripped") or pane.get("terminal_title") or pane_id
+            workspace = workspaces.get(pane.get("workspace_id")) or pane.get("workspace_id", "")
+            status = pane.get("agent_status") or "terminal"
+            agent = pane.get("agent") or "terminal"
+            rows.append(
+                {
+                    "label": f"{workspace} · {agent} · {status}   {title[:60]}",
+                    "color": status_colors.get(status, COLOR["text"]),
+                    "click": row_command("herdr", "row", pane_id),
+                }
+            )
+    if terminals is not None:
+        rows.append({"label": agent_summary("Herdr app", *app), "color": COLOR["subdued"]})
+        for terminal in terminals:
+            address = terminal.get("address", "")
+            # A terminal on another machine is addressed as machine/t7.
+            machine = address.rpartition("/")[0]
+            place = terminal.get("where") or terminal.get("cwd") or address
+            status = terminal.get("status") or "terminal"
+            agent = terminal.get("agent") or "terminal"
+            rows.append(
+                {
+                    "label": f"{machine + ' · ' if machine else ''}{place} · {agent} · {status}",
+                    "color": status_colors.get(status, COLOR["text"]),
+                    "click": row_command("herdr", "app-row", address),
+                }
+            )
+    elif HC:
+        rows.append({"label": "Herdr app · not running", "color": COLOR["subdued"]})
     rebuild_popup("herdr", rows)
 
 

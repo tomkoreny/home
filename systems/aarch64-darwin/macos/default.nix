@@ -141,6 +141,7 @@ in
           "/System/Applications/Calendar.app"
           "/System/Applications/Notes.app"
           "/Applications/Ghostty.app"
+          "${homeManagerApps}/Herdr.app"
           "/Applications/Codex.app"
           "/Applications/Claude.app"
           "${homeDir}/Applications/WebStorm.app"

@@ -3,7 +3,8 @@
 Each test starts a kept terminal, records it as running an OMP session, stops
 the core as a reboot does, and lets the next `hc` call bring the terminal back
 as a plain shell. `omp` is a stand-in that writes its arguments to a file.
-Nothing here touches the user's own core: HOME and XDG_RUNTIME_DIR are scratch.
+Nothing here touches the user's own core: HOME, XDG_RUNTIME_DIR and
+XDG_STATE_HOME are scratch.
 """
 
 import importlib.util
@@ -30,7 +31,9 @@ def setUpModule():
     global ROOT, SAVED_ENV, resume
     if HC is None:
         raise unittest.SkipTest("herdr-core (hc) is not installed")
-    ROOT = Path(tempfile.mkdtemp(prefix="omp-resume-test-"))
+    # macOS keeps the core's socket under the state directory, and its own
+    # temporary directory is too long a path for a socket.
+    ROOT = Path(tempfile.mkdtemp(prefix="omp-resume-test-", dir="/tmp" if sys.platform == "darwin" else None))
     (ROOT / "run").mkdir(mode=0o700)
     (ROOT / "bin").mkdir()
     stand_in = ROOT / "bin" / "omp"
@@ -42,13 +45,15 @@ def setUpModule():
         HOME=str(ROOT),
         XDG_RUNTIME_DIR=str(ROOT / "run"),
         XDG_STATE_HOME=str(ROOT / "state"),
-        # The stand-in first; the shells the core starts must not rebuild PATH
-        # from /etc/profile, which the two NixOS guards below prevent.
+        # The stand-in first; the shells the core starts must not put the real
+        # omp ahead of it by rebuilding PATH from the system profile, which
+        # these NixOS and nix-darwin guards prevent.
         PATH=f"{ROOT / 'bin'}:{Path(HC).parent}:{SAVED_ENV.get('PATH', '')}",
         SHELL=shutil.which("sh", path=SAVED_ENV.get("PATH")) or "/bin/sh",
         TERM="xterm-256color",
         __NIXOS_SET_ENVIRONMENT_DONE="1",
         __ETC_PROFILE_SOURCED="1",
+        __NIX_DARWIN_SET_ENVIRONMENT_DONE="1",
     )
     spec = importlib.util.spec_from_file_location("omp_resume", Path(__file__).with_name("omp-resume.py"))
     resume = importlib.util.module_from_spec(spec)

@@ -14,6 +14,8 @@ in
   home.homeDirectory = "/Users/tom";
 
   tomkoreny.komai.enable = true;
+  # The Herdr app with the OMP chat view, the same setup as on NixOS.
+  tomkoreny.herdr-app.enable = true;
   # Status island in the menu bar: Notion todos, Polaris tasks, timers, herdr, AI usage.
   tomkoreny.sketchybar.enable = true;
   # Tiling with Caps Lock as Super, mirroring the Hyprland binds.

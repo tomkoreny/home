@@ -42,13 +42,9 @@ SETTLE = 30  # after typing a resume, let OMP start before judging the shell
 FORGET_AFTER = 30 * 86400  # records of terminals that never came back
 
 HC = sys.argv[1] if len(sys.argv) > 1 else "hc"
-RUNTIME = Path(os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}")
-CORE_SOCKET = RUNTIME / "herdr-core" / "default.sock"
-STATE = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state") / "herdr-omp-resume/terminals.json"
+STATE_HOME = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state")
+STATE = STATE_HOME / "herdr-omp-resume/terminals.json"
 CRUMBS = Path.home() / ".omp/agent/terminal-sessions"
-BOOT = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
-BOOT_TIME = next(int(line.split()[1]) for line in Path("/proc/stat").read_text().splitlines() if line.startswith("btime "))
-TICKS = os.sysconf("SC_CLK_TCK")
 
 
 def shell_names() -> frozenset[str]:
@@ -88,34 +84,82 @@ def hc(*args: str) -> dict:
     return json.loads(result.stdout)
 
 
-def start_ticks(pid: int) -> int | None:
-    try:
-        stat = Path(f"/proc/{pid}/stat").read_text()
-    except OSError:
-        return None
-    return int(stat[stat.rindex(")") + 2:].split()[19])
+# What the system knows about a process, asked the way each system answers.
+# BOOT names this boot, start_stamp tells two processes with one pid apart,
+# started_at is the start in seconds since the epoch, pty_of is the terminal
+# under the name OMP gives its crumb, and comm is the name it runs under now.
+if sys.platform == "darwin":
+    # macOS has neither /proc nor a runtime directory: the core keeps its
+    # socket with its state, and `sysctl` and `ps` answer what /proc does.
+    CORE_SOCKET = STATE_HOME / "herdr-core/default/default.sock"
+    BOOT = subprocess.run(
+        ["/usr/sbin/sysctl", "-n", "kern.bootsessionuuid"], capture_output=True, text=True, check=True
+    ).stdout.strip()
+
+    def ps(pid: int, column: str) -> str | None:
+        """One `ps` column of a process, None once the process is gone."""
+        result = subprocess.run(
+            ["/bin/ps", "-o", f"{column}=", "-p", str(pid)], capture_output=True, text=True, env={"LC_ALL": "C"}
+        )
+        return result.stdout.strip() or None
+
+    def started_at(pid: int) -> float | None:
+        started = ps(pid, "lstart")  # "Sat Nov 14 10:36:57 2026", in local time
+        return time.mktime(time.strptime(started, "%a %b %d %H:%M:%S %Y")) if started else None
+
+    def start_stamp(pid: int) -> int | None:
+        started = started_at(pid)
+        return None if started is None else int(started)
+
+    def pty_of(pid: int) -> str | None:
+        tty = ps(pid, "tty")  # "ttys034", or "??" without one
+        return tty if tty and tty.startswith("ttys") else None
+
+    def comm(pid: int) -> str | None:
+        return ps(pid, "ucomm")
+
+else:
+    CORE_SOCKET = Path(os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}") / "herdr-core" / "default.sock"
+    BOOT = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+    BOOT_TIME = next(
+        int(line.split()[1]) for line in Path("/proc/stat").read_text().splitlines() if line.startswith("btime ")
+    )
+    TICKS = os.sysconf("SC_CLK_TCK")
+
+    def start_stamp(pid: int) -> int | None:
+        try:
+            stat = Path(f"/proc/{pid}/stat").read_text()
+        except OSError:
+            return None
+        return int(stat[stat.rindex(")") + 2:].split()[19])
+
+    def started_at(pid: int) -> float | None:
+        ticks = start_stamp(pid)
+        return None if ticks is None else BOOT_TIME + ticks / TICKS
+
+    def pty_of(pid: int) -> str | None:
+        try:
+            tty = os.readlink(f"/proc/{pid}/fd/0")
+        except OSError:
+            return None
+        return "pts-" + tty.removeprefix("/dev/pts/") if tty.startswith("/dev/pts/") else None
+
+    def comm(pid: int) -> str | None:
+        try:
+            return Path(f"/proc/{pid}/comm").read_text().strip()
+        except OSError:
+            return None
 
 
 def process_id(pid: int) -> str | None:
     """A name for a process that a reused pid or another boot cannot match."""
-    ticks = start_ticks(pid)
-    return None if ticks is None else f"{BOOT}:{pid}:{ticks}"
-
-
-def pty_of(pid: int) -> str | None:
-    try:
-        tty = os.readlink(f"/proc/{pid}/fd/0")
-    except OSError:
-        return None
-    return "pts-" + tty.removeprefix("/dev/pts/") if tty.startswith("/dev/pts/") else None
+    stamp = start_stamp(pid)
+    return None if stamp is None else f"{BOOT}:{pid}:{stamp}"
 
 
 def is_shell(pid: int) -> bool:
     """Whether a process is a shell, by the name it runs under now."""
-    try:
-        return Path(f"/proc/{pid}/comm").read_text().strip() in SHELLS
-    except OSError:
-        return False
+    return comm(pid) in SHELLS
 
 
 def crumb_session(pty: str, since: float) -> tuple[bool, str | None]:
@@ -142,15 +186,15 @@ def note_omp(address: str, records: dict, now: float) -> None:
         omp = (info.get("foreground") or {}).get("pid")
         shell = process_id(info["pid"])
         pty = pty_of(info["pid"])
-        ticks = start_ticks(omp) if omp else None
-        if shell is None or pty is None or ticks is None:
+        since = started_at(omp) if omp else None
+        if shell is None or pty is None or since is None:
             return
         record = {
             "created": info.get("created_ms"),
             "shell": shell,
             "shell_pid": info["pid"],
             "pty": pty,
-            "omp_since": BOOT_TIME + ticks / TICKS - 5,
+            "omp_since": since - 5,
         }
     written, session = crumb_session(record["pty"], record["omp_since"])
     if written and session != record.get("session"):

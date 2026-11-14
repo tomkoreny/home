@@ -459,7 +459,8 @@ Escape are all supported.
 [SketchyBar](https://felixkratz.github.io/SketchyBar/). Quickshell needs
 Wayland layer-shell and Hyprland IPC, so only the data side is shared: the same
 `notion-todos`, `work-tasks`, and `quickshell-timer` helpers from
-`modules/home/bar-backends/` plus `herdr api snapshot` and `omp usage --json`.
+`modules/home/bar-backends/` plus `herdr api snapshot`, `hc ls` for the Herdr
+app's agents, and `omp usage --json`.
 `tomkoreny.sketchybar.enable = true` in `homes/aarch64-darwin/tom@macos`
 turns it on; it enables `tomkoreny.bar-backends` itself and reads
 `tomkoreny.bar-backends.workTasks` for the work provider.
@@ -482,7 +483,7 @@ Every item runs
 | Item | Popup rows | Row actions |
 | --- | --- | --- |
 | upgrade | shown only when the last auto-upgrade run failed (`upgrade`) or none has finished for 24 hours (`no upgrade`): age, first error line, last success, `Open the upgrade log` | opens `~/Library/Logs/auto-upgrade.log` in `less` in Ghostty |
-| herdr | one row per pane: workspace, agent, status, title | click opens it with `herdr-view` in Ghostty |
+| herdr | the count covers the Herdr TUI and the Herdr app; one row per TUI pane (workspace, agent, status, title) and per Herdr app terminal (machine, space and tab, program, status) | a pane opens with `herdr-view` in Ghostty; an app terminal is shown in the Herdr app, which comes forward |
 | timers | `New timer…` (native text dialog, `20m pasta`), then each timer with its remaining time | click pauses or resumes, right-click cancels |
 | AI usage | update age, account, every limit with reset time, `Refresh usage` | refresh runs `omp usage invalidate` |
 | Notion tasks | counts header, `New task…` (same capture tokens as Linux), then today's and overdue tasks | click completes, right-click opens in Notion |

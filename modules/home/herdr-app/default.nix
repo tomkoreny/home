@@ -16,9 +16,9 @@
 # - OMP's entry in programs.json, so OMP is in the app's + menu with its own
 #   mark (omp-icon.svg, tinted like the app's other agents). Upstream's table of
 #   agents does not list it (herdrdev/herdr-app#730).
-# - omp-resume.py, a user service. After a reboot herdr-core brings each
-#   terminal back as a plain shell; the service types `omp --resume` with the
-#   session that ran there. Its docstring has the rules.
+# - omp-resume.py, a user service (a launchd agent on macOS). After a reboot
+#   herdr-core brings each terminal back as a plain shell; the service types
+#   `omp --resume` with the session that ran there. Its docstring has the rules.
 #
 # The rest of the system's look: themes/stylix.json and stylix-light.json are
 # the Ghostty themes Stylix and modules/home/stylix define (the terminal colours
@@ -36,7 +36,32 @@
 #
 # Neither program updates itself from the store: the app reports "a build from
 # source" and herdr-core "managed by nix". Their pins follow upstream through
-# .github/scripts/bump-pins.py. The wrapper turns the app's usage telemetry off.
+# .github/scripts/bump-pins.py. Usage telemetry is off in settings.json; the
+# Linux wrapper says so a second time, which the signed macOS bundle cannot.
+#
+# On macOS both programs are upstream's signed bundles, unchanged. Herdr.app is
+# linked into ~/Applications/Home Manager Apps like the other Nix-built apps;
+# what terminal programs may use (microphone, folders) is granted to Herdr
+# Core, by its signature, so the grants survive version bumps.
+#
+# The Mac and the NixOS desktop show each other's spaces: each has the other
+# as a machine (Settings > Machines), over the ssh aliases in
+# modules/home/ssh. herdr-core keeps a machine in its state, so each was
+# added once by hand:
+#
+#   Mac:    hc machine add nixos-ygg --name nixos
+#   NixOS:  hc machine add macos-ygg --name macos
+#
+# A machine starts the other one's herdr-core whenever it finds none running:
+# within a second of a stop, and after a reboot as soon as ssh answers
+# (measured, 0.1.21). That is Herdr's own behaviour, kept on purpose: either
+# machine is reachable from the other at any time. Two things follow from it.
+# A core started that way brings back its kept terminals, and omp-resume.py
+# their OMP sessions, before anyone opened Herdr there. And on the Mac such a
+# core runs outside the desktop login, where the login keychain refuses and
+# no ssh agent is set (measured); `hc --skill` names `hc server restart`, run
+# from a terminal on the Mac's desktop, as what moves it into the desktop
+# login.
 {
   config,
   lib,
@@ -46,8 +71,7 @@
 let
   cfg = config.tomkoreny.herdr-app;
   herdrCore = pkgs.callPackage ./core.nix { };
-  # herdr-chat reads session logs with python3, which the login PATH lacks.
-  herdrApp = pkgs.callPackage ./package.nix { extraPath = [ pkgs.python3 ]; };
+  herdrApp = pkgs.callPackage ./package.nix { };
 
   seedShared = pkgs.writeText "herdr-app-shared.json" (builtins.toJSON { layout = "herdr-chat"; });
 
@@ -90,6 +114,7 @@ let
       dark = "stylix";
     };
     font = ghosttyFont;
+    telemetry = false;
   };
   ownedPrograms.programs.omp = {
     name = "omp";
@@ -123,13 +148,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    assertions = [
-      {
-        assertion = pkgs.stdenv.hostPlatform.system == "x86_64-linux";
-        message = "The Herdr app module packages only the x86_64 Linux releases.";
-      }
-    ]
-    ++ lib.mapAttrsToList (name: theme: {
+    assertions = lib.mapAttrsToList (name: theme: {
       assertion = builtins.length theme.ansi == 16;
       message = "The Herdr app theme ${name} needs Ghostty's 16 palette colours; it has ${toString (builtins.length theme.ansi)}.";
     }) appThemes;
@@ -137,6 +156,11 @@ in
     home.packages = [
       herdrApp
       herdrCore
+      # herdr-chat reads session logs with `python3`: here, and for a space on
+      # another machine there, through that machine's herdr-core. So it has to
+      # be on the PATH of both, which the login PATH otherwise lacks on NixOS
+      # and fills with Xcode's Python 3.9 on macOS.
+      pkgs.python3
     ];
 
     home.activation.herdrAppHome = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
@@ -164,7 +188,7 @@ in
       run ${mergeJson} "$herdrAppHome/programs.json" ${lib.escapeShellArg (builtins.toJSON ownedPrograms)}
     '';
 
-    systemd.user.services.herdr-omp-resume = {
+    systemd.user.services.herdr-omp-resume = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
       Unit.Description = "Reopen OMP sessions in Herdr app terminals after herdr-core loses them";
       Service = {
         ExecStart = "${pkgs.python3}/bin/python3 ${./omp-resume.py} ${lib.getExe herdrCore}";
@@ -172,6 +196,22 @@ in
         RestartSec = 5;
       };
       Install.WantedBy = [ "default.target" ];
+    };
+
+    launchd.agents.herdr-omp-resume = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
+      enable = true;
+      config = {
+        ProgramArguments = [
+          "${pkgs.python3}/bin/python3"
+          "${./omp-resume.py}"
+          (lib.getExe herdrCore)
+        ];
+        KeepAlive = true;
+        RunAtLoad = true;
+        ProcessType = "Background";
+        StandardOutPath = "${config.home.homeDirectory}/Library/Logs/herdr-omp-resume.log";
+        StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/herdr-omp-resume.log";
+      };
     };
   };
 }
