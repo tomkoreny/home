@@ -74,6 +74,9 @@ let
   herdrApp = pkgs.callPackage ./package.nix { };
 
   seedShared = pkgs.writeText "herdr-app-shared.json" (builtins.toJSON { layout = "herdr-chat"; });
+  # Which herdr-chat build the copy in the app's home came from. A file, not a
+  # here-string: GNU install refuses to copy from /dev/stdin on macOS.
+  chatSource = pkgs.writeText "herdr-chat-source" "${cfg.chatPackage}\n";
 
   common = import ../../../lib/common { };
   ghostty = config.programs.ghostty;
@@ -173,7 +176,7 @@ in
         run cp -r ${cfg.chatPackage}/mods/herdr-chat "$herdrAppHome/mods/herdr-chat"
         run chmod -R u+w "$herdrAppHome/mods/herdr-chat"
         run install -m 644 ${cfg.chatPackage}/layouts/herdr-chat.json "$herdrAppHome/layouts/herdr-chat.json"
-        run install -D -m 644 /dev/stdin "$herdrChatStamp" <<< ${cfg.chatPackage}
+        run install -D -m 644 ${chatSource} "$herdrChatStamp"
       fi
       if [[ ! -e "$herdrAppHome/shared.json" ]]; then
         run install -m 644 ${seedShared} "$herdrAppHome/shared.json"
