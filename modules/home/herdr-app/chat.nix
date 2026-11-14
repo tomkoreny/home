@@ -12,9 +12,10 @@ stdenvNoCC.mkDerivation {
 
   # Tom's fork of azaeldrm/herdr-chat, a young single-author project: upstream
   # plus OMP (its chat, its slash commands with their choices, a status line
-  # with the model and thinking level, and a card with its to-do list and
-  # running subagents), on the fork's `omp` branch. A Herdr mod is
-  # unsandboxed code with the user's access; upstream was read
+  # with the model and thinking level, a card with its to-do list and running
+  # subagents, and what it is doing right now, from the OMP extension in
+  # omp/), on the fork's `omp` branch. A Herdr mod is unsandboxed code with
+  # the user's access; upstream was read
   # before forking (it runs python3, hc, sh, env and rm, and opens no network
   # connection; the fork adds `omp --mode rpc --no-session`). bump-pins.py does
   # not move it: merge upstream into the branch after reading its diff, then
@@ -22,8 +23,8 @@ stdenvNoCC.mkDerivation {
   src = fetchFromGitHub {
     owner = "tomkoreny";
     repo = "herdr-chat";
-    rev = "d5d9a962cdc4a9a7f32f13c713a3d42f8fb9c596";
-    hash = "sha256-LA6sktHShVGpGtBfPZAIerJj75lbbYzcm3oHPVzRVng=";
+    rev = "10fd6acc13c5727aa12fd92a53b95f5c5640349e";
+    hash = "sha256-PM4rxy3cvRlLmu3npfU5CGHXjf6mSQqoyMfYaJxUmwE=";
   };
 
   dontConfigure = true;
@@ -34,9 +35,10 @@ stdenvNoCC.mkDerivation {
   installPhase = ''
     runHook preInstall
 
-    mkdir -p "$out/mods" "$out/layouts"
+    mkdir -p "$out/mods" "$out/layouts" "$out/omp"
     cp -r mods/herdr-chat "$out/mods/herdr-chat"
     cp layouts/herdr-chat.json "$out/layouts/herdr-chat.json"
+    cp omp/herdr-chat-live.ts "$out/omp/herdr-chat-live.ts"
 
     runHook postInstall
   '';

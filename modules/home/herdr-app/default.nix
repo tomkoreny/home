@@ -13,6 +13,9 @@
 #   toggle. It comes from Tom's fork, which adds OMP: its chat, its slash
 #   commands in the / menu, a status line with the model and thinking level,
 #   and a card with its to-do list and running subagents above the reply box.
+#   Its OMP extension, linked into ~/.omp/agent/extensions, keeps what the
+#   agent is doing right now beside the session's log, which the chat shows
+#   under its working spark; OMP loads it when a session starts.
 # - OMP's entry in programs.json, so OMP is in the app's + menu with its own
 #   mark (omp-icon.svg, tinted like the app's other agents). Upstream's table of
 #   agents does not list it (herdrdev/herdr-app#730).
@@ -165,6 +168,9 @@ in
       # and fills with Xcode's Python 3.9 on macOS.
       pkgs.python3
     ];
+
+    home.file.".omp/agent/extensions/herdr-chat-live.ts".source =
+      "${cfg.chatPackage}/omp/herdr-chat-live.ts";
 
     home.activation.herdrAppHome = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       herdrAppHome=${lib.escapeShellArg "${config.xdg.configHome}/herdr-app"}
