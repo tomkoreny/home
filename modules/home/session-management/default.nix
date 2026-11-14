@@ -307,12 +307,13 @@ in
   # Herdr owns workspaces and process lifetime; Ghostty is only the renderer.
   # tmux remains available through `mux` during the experiment. Extra windows
   # onto the same session go through `herdr-view` (see above); plain windows
-  # mirror by design.
+  # mirror by design. On the Mac the Herdr app owns workspaces instead, so
+  # Ghostty opens a plain login shell there.
   programs.ghostty = {
     enable = true;
     package = null;
     systemd.enable = false;
     enableBashIntegration = true;
-    settings.command = lib.getExe herdrPackage;
+    settings.command = lib.mkIf pkgs.stdenv.hostPlatform.isLinux (lib.getExe herdrPackage);
   };
 }
