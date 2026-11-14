@@ -12,6 +12,9 @@ let
   # darwin-rebuild via the persistent system profile: /run/current-system is
   # volatile on macOS. Must match the sudoers rule below.
   darwinRebuild = "/nix/var/nix/profiles/system/sw/bin/darwin-rebuild";
+  # Determinate's own program, installed by its package outside the store.
+  # Must match the sudoers rule below.
+  determinateNixd = "/usr/local/bin/determinate-nixd";
   # The agent starts the script through the same persistent profile instead of
   # its store path. nix-darwin reloads a user agent whenever its plist changes,
   # and the script's store path changed with every nixpkgs bump, so the switch
@@ -39,8 +42,6 @@ let
       lib.makeBinPath [
         pkgs.git
         pkgs.curl
-        pkgs.nodejs
-        pkgs.gnutar
         pkgs.coreutils
         pkgs.gnugrep
         pkgs.gnused
@@ -119,11 +120,25 @@ let
       mv "$state.tmp" "$state"
     }
 
-    echo "auto-upgrade: adopting the configuration on origin/main..."
+    echo "auto-upgrade: $(date '+%F %T') adopting the configuration on origin/main..."
     run_log="$(mktemp "''${TMPDIR:-/tmp}/auto-upgrade-run.XXXXXX")"
     set +e
     "$REPO_PATH/scripts/update-home.sh" 2>&1 | tee "$run_log"
     status=''${PIPESTATUS[0]}
+    # Determinate Nix comes from its installer package and nothing else moves
+    # it: it sat at 3.21.0 from May to November 2026, past the security fix in
+    # 3.24.1. Its `version` says when a newer release is advised; installing
+    # it needs root, which the sudoers rule below allows for this one command.
+    # A failed upgrade fails the run, so the bar shows it.
+    determinate="$(${determinateNixd} version 2>/dev/null)"
+    if [ "$status" -eq 0 ] && [[ "$determinate" == *"new version of Determinate Nix is available"* ]]; then
+      echo "auto-upgrade: upgrading Determinate Nix..."
+      /usr/bin/sudo -n ${determinateNixd} upgrade 2>&1 | tee -a "$run_log"
+      status=''${PIPESTATUS[0]}
+      if [ "$status" -ne 0 ]; then
+        echo "error: determinate-nixd upgrade exited with status $status" | tee -a "$run_log"
+      fi
+    fi
     set -e
     record_status "$status"
     exit "$status"
@@ -141,15 +156,36 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Let the (non-root) launchd agent activate the rebuilt system without a
-    # password. This is root-equivalent, not a narrow grant: darwin-rebuild
-    # activates whatever configuration it is pointed at as root, so anyone
-    # running as this user can run arbitrary code as root.
+    # Let the (non-root) launchd agent activate the rebuilt system and upgrade
+    # Determinate Nix without a password. The first is root-equivalent, not a
+    # narrow grant: darwin-rebuild activates whatever configuration it is
+    # pointed at as root, so anyone running as this user can run arbitrary
+    # code as root. The second allows only that one subcommand.
     environment.etc."sudoers.d/darwin-rebuild".text = ''
       ${common.user.name} ALL=(ALL) NOPASSWD: ${darwinRebuild}
+      ${common.user.name} ALL=(ALL) NOPASSWD: ${determinateNixd} upgrade
     '';
 
     environment.systemPackages = [ upgradeScript ];
+
+    # Every run appends its whole pull, check and switch output, and nothing
+    # trimmed the file: 235 MB by November 2026. launchd opens it anew for
+    # each run, so newsyslog can rotate it between runs.
+    system.newsyslog = {
+      enable = true;
+      files.auto-upgrade = [
+        {
+          logfilename = log;
+          owner = common.user.name;
+          group = "staff";
+          mode = "644";
+          count = 3;
+          # In kilobytes.
+          size = "10240";
+          flags = [ "Z" ];
+        }
+      ];
+    };
 
     launchd.user.agents.auto-upgrade = {
       command = upgradeCommand;
