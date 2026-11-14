@@ -7,10 +7,10 @@
 # exclude list below) and minus iCloud Drive, whose files macOS may keep
 # online-only: reading one downloads it, and a backup would download them all.
 #
-# What stays out: everything outside /Users. The one place there that can
-# hold something a person made is Homebrew's service data in
-# /opt/homebrew/var. On 2026-11-14 none of those services was running or
-# started at login, and nothing in there was worth a dump: PostgreSQL 14 has
+# What stays out: everything outside /Users. Checked there so far is only
+# Homebrew's service data in /opt/homebrew/var, where databases live. On
+# 2026-11-14 none of those services was running or started at login, and
+# nothing in there was worth a dump: PostgreSQL 14 has
 # eight development databases with 32 kB of tables in one and none in the
 # others, last written in July 2025; PostgreSQL 15 and 18 and MariaDB hold
 # only what a new installation has; Redis has a 1.6 kB dump from April 2026.
