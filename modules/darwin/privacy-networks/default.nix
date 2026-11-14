@@ -19,6 +19,9 @@ let
     ipv6 = true
     nat = true
     log = stdout
+    # The default level, warn, is transport chatter: 215 MB of it in
+    # ~/Library/Logs/i2pd.log by November 2026.
+    loglevel = error
 
     [http]
     enabled = true
