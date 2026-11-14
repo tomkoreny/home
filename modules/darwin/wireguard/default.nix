@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 # Always-on, split-tunnel WireGuard link to the internal network.
@@ -80,9 +81,23 @@ in
     # the interface down with it -- permanently, since a nonzero exit is never
     # retried. Unconditional KeepAlive retries both cases, throttled to one
     # attempt per 10s, so the tunnel converges once sops has landed.
+    #
+    # KeepAlive does not retry a program launchd could not find, though. The
+    # generated daemon names wg-quick by its store path, and at boot launchd
+    # can start it before the Nix volume is mounted: it then logs "Missing
+    # executable detected" and leaves the job inactive until something
+    # reloads it (2026-11-12: both tunnels stayed down for two days). Waiting
+    # for the store first is what nix-darwin does for every daemon given as a
+    # `command`; `exec` keeps the job's process, which wg-quick's launchd
+    # detection looks at.
     launchd.daemons."wg-quick-${wg.interface}".serviceConfig = {
       KeepAlive = lib.mkForce true;
       ThrottleInterval = 10;
+      ProgramArguments = lib.mkForce [
+        "/bin/sh"
+        "-c"
+        "/bin/wait4path /nix/store && exec ${pkgs.wireguard-tools}/bin/wg-quick up ${wg.interface}"
+      ];
     };
   };
 }

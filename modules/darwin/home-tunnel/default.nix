@@ -15,8 +15,8 @@
 # daemon (failover.sh) decides when IPv4 goes through it and restores the
 # local path once that works again.
 #
-# Key handling and the KeepAlive override follow modules/darwin/wireguard;
-# its comments explain both.
+# Key handling and the daemon overrides (KeepAlive, waiting for the Nix store)
+# follow modules/darwin/wireguard; its comments explain them.
 let
   cfg = config.tomkoreny.darwin.home-tunnel;
   common = import ../../../lib/common { inherit lib; };
@@ -103,6 +103,11 @@ in
     launchd.daemons."wg-quick-${interface}".serviceConfig = {
       KeepAlive = lib.mkForce true;
       ThrottleInterval = 10;
+      ProgramArguments = lib.mkForce [
+        "/bin/sh"
+        "-c"
+        "/bin/wait4path /nix/store && exec ${pkgs.wireguard-tools}/bin/wg-quick up ${interface}"
+      ];
     };
 
     launchd.daemons.home-tunnel-ipv4-failover = {
