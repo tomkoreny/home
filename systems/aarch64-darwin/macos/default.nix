@@ -239,8 +239,8 @@ in
     description = fullName;
     home = homeDir;
     shell = pkgs.bashInteractive;
-    # tom@nixos, for Herdr's saved "macos" machine on NixOS (the macos-ygg
-    # alias in modules/home/ssh).
+    # tom@nixos, for Herdr's "macos" machine on NixOS (the macos-ygg alias in
+    # modules/home/ssh).
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEL+ZoEJf5oFRRFbWHZoMV7nsV/qYqjvCMtQP1J/jghU tom@nixos"
     ];
@@ -248,13 +248,17 @@ in
 
   # Remote Login, so Herdr on NixOS can attach this Mac's sessions. launchd
   # owns sshd's socket and listens on every interface, including untrusted
-  # Wi-Fi, so only public keys are accepted, matching the NixOS host.
+  # Wi-Fi and the public Yggdrasil overlay, so only public keys are accepted,
+  # matching the NixOS host, and only the keys declared above: without
+  # `AuthorizedKeysFile none`, sshd also accepts whatever is in
+  # ~/.ssh/authorized_keys, where an undeclared key sat until 2026-11-14.
   services.openssh = {
     enable = true;
     extraConfig = ''
       PermitRootLogin no
       PasswordAuthentication no
       KbdInteractiveAuthentication no
+      AuthorizedKeysFile none
     '';
   };
 
