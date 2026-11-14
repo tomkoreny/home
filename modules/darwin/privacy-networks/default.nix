@@ -59,8 +59,11 @@ let
   # address. Nothing filtered that path, so every listener here (Screen
   # Sharing, AirPlay, a container's published port) answered from the mesh,
   # as a probe from NixOS showed on 2026-11-14. These pf rules admit what this
-  # Mac starts itself and, from the mesh, only the NixOS desktop: its ssh
-  # (Herdr, administration) and its ping.
+  # Mac starts itself and, from the mesh, only the NixOS desktop (its ssh, for
+  # Herdr and administration, and its ping) and the home gateway's WireGuard
+  # answers, which carry the IPv4 fallback tunnel (modules/darwin/home-tunnel).
+  # The Mac starts that tunnel too, so the first rule already covers it; the
+  # explicit rule keeps it working should the state for it ever lapse.
   #
   # `flags any` lets connections that are already open when the rules load
   # carry on, the ssh session that deploys them included.
@@ -68,6 +71,7 @@ let
     pass out quick inet6 from any to 200::/7 flags any keep state
     pass in quick inet6 proto tcp from ${common.yggdrasil.addresses.nixos} to any port 22 flags any keep state
     pass in quick inet6 proto icmp6 from ${common.yggdrasil.addresses.nixos} to any icmp6-type echoreq keep state
+    pass in quick inet6 proto udp from ${common.homeGateway.yggdrasil.address} port ${toString common.homeGateway.wireguard.port} to any keep state
     block drop in quick inet6 from 200::/7 to any
   '';
   # macOS's /etc/pf.conf evaluates the anchors under com.apple and nothing
