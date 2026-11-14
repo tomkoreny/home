@@ -35,13 +35,10 @@ let
     };
   }
   // lib.optionalAttrs isTom {
+    # The homelab's Proxmox host, `beast`, on the storage VLAN. Its containers
+    # are reached from it with `pct exec` (102 is the storage container).
     "proxmox" = {
-      HostName = "192.168.1.2";
-      User = "root";
-    };
-
-    "docker-host" = {
-      HostName = "192.168.1.93";
+      HostName = "10.10.50.2";
       User = "root";
     };
 
