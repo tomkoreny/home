@@ -23,16 +23,20 @@ let
     exec >${log} 2>&1
     echo "nix-gc: started $(/bin/date)"
     # Old generations are removed first, then the store is collected through
-    # the Nix daemon rather than by this job itself. macOS lets only a process
-    # with the App Management permission delete an app bundle that was once
+    # the Nix daemon rather than by this job itself. macOS refuses to let a
+    # process without Full Disk Access delete an app bundle that was once
     # opened, which is every app in the store that was ever launched, and one
     # refusal ends the whole collection: "fchmodat ...Ghostty.app: Operation
     # not permitted" in every run on record up to 2026-11-14, from this job
-    # and from Determinate's own collector alike. Only a person can grant
-    # that permission (System Settings > Privacy & Security). Collecting
-    # through the daemon means one grant, to Determinate's daemon, is the
-    # only one either collector could need. Until then the generations are
-    # still pruned and the collection still stops at the first such bundle.
+    # and from Determinate's own collector alike. Collecting through the
+    # daemon means one grant, to Determinate's daemon, serves both: System
+    # Settings > Privacy & Security > Full Disk Access, with
+    # /usr/local/bin/determinate-nixd switched on, which only a person can
+    # do. App Management, the permission meant for changing apps, is recorded
+    # per user and changed nothing for the daemon, which runs as root. With Full
+    # Disk Access on (2026-11-14) the bundle named above was deleted. Without
+    # it the generations are still pruned and the collection stops at the
+    # first such bundle.
     NIX_REMOTE=daemon ${collectGarbage} --delete-older-than ${keep}
     status=$?
     echo "nix-gc: finished $(/bin/date) with exit status $status"
