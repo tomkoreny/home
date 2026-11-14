@@ -398,16 +398,40 @@ def agent_summary(label: str, working: int, blocked: int, idle: int) -> str:
     return f"{label} · " + (" · ".join(parts) if parts else "no agents")
 
 
+OPEN_HERDR_APP = ["/usr/bin/open", "-b", "dev.herdr.app"]
+
+
+def show_in_app(terminal: str) -> bool:
+    """Bring the Herdr app forward and show one of its agents.
+
+    The app comes first: with its window closed nothing answers `herdr-app do`,
+    and the agent asked for would be lost. A window that has just opened
+    refuses for about a second more, until it has loaded the terminals
+    (measured from a cold start: no window at 0 s, "no running terminal" at
+    0.6 s, shown at 1.3 s), so the request is repeated until it is taken.
+    """
+    subprocess.run(OPEN_HERDR_APP, check=False)
+    deadline = time.monotonic() + 10
+    while True:
+        try:
+            shown = subprocess.run(
+                [HERDR_APP, "do", "agent.focus", "--terminal", terminal], capture_output=True, timeout=10, check=False
+            ).returncode == 0
+        except (OSError, subprocess.TimeoutExpired):
+            shown = False
+        if shown or time.monotonic() >= deadline:
+            return shown
+        time.sleep(0.3)
+
+
 def herdr(args: list[str]) -> None:
     if args[:1] == ["row"]:
         detach([HERDR_VIEW, args[1]])
         sketchybar("--set", "herdr", "popup.drawing=off")
         return
     if args[:1] == ["app-row"]:
-        # Show the agent in the Herdr app, then bring the app forward.
-        subprocess.run([HERDR_APP, "do", "agent.focus", "--terminal", args[1]], capture_output=True, timeout=10, check=False)
-        detach(["/usr/bin/open", "-b", "dev.herdr.app"])
         sketchybar("--set", "herdr", "popup.drawing=off")
+        show_in_app(args[1])
         return
     opened = toggle_popup("herdr") if args[:1] == ["click"] else popup_open("herdr")
 
