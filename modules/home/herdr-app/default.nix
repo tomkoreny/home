@@ -129,6 +129,32 @@ let
     run = [ "omp" ];
     match = [ "oh-my-pi" ];
   };
+  # The app's Hermes item opens the homelab Hermes (hermesHomelab), on both
+  # machines' menus; it is installed where it can reach the cluster.
+  ownedPrograms.programs.hermes = {
+    name = "Hermes (homelab)";
+    run = [ "hermes-homelab" ];
+    match = [ "hermes-homelab" ];
+  };
+
+  # The homelab Hermes (homelab-services, apps/services/hermes-agent) in a
+  # terminal: its TUI, run in the pod as the `hermes` user, so it shares the
+  # gateway, sessions and memory with Telegram and Matrix. Hermes' TUI attaches
+  # only to a gateway on its own machine (a loopback WebSocket with a one-time
+  # ticket), so it runs there and kubectl carries the terminal. The script stays
+  # in front of kubectl rather than exec-ing it, so Herdr names the terminal by
+  # this script and shows it as Hermes. Linux only: the desktop reaches the
+  # cluster's API (10.11.0.10) and the Mac away from home does not, so the Mac
+  # opens Hermes in a NixOS space.
+  hermesHomelab = pkgs.writeShellScriptBin "hermes-homelab" ''
+    set -euo pipefail
+    kubeconfig="''${HERMES_HOMELAB_KUBECONFIG:-$HOME/WebstormProjects/homelab-services/.ai/generated/proxmox-lab/kubeconfig}"
+    ${lib.getExe pkgs.kubectl} --kubeconfig "$kubeconfig" -n hermes-agent \
+      exec -it deploy/hermes-agent -c hermes-agent -- \
+      /command/s6-setuidgid hermes env HERMES_HOME=/opt/data HOME=/opt/data LANG=C.UTF-8 \
+      TERM="''${TERM:-xterm-256color}" COLORTERM="''${COLORTERM:-truecolor}" \
+      sh -c 'cd /opt/data && exec /opt/hermes/.venv/bin/hermes --tui "$@"' hermes "$@"
+  '';
   mergeJson = pkgs.writeShellScript "herdr-app-merge-json" ''
     # Merges the JSON in $2 into the JSON file $1 (created when missing), keeping
     # every other key. A file jq can't read is left alone, with a warning.
@@ -167,7 +193,8 @@ in
       # be on the PATH of both, which the login PATH otherwise lacks on NixOS
       # and fills with Xcode's Python 3.9 on macOS.
       pkgs.python3
-    ];
+    ]
+    ++ lib.optional pkgs.stdenv.hostPlatform.isLinux hermesHomelab;
 
     home.file.".omp/agent/extensions/herdr-chat-live.ts".source =
       "${cfg.chatPackage}/omp/herdr-chat-live.ts";
