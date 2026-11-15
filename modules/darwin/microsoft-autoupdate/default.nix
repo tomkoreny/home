@@ -15,9 +15,18 @@
 # After an install the session that is logged in at the time does not get
 # MAU's agent: on macOS 27.0.1 launchd turned it down ("Unable to verify
 # trusted spawn") when the installer loaded it, when MAU was opened and when
-# it was bootstrapped by hand. Whether a later login starts it has not been
-# seen yet; Teams > Help > Check for Updates opening MAU is the sign that it
-# has.
+# it was bootstrapped by hand. MAU itself still starts in that state, so its
+# window opening proves nothing: without the agent its log shows the
+# connection to com.microsoft.update.xpc failing, and `msupdate --list` ends
+# with "XPC Connection to updater invalidated". Whether a later login starts
+# the agent has not been seen yet. The updater works when, in a terminal of
+# the logged-in session, both of these do:
+#
+#   launchctl print gui/$(id -u)/com.microsoft.update.agent
+#   "/Library/Application Support/Microsoft/MAU2.0/Microsoft AutoUpdate.app/Contents/MacOS/msupdate" --list
+#
+# The first has to find the service, the second to answer with the updates
+# it found, or none, instead of the XPC error.
 {
   config,
   lib,
