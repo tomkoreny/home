@@ -193,6 +193,14 @@ in
       # be on the PATH of both, which the login PATH otherwise lacks on NixOS
       # and fills with Xcode's Python 3.9 on macOS.
       pkgs.python3
+      # That makes it the python3 a shell gets, so its pip comes along:
+      # without, `pip3` is Xcode's on macOS, which installs for Python 3.9,
+      # and is missing on NixOS. Outside a virtual environment this pip
+      # refuses to install (PEP 668: the store cannot be written); inside
+      # one, the environment's own pip is the one on PATH. A Python
+      # environment with pip built in was tried and is worse: it gives the
+      # same refusal as a read-only file system error.
+      pkgs.python3Packages.pip
     ]
     ++ lib.optional pkgs.stdenv.hostPlatform.isLinux hermesHomelab;
 
