@@ -380,9 +380,12 @@ in
       "ruby-build"
       "puma/puma/puma-dev"
 
-      # Node. Homebrew's node is the one a shell gets, and it owns the global
-      # npm prefix (/opt/homebrew), where `npm install -g` puts packages; the
-      # prefix of the node in the Nix profile is the read-only store.
+      # Node. Homebrew's node owns the global npm prefix (/opt/homebrew), where
+      # `npm install -g` puts packages; the prefix of the node in the Nix
+      # profile is the read-only store. Which node a shell gets depends on the
+      # shell: a login shell started from a clean environment has
+      # /opt/homebrew/bin ahead of the Nix profile, the Herdr app's terminals
+      # have the Nix profile first and /opt/homebrew/bin last.
       "node"
       "nodenv"
 
