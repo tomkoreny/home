@@ -68,6 +68,8 @@ in
   # restic to the homelab's MinIO whenever the Mac is home and on power; the
   # bar warns when it fails or a week passes without one.
   tomkoreny.darwin.backup.enable = true;
+  # The updater Teams depends on; Homebrew's Teams cask leaves it out.
+  tomkoreny.darwin.microsoft-autoupdate.enable = true;
   # Avoid collisions with pre-existing manual backups like ~/.ssh/config.bak.
   home-manager.backupFileExtension = "hm-bak";
 
@@ -324,7 +326,9 @@ in
       }
       # Not greedy: the cask is flagged auto_updates, and upgrading it through
       # brew uninstalls Teams' system packages with sudo, which the unattended
-      # auto-upgrade agent cannot do. Teams' own updater daemon keeps it current.
+      # auto-upgrade agent cannot do. Teams updates itself through Microsoft
+      # AutoUpdate, which this cask leaves out of Teams' installer and
+      # modules/darwin/microsoft-autoupdate installs.
       "microsoft-teams"
       "notion"
       "signal"
