@@ -405,7 +405,6 @@ in
       "ninja"
 
       # Tools
-      "python-setuptools"
       "sshpass"
       "wakeonlan"
 
