@@ -388,10 +388,12 @@ in
       # Databases
       "redis"
 
-      # Libraries. libmagic is loaded at run time by python-magic.
+      # Libraries. libmagic is loaded at run time by python-magic; the
+      # desktop builds of the LVGL projects ask cmake for SDL2.
       "libmagic"
       "libyaml"
       "libsodium"
+      "sdl2-compat"
       "vips"
 
       # Build tools. Homebrew's cmake searches /opt/homebrew for libraries
