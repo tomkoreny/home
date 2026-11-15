@@ -380,12 +380,8 @@ in
       "ruby-build"
       "puma/puma/puma-dev"
 
-      # Node. Shells get the node in the Nix profile, which is ahead of this
-      # one on PATH, and `npm install -g` goes to ~/.local/share/npm
-      # (modules/home/shell). This one is left for what calls it by path:
-      # OpenClaw's two launch agents run /opt/homebrew/opt/node/bin/node on
-      # the openclaw package under /opt/homebrew/lib/node_modules.
-      "node"
+      # Node. The node a shell gets is the one in the Nix profile
+      # (modules/home/packages); nodenv is for projects that pin another.
       "nodenv"
 
       # Web / Servers
