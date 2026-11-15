@@ -85,6 +85,15 @@ in
     (lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
       # Clipboard image provider used by img-clip.nvim/PiPasteImage.
       pkgs.pngpaste
+
+      # Tools in use on the Mac that came from undeclared Homebrew formulae
+      # until 2026-11. The two database packages are here for their clients
+      # (psql, pg_dump, mysql); no database server runs on the Mac.
+      pkgs.awscli2
+      pkgs.ffmpeg
+      pkgs.mariadb.client
+      pkgs.postgresql
+      pkgs.ripgrep
     ])
     (lib.optionals (config.tomkoreny.desktop.enable && !pkgs.stdenv.hostPlatform.isDarwin) [
       # Native desktop shell for Hermes Agent on the Linux workstation.

@@ -376,7 +376,10 @@ in
       "ruby-build"
       "puma/puma/puma-dev"
 
-      # Node
+      # Node. Homebrew's node is the one a shell gets, and it owns the global
+      # npm prefix (/opt/homebrew), where `npm install -g` puts packages; the
+      # prefix of the node in the Nix profile is the read-only store.
+      "node"
       "nodenv"
 
       # Web / Servers
@@ -385,10 +388,17 @@ in
       # Databases
       "redis"
 
-      # Libraries
+      # Libraries. libmagic is loaded at run time by python-magic.
+      "libmagic"
       "libyaml"
       "libsodium"
       "vips"
+
+      # Build tools. Homebrew's cmake searches /opt/homebrew for libraries
+      # such as the ones above; the one in nixpkgs searches only the SDK and
+      # /usr/local.
+      "cmake"
+      "ninja"
 
       # Tools
       "python-setuptools"
