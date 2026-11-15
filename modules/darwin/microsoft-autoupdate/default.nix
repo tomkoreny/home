@@ -11,6 +11,13 @@
 # installs the package instead, whenever the app is missing, and fails when it
 # cannot, which the auto-upgrade warning on the bar then shows. MAU updates
 # itself from then on: the version here is only where a Mac without it starts.
+#
+# After an install the session that is logged in at the time does not get
+# MAU's agent: on macOS 27.0.1 launchd turned it down ("Unable to verify
+# trusted spawn") when the installer loaded it, when MAU was opened and when
+# it was bootstrapped by hand. Whether a later login starts it has not been
+# seen yet; Teams > Help > Check for Updates opening MAU is the sign that it
+# has.
 {
   config,
   lib,
