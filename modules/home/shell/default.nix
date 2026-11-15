@@ -9,13 +9,26 @@ let
   # is defined once, as programs.nh.flake in modules/home/nh.
   isTom = config.home.username == "tom";
   flakeCheckout = config.programs.nh.flake;
+  isDarwin = pkgs.stdenv.hostPlatform.isDarwin;
+  npmPrefix = "${config.home.homeDirectory}/.local/share/npm";
 in
 {
   home.sessionVariables.PNPM_HOME = "${config.home.homeDirectory}/.local/share/pnpm";
+  # Where `npm install -g` puts packages. The node in the Nix profile has the
+  # read-only store for its prefix, so global installs need one of their own.
+  home.sessionVariables.NPM_CONFIG_PREFIX = npmPrefix;
   home.sessionPath = [
     "${config.home.homeDirectory}/.local/share/pnpm"
     "${config.home.homeDirectory}/.local/share/pnpm/bin"
+    "${npmPrefix}/bin"
   ];
+  # A login shell that is not interactive leaves ~/.bashrc at its first line,
+  # so the Mac's PATH is put in order here for those, and again at the end of
+  # ~/.bashrc for interactive shells, after everything there that prepends.
+  programs.bash.profileExtra = lib.mkIf isDarwin ''
+    . ${./path-order.sh}
+    standard_path
+  '';
 
   home.shellAliases = {
     v = "nvim";
@@ -70,6 +83,7 @@ in
   programs.bash.enable = true;
   programs.bash.initExtra = lib.mkAfter ''
     export PNPM_HOME="$HOME/.local/share/pnpm"
+    export NPM_CONFIG_PREFIX="$HOME/.local/share/npm"
     case ":$PATH:" in
       *":$PNPM_HOME/bin:"*) ;;
       *) export PATH="$PNPM_HOME/bin:$PATH" ;;
@@ -78,6 +92,16 @@ in
       *":$PNPM_HOME:"*) ;;
       *) export PATH="$PNPM_HOME:$PATH" ;;
     esac
+    case ":$PATH:" in
+      *":$NPM_CONFIG_PREFIX/bin:"*) ;;
+      *) export PATH="$NPM_CONFIG_PREFIX/bin:$PATH" ;;
+    esac
+    ${lib.optionalString isDarwin ''
+      # One order for PATH, whichever way this shell was started: Nix
+      # profiles, own tools, Homebrew, system. See path-order.sh.
+      . ${./path-order.sh}
+      standard_path
+    ''}
 
     # Rex puts its `rex` CLI first on PATH when it opens a terminal, but
     # nix-darwin and NixOS reset PATH to a fixed list in every interactive

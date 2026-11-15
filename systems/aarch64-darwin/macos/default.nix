@@ -380,12 +380,11 @@ in
       "ruby-build"
       "puma/puma/puma-dev"
 
-      # Node. Homebrew's node owns the global npm prefix (/opt/homebrew), where
-      # `npm install -g` puts packages; the prefix of the node in the Nix
-      # profile is the read-only store. Which node a shell gets depends on the
-      # shell: a login shell started from a clean environment has
-      # /opt/homebrew/bin ahead of the Nix profile, the Herdr app's terminals
-      # have the Nix profile first and /opt/homebrew/bin last.
+      # Node. Shells get the node in the Nix profile, which is ahead of this
+      # one on PATH, and `npm install -g` goes to ~/.local/share/npm
+      # (modules/home/shell). This one is left for what calls it by path:
+      # OpenClaw's two launch agents run /opt/homebrew/opt/node/bin/node on
+      # the openclaw package under /opt/homebrew/lib/node_modules.
       "node"
       "nodenv"
 
