@@ -635,11 +635,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1794897420,
-        "narHash": "sha256-hMI9Xg+lxS8kbnxIxL/jPQn688dstoxQAcMEbCb1ax0=",
+        "lastModified": 1794953782,
+        "narHash": "sha256-sTnTYa/VMHpUWVYb+GNY2xvlUkLpXzTJ8WCT3AAQ+hI=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "5b76c5b8eec25fdbce4f43309b3ee10584374a26",
+        "rev": "4246683484a7b4ced0a0d880974b67137f092289",
         "type": "github"
       },
       "original": {
@@ -651,11 +651,11 @@
     "homebrew-cask": {
       "flake": false,
       "locked": {
-        "lastModified": 1794925709,
-        "narHash": "sha256-ppeV8TIrbkYJavw7oLoB8OiQebXuygS/MPjeYou6FcM=",
+        "lastModified": 1794955871,
+        "narHash": "sha256-o8ei2rUyYs+tCD12+zSTSz6Jj7FwXxkewOf7pBSuiz8=",
         "owner": "homebrew",
         "repo": "homebrew-cask",
-        "rev": "0d42ebd4658205b48c9c57d5ea086c8b2f16a3e4",
+        "rev": "912fe9186809a376e17fadd9ef7b8aaf2e1ae50e",
         "type": "github"
       },
       "original": {
@@ -667,11 +667,11 @@
     "homebrew-core": {
       "flake": false,
       "locked": {
-        "lastModified": 1794922072,
-        "narHash": "sha256-XZ8lWRF1+6Ro7tjvNmK1CzDgNUC5OjuRBLu32pN43Mk=",
+        "lastModified": 1794952462,
+        "narHash": "sha256-ZGBcEFfZhnXMck/DYlPlsd52UWWEo4+KMBCoNQkGb9A=",
         "owner": "homebrew",
         "repo": "homebrew-core",
-        "rev": "768bbe745c75b6f339d3571da690ee0ae5c28cba",
+        "rev": "f7125dee55b1a32477000150dd40c3f00d902ca8",
         "type": "github"
       },
       "original": {
@@ -756,11 +756,11 @@
         "xdph": "xdph"
       },
       "locked": {
-        "lastModified": 1794866807,
-        "narHash": "sha256-iQ1yaNszaMkK6/qbpPC4yX3t/PYA17Xsk+GaTZrsdaU=",
+        "lastModified": 1794938425,
+        "narHash": "sha256-MazCxP5Wd7fRtXz6RZ95ENqlTCTZvFI3mz1AY59sIGg=",
         "owner": "hyprwm",
         "repo": "Hyprland",
-        "rev": "f3e076844484255b77629acc5c75379817c405a8",
+        "rev": "4d9a4720d24da84b540fdf8a6aa917abe564d0a2",
         "type": "github"
       },
       "original": {
@@ -1141,11 +1141,11 @@
         "treefmt-nix": "treefmt-nix_3"
       },
       "locked": {
-        "lastModified": 1794922472,
-        "narHash": "sha256-1A3XeJeVx5X5W2yJsiWqeGJ0HG4EKzRygvT7ydX9JrI=",
+        "lastModified": 1794955590,
+        "narHash": "sha256-YKt88NJKq7AG5WwY7uH545Da3JYbov8C/R9+f26sPdg=",
         "owner": "numtide",
         "repo": "nix-ai-tools",
-        "rev": "cc6255a8a195e622ee436fec4ff88a91cdf78044",
+        "rev": "60ed0dea6b10ed77643c51ff170f7828625202a6",
         "type": "github"
       },
       "original": {
@@ -1356,11 +1356,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1794522644,
-        "narHash": "sha256-EOYKot/+xy+p+5cd3+1EeR7nz1FevIkxC/Hs6TbndWg=",
+        "lastModified": 1794941510,
+        "narHash": "sha256-iZtLZ2bh2F1dvxiYYQNhXZTy7c2Lw9DpkD+Laq/pcog=",
         "owner": "notashelf",
         "repo": "nvf",
-        "rev": "d38e36c2513337b56a3b16af268c7a3f2d33de7a",
+        "rev": "f6a21f9c22e9ddf9cf88f9faf31d82985058ba14",
         "type": "github"
       },
       "original": {
@@ -1394,11 +1394,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1794923441,
-        "narHash": "sha256-yfDB101E+78MuDUrYACr79RAYjD+2jvidpiScsbqWUY=",
+        "lastModified": 1794955898,
+        "narHash": "sha256-3WlnyarF1irBqIcmvlNvQ3G7ClJRtWVtZkPogW5S/4s=",
         "owner": "can1357",
         "repo": "oh-my-pi",
-        "rev": "a344c4b31a12ca27fc7c426ebf91b2de302f4bca",
+        "rev": "9cb7eaee6128ecf6b5b084700e342062218bee75",
         "type": "github"
       },
       "original": {
@@ -1507,10 +1507,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1794850191,
-        "narHash": "sha256-kLN4bhTD2pbpr5FMWqh3FxzJr9xaRFc3rQWEibZOhIg=",
+        "lastModified": 1794939798,
+        "narHash": "sha256-Tsr0uwzT2RvMj5wamTy20im8Df8YdBY6BWZlTvqaj+c=",
         "type": "tarball",
-        "url": "https://pkgs.superlogical.com/rex/nix/preview/0.1.0-preview.20.tar.gz"
+        "url": "https://pkgs.superlogical.com/rex/nix/preview/0.1.0-preview.21.tar.gz"
       },
       "original": {
         "type": "tarball",
