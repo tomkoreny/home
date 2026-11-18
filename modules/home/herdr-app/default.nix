@@ -6,7 +6,7 @@
 # runs in one shows up in the other.
 #
 # OMP runs in it as its ordinary TUI in a terminal, and reports its own status
-# to the sidebar. Three pieces make that graphical and durable:
+# to the sidebar. Two pieces make that graphical and durable:
 #
 # - herdr-chat (chat.nix), a layout and mod that swaps an agent's terminal for
 #   a chat view read from the agent's session log, with a Chat | Terminal
@@ -16,12 +16,12 @@
 #   Its OMP extension, linked into ~/.omp/agent/extensions, keeps what the
 #   agent is doing right now beside the session's log, which the chat shows
 #   under its working spark; OMP loads it when a session starts.
-# - OMP's entry in programs.json, so OMP is in the app's + menu with its own
-#   mark (omp-icon.svg, tinted like the app's other agents). Upstream's table of
-#   agents does not list it (herdrdev/herdr-app#730).
 # - omp-resume.py, a user service (a launchd agent on macOS). After a reboot
 #   herdr-core brings each terminal back as a plain shell; the service types
 #   `omp --resume` with the session that ran there. Its docstring has the rules.
+#
+# The app itself lists OMP in its + menu with its own name and icon (0.1.16,
+# herdrdev/herdr-app#730).
 #
 # The rest of the system's look: themes/stylix.json and stylix-light.json are
 # the Ghostty themes Stylix and modules/home/stylix define (the terminal colours
@@ -32,10 +32,10 @@
 # A mod linked in from outside the home folder loads but cannot read its own
 # files (0.1.15), so herdr-chat cannot be a store symlink: activation copies
 # it in whenever the pinned source changes. Edit a clone (the app's Duplicate
-# mod), not that copy. Activation also copies the themes and the icon, and
-# merges the keys above into settings.json and programs.json, leaving the
-# app's and the user's other keys alone. shared.json (which layout is shown)
-# is written once and never touched again.
+# mod), not that copy. Activation also copies the themes, and merges the keys
+# above into settings.json and programs.json, leaving the app's and the user's
+# other keys alone. shared.json (which layout is shown) is written once and
+# never touched again.
 #
 # Neither program updates itself from the store: the app reports "a build from
 # source" and herdr-core "managed by nix". Their pins follow upstream through
@@ -121,13 +121,6 @@ let
     };
     font = ghosttyFont;
     telemetry = false;
-  };
-  ownedPrograms.programs.omp = {
-    name = "omp";
-    icon = "my-icons/omp.svg";
-    tint = true;
-    run = [ "omp" ];
-    match = [ "oh-my-pi" ];
   };
   # The app's Hermes item opens the homelab Hermes (hermesHomelab), on both
   # machines' menus; it is installed where it can reach the cluster.
@@ -227,7 +220,6 @@ in
           run install -D -m 644 ${pkgs.writeText "herdr-app-${name}.json" (builtins.toJSON theme)} "$herdrAppHome/themes/${name}.json"
         '') appThemes
       )}
-      run install -D -m 644 ${./omp-icon.svg} "$herdrAppHome/my-icons/omp.svg"
       run ${mergeJson} "$herdrAppHome/settings.json" ${lib.escapeShellArg (builtins.toJSON ownedSettings)}
       run ${mergeJson} "$herdrAppHome/programs.json" ${lib.escapeShellArg (builtins.toJSON ownedPrograms)}
     '';
