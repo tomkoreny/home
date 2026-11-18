@@ -5,10 +5,10 @@
 }:
 let
   pname = "orca-ide";
-  version = "1.4.262";
+  version = "1.4.263";
   src = fetchurl {
     url = "https://github.com/stablyai/orca/releases/download/v${version}/orca-linux.AppImage";
-    hash = "sha256-igLnkE38kjwDHh6H4rgL1ZwnVzMZ8VjiEsuUpJ+Br34=";
+    hash = "sha256-zwyhoPar+qiH+HOK2R5xdA5s+CrW0Arw8lMaajYJa+U=";
   };
   contents = appimageTools.extract {
     inherit pname version src;
