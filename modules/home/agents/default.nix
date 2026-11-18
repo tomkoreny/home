@@ -234,7 +234,7 @@ in
       github.enabled = true;
 
       modelRoles = {
-        default = "anthropic/claude-opus-5-5:xhigh";
+        default = "anthropic/claude-fable-5-2:xhigh";
         slow = "anthropic/claude-opus-5-5:xhigh";
         plan = "anthropic/claude-opus-5-5:xhigh";
         # Vibe-mode worker tiers: `fast` spawns run @smol, `good` spawns run @task.
@@ -242,7 +242,7 @@ in
         task = "anthropic/claude-opus-5-5:xhigh";
         # Second model reviewing every primary turn; it can inject a note or
         # interrupt with a blocker.
-        advisor = "openai-codex/gpt-6.1-sol:xhigh";
+        advisor = "openai-codex/gpt-6.2-astra:xhigh";
         # Routine helpers use Sol; model-kind roles do not take thinking suffixes.
         commit = "openai-codex/gpt-6.1-sol:high";
         tiny = "openai-codex/gpt-6.1-sol:high";
@@ -253,13 +253,20 @@ in
       # Provider quota is finite and unpredictable per plan. Model-keyed fallback
       # chains (keys containing "/") follow the model wherever it is active,
       # including inside vibe/task subagents, so a 429 or a depleted usage
-      # reserve on one provider moves the turn to the other and reverts when the
-      # cooldown ends. The chains are deliberately circular.
+      # reserve on one provider moves the turn to the next model and reverts
+      # when the cooldown ends. Fable (default) falls to Opus, then Astra;
+      # Astra (advisor) falls to Opus; the Opus and Sol chains cover the
+      # remaining roles and stay circular.
       retry = {
         usageAwareFallback = true;
         usageReservePct = 10;
         usageReservePolicy = "auto";
         fallbackChains = {
+          "anthropic/claude-fable-5-2" = [
+            "anthropic/claude-opus-5-5:xhigh"
+            "openai-codex/gpt-6.2-astra:xhigh"
+          ];
+          "openai-codex/gpt-6.2-astra" = [ "anthropic/claude-opus-5-5:xhigh" ];
           "anthropic/claude-opus-5-5" = [ "openai-codex/gpt-6.1-sol:high" ];
           "openai-codex/gpt-6.1-sol" = [ "anthropic/claude-opus-5-5:xhigh" ];
         };
