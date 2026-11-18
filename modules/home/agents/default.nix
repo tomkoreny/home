@@ -307,7 +307,7 @@ in
       # rebuild reverts the file to this value, so if the wizard reappears
       # after an OMP upgrade, bump it to what the new build wrote to
       # ~/.omp/agent/config.yml.
-      setupVersion = 2;
+      setupVersion = 3;
     };
 
     # Files are listed one by one rather than as directory symlinks: an
