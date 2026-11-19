@@ -8,13 +8,14 @@
 }:
 stdenvNoCC.mkDerivation {
   pname = "herdr-chat";
-  version = "0-unstable-2026-11-18";
+  version = "0-unstable-2026-11-19";
 
   # Tom's fork of azaeldrm/herdr-chat, a young single-author project: upstream
   # plus OMP (its chat, its slash commands with their choices, a status line
   # with the model and thinking level, a card with its to-do list and running
-  # subagents, and what it is doing right now, from the OMP extension in
-  # omp/), on the fork's `omp` branch; it needs Herdr 0.1.16's mod API. A
+  # subagents, what it is doing right now, and its ask form shown whole and
+  # answered from the card, from the OMP extension in omp/), on the fork's
+  # `omp` branch; it needs Herdr 0.1.16's mod API. A
   # Herdr mod is unsandboxed code with the user's access; upstream was read
   # before forking (it runs python3, hc, sh, env and rm, and opens no network
   # connection; the fork adds `omp --mode rpc --no-session`). Upstream's
@@ -24,8 +25,8 @@ stdenvNoCC.mkDerivation {
   src = fetchFromGitHub {
     owner = "tomkoreny";
     repo = "herdr-chat";
-    rev = "8a53e820c5ebf69bda44c4d602c67a446d550701";
-    hash = "sha256-KyhV+aqFvDOMWouBpZ/ow7TaUR26/c2edf8JsZuLiGQ=";
+    rev = "229d23c0013aa12b184cbb0f153834bb41f066c9";
+    hash = "sha256-4MyhMsZDfqL2zUpx2VKD48kqiBRMf4tfkrBz9VNMnPg=";
   };
 
   dontConfigure = true;
