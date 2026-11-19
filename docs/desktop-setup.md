@@ -202,10 +202,12 @@ agent's turns. GPT-6.2 Sol handles the `fast` workers, commit messages,
 session titles, and memory helpers at `high` effort, and image analysis at
 `xhigh`. No new token cap is configured.
 
-Sol kept its effort levels in the move from 6.1 to 6.2. On single-shot title
-and commit-message prompts, 6.2 Sol answered in 1.3 to 3.9 seconds with the
-same output size at `low`, `medium`, and `high` (three runs each, 2026-11-19),
-so lowering the helper roles saves nothing measurable.
+Sol kept its effort levels in the move from 6.1 to 6.2. A small sample on
+2026-11-19 (one session-title prompt and one commit-message prompt, three
+runs per level) showed no clear latency benefit from lowering them. At `low`,
+`medium`, and `high`, 6.2 Sol answered in 1.3 to 3.9 seconds, with 16 output
+tokens for the title and 48 to 73 for the commit message at every level.
+Memory helpers, `fast` worker runs, and image analysis were not measured.
 
 The two model-kind roles have no thinking suffix. Lightweight judgments
 (`judge`) use Astra; OMP's judgment backend asks for no reasoning and retains
