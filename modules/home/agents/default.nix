@@ -238,17 +238,22 @@ in
         slow = "anthropic/claude-opus-5-5:xhigh";
         plan = "anthropic/claude-opus-5-5:xhigh";
         # Vibe-mode worker tiers: `fast` spawns run @smol, `good` spawns run @task.
-        smol = "openai-codex/gpt-6.1-sol:high";
+        smol = "openai-codex/gpt-6.2-sol:high";
         task = "anthropic/claude-opus-5-5:xhigh";
         # Second model reviewing every primary turn; it can inject a note or
         # interrupt with a blocker.
         advisor = "openai-codex/gpt-6.2-astra:xhigh";
-        # Routine helpers use Sol; model-kind roles do not take thinking suffixes.
-        commit = "openai-codex/gpt-6.1-sol:high";
-        tiny = "openai-codex/gpt-6.1-sol:high";
-        memory = "openai-codex/gpt-6.1-sol:high";
-        vision = "openai-codex/gpt-6.1-sol:xhigh";
-        judge = "openai-codex/gpt-6.1-sol";
+        # Routine helpers use Sol.
+        commit = "openai-codex/gpt-6.2-sol:high";
+        tiny = "openai-codex/gpt-6.2-sol:high";
+        memory = "openai-codex/gpt-6.2-sol:high";
+        vision = "openai-codex/gpt-6.2-sol:xhigh";
+        # Model-kind roles take no thinking suffix. `judge` answers OMP's small
+        # typed decisions and the eval `judge()` helper; OMP's judgment backend
+        # asks for no reasoning whatever the selector says. `image` is the
+        # model `generate_image` runs on, through the same Codex login.
+        judge = "openai-codex/gpt-6.2-astra";
+        image = "openai-codex/gpt-image-2";
       };
       # Provider quota is finite and unpredictable per plan. Model-keyed fallback
       # chains (keys containing "/") follow the model wherever it is active,
@@ -267,8 +272,8 @@ in
             "openai-codex/gpt-6.2-astra:xhigh"
           ];
           "openai-codex/gpt-6.2-astra" = [ "anthropic/claude-opus-5-5:xhigh" ];
-          "anthropic/claude-opus-5-5" = [ "openai-codex/gpt-6.1-sol:high" ];
-          "openai-codex/gpt-6.1-sol" = [ "anthropic/claude-opus-5-5:xhigh" ];
+          "anthropic/claude-opus-5-5" = [ "openai-codex/gpt-6.2-sol:high" ];
+          "openai-codex/gpt-6.2-sol" = [ "anthropic/claude-opus-5-5:xhigh" ];
         };
       };
       advisor.enabled = true;

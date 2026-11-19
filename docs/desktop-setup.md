@@ -195,20 +195,28 @@ itself, add `plymouth.debug` to the kernel command line once; the log lands in
 ## OMP model routing
 
 `modules/home/agents/default.nix` configures Tom's OMP model roles on macOS
-and NixOS. Opus 5.5 handles the default conversation, deep reasoning,
-planning, and the `good` vibe-mode workers at `xhigh` effort.
-GPT-6.1 Sol handles the `fast` workers, commit messages, session titles,
-and memory helpers at `high` effort. The advisor, which reviews the main
-agent's turns, and image analysis use Sol at `xhigh`.
-No new token cap is configured. Lightweight judgments also use Sol, but
-OMP's judgment backend disables reasoning and retains its built-in
-4096-token output cap. The `judge` model-kind role has no thinking suffix;
-the other Sol roles specify their effort in the selector.
+and NixOS. Fable 5.2 handles the default conversation at `xhigh` effort.
+Opus 5.5 handles deep reasoning, planning, and the `good` vibe-mode workers
+at `xhigh`. GPT-6.2 Astra at `xhigh` is the advisor, which reviews the main
+agent's turns. GPT-6.2 Sol handles the `fast` workers, commit messages,
+session titles, and memory helpers at `high` effort, and image analysis at
+`xhigh`. No new token cap is configured.
 
-The model-keyed quota fallback chains cross between Opus 5.5 and Sol.
-Opus falls back to Sol at `high` effort. Sol falls back to Opus at `xhigh`.
-This also applies to workers, and OMP returns to the preferred model after
-the provider cooldown expires.
+Sol kept its effort levels in the move from 6.1 to 6.2. On single-shot title
+and commit-message prompts, 6.2 Sol answered in 1.3 to 3.9 seconds with the
+same output size at `low`, `medium`, and `high` (three runs each, 2026-11-19),
+so lowering the helper roles saves nothing measurable.
+
+The two model-kind roles have no thinking suffix. Lightweight judgments
+(`judge`) use Astra; OMP's judgment backend asks for no reasoning and retains
+its built-in 4096-token output cap. Image generation (`image`) uses GPT
+Image 2 through the same Codex login as Sol and Astra.
+
+The model-keyed quota fallback chains cross between the providers. Fable
+falls back to Opus at `xhigh`, then to Astra at `xhigh`. Astra falls back to
+Opus at `xhigh`. Opus falls back to Sol at `high` effort. Sol falls back to
+Opus at `xhigh`. This also applies to workers, and OMP returns to the
+preferred model after the provider cooldown expires.
 
 ## Gotcha: new files must be git-tracked
 
