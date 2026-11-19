@@ -14,7 +14,8 @@ stdenvNoCC.mkDerivation {
   # plus OMP (its chat, its slash commands with their choices, a status line
   # with the model and thinking level, a card with its to-do list and running
   # subagents, what it is doing right now, and its ask form shown whole and
-  # answered from the card, from the OMP extension in omp/), on the fork's
+  # answered from the card, from the OMP extension in omp/), and pictures
+  # in agents' replies, copied from the agent's machine; on the fork's
   # `omp` branch; it needs Herdr 0.1.16's mod API. A
   # Herdr mod is unsandboxed code with the user's access; upstream was read
   # before forking (it runs python3, hc, sh, env and rm, and opens no network
@@ -25,8 +26,8 @@ stdenvNoCC.mkDerivation {
   src = fetchFromGitHub {
     owner = "tomkoreny";
     repo = "herdr-chat";
-    rev = "229d23c0013aa12b184cbb0f153834bb41f066c9";
-    hash = "sha256-4MyhMsZDfqL2zUpx2VKD48kqiBRMf4tfkrBz9VNMnPg=";
+    rev = "629fe444b21c919fc36d6834f3614c45c50810f2";
+    hash = "sha256-MhqOmCnq3IL9SZO62p9sFFCC6DIVs7fJE9bwz8X+xVQ=";
   };
 
   dontConfigure = true;
