@@ -5,14 +5,22 @@
 #
 # Each key is pinned to a forced command: no shell, no forwarding, each call
 # logged. Hermes' gate (gate.py) allows an allowlist of herdr subcommands and
-# logs to ~/.local/state/herdr-hermes-gate/log.jsonl. Like the Authentik RAC
-# key, Hermes' key is accepted only from the Talos node addresses that cluster
-# pods leave from. The car's gate (car_gate.py) allows exactly `agent list`,
-# `agent read` and `agent prompt`, no keystrokes, and logs to
-# ~/.local/state/herdr-car-gate/log.jsonl; its key is accepted only from the
-# Pi's Yggdrasil address, which Yggdrasil binds to the Pi's own key. Prompting
-# an OMP agent still means that agent can run anything as Tom; the gates limit
-# what Hermes and the car can do directly, not what OMP does.
+# logs to ~/.local/state/herdr-hermes-gate/log.jsonl. A command that starts
+# with `herdr-core` or `hc` goes to herdr-core instead, the server the Herdr
+# app's terminals run in (modules/home/herdr-app), under a second allowlist:
+# Hermes may start an OMP session there, talk to it and follow it. gate.py's
+# docstring has both lists; its tests run the herdr-core one against a private
+# core:
+#
+#   python3 -B modules/nixos/hermes-herdr-gate/test_gate.py
+#
+# Like the Authentik RAC key, Hermes' key is accepted only from the Talos node
+# addresses that cluster pods leave from. The car's gate (car_gate.py) allows
+# exactly `agent list`, `agent read` and `agent prompt`, no keystrokes, and
+# logs to ~/.local/state/herdr-car-gate/log.jsonl; its key is accepted only
+# from the Pi's Yggdrasil address, which Yggdrasil binds to the Pi's own key.
+# Prompting an OMP agent still means that agent can run anything as Tom; the
+# gates limit what Hermes and the car can do directly, not what OMP does.
 {
   config,
   inputs,
@@ -27,9 +35,18 @@ let
   # Same herdr the Home Manager session-management module installs.
   herdr = lib.getExe inputs.herdr.packages.${pkgs.stdenv.hostPlatform.system}.default;
 
+  # Same herdr-core the Home Manager herdr-app module installs, so the gate
+  # speaks the running core's version.
+  herdrCore = lib.getExe' (pkgs.callPackage ../../home/herdr-app/core.nix { }) "herdr-core";
+
+  # gate.py with the two programs it may run filled in.
+  gateSource = builtins.replaceStrings [ "@herdr@" "@herdr_core@" ] [ herdr herdrCore ] (
+    builtins.readFile ./gate.py
+  );
+
   gate = pkgs.writers.writePython3Bin "herdr-hermes-gate" {
     flakeIgnore = [ "E501" ];
-  } (builtins.replaceStrings [ "@herdr@" ] [ herdr ] (builtins.readFile ./gate.py));
+  } gateSource;
 
   carGate = pkgs.writers.writePython3Bin "herdr-car-gate" {
     flakeIgnore = [ "E501" ];
