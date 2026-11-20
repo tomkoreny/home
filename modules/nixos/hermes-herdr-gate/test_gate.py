@@ -4,8 +4,9 @@ The gate runs the way sshd runs it: as a process with the request in
 SSH_ORIGINAL_COMMAND. The old herdr is a stand-in that prints its arguments.
 herdr-core is the installed one, against a private core with a stand-in
 `omp`, so the commands the gate builds are read by the real CLI; those tests
-are skipped where it is not installed. Nothing here touches the user's own
-core or log: HOME, XDG_RUNTIME_DIR and XDG_STATE_HOME are scratch.
+are skipped where it is not installed. Another machine is a second private
+core, reached through a command instead of ssh. Nothing here touches the
+user's own core or log: HOME, XDG_RUNTIME_DIR and XDG_STATE_HOME are scratch.
 
   python3 -B modules/nixos/hermes-herdr-gate/test_gate.py
 """
@@ -26,8 +27,9 @@ sys.dont_write_bytecode = True
 HC = shutil.which("herdr-core")
 ROOT: Path
 WORK: Path
+OMP: Path  # the stand-in the gate starts, by its whole path
 ENV: dict[str, str]
-GATE: Path  # gate.py with the stand-in herdr and the installed herdr-core
+GATE: Path  # gate.py with the stand-in herdr and OMP and the installed herdr-core
 GATE_NO_CORE: Path  # the same with a herdr-core that only notes it was called
 CORE_CALLED: Path
 
@@ -41,9 +43,19 @@ OLD_ALLOWED = {
     "status": ["server"],
 }
 
+# OMP as far as the gate and the core care: it reports a status, which is
+# what makes a terminal an agent to herdr-core, starts where it is told, reads
+# what is typed, and can put another program in front of itself.
+OMP_STAND_IN = r"""#!/bin/sh
+printf '\033]7501;state=idle\033\\'
+echo "omp in $(pwd): $*"
+[ "$1" = --shell-in-front ] && sh -i
+while IFS= read -r line; do echo "got: $line"; done
+"""
+
 
 def setUpModule():
-    global ROOT, WORK, ENV, GATE, GATE_NO_CORE, CORE_CALLED
+    global ROOT, WORK, OMP, ENV, GATE, GATE_NO_CORE, CORE_CALLED
     ROOT = Path(tempfile.mkdtemp(prefix="hermes-gate-test-")).resolve()
     WORK = ROOT / "work"
     WORK.mkdir()
@@ -59,12 +71,12 @@ def setUpModule():
         path.chmod(0o755)
         return path
 
-    # OMP as far as the gate and the core care: it starts where it is told and reads what is typed.
-    program("omp", '#!/bin/sh\necho "omp in $(pwd): $*"\nwhile IFS= read -r line; do echo "got: $line"; done\n')
+    OMP = program("omp", OMP_STAND_IN)
     herdr = program("herdr-stand-in", f"#!{sys.executable}\nimport json, sys\nprint(json.dumps(sys.argv[1:]))\n")
     noted = program("core-stand-in", f'#!/bin/sh\necho called >> "{CORE_CALLED}"\n')
 
-    source = Path(__file__).with_name("gate.py").read_text().replace("@herdr@", str(herdr))
+    source = Path(__file__).with_name("gate.py").read_text()
+    source = source.replace("@herdr@", str(herdr)).replace("@omp@", str(OMP))
     GATE = ROOT / "gate.py"
     GATE.write_text(source.replace("@herdr_core@", HC or str(noted)))
     GATE_NO_CORE = ROOT / "gate-no-core.py"
@@ -106,13 +118,28 @@ def last_log():
     return json.loads(lines[-1])
 
 
-def hc(*args):
-    """Ask the private core directly, past the gate."""
+def hc(*args, env=None):
+    """Ask a private core directly, past the gate: this machine's, or another's with its env."""
     # `--json` goes before `--`: after it, it would be the program's argument.
     cut = args.index("--") if "--" in args else len(args)
     command = [HC, *args[:cut], "--json", *args[cut:]]
-    result = subprocess.run(command, env=ENV, capture_output=True, text=True, check=True, timeout=60)
+    result = subprocess.run(command, env=env or ENV, capture_output=True, text=True, check=True, timeout=60)
     return json.loads(result.stdout)
+
+
+def screen(terminal, env=None):
+    result = subprocess.run([HC, "read", "--", terminal], env=env or ENV, capture_output=True, text=True, check=True)
+    return result.stdout
+
+
+def in_front(terminal):
+    """The program herdr-core reports in front of a terminal, None until it knows."""
+    return (hc("get", terminal).get("foreground") or {}).get("name")
+
+
+def reported(terminal):
+    """The status herdr-core lists for a terminal, None when its program reports none."""
+    return next(t.get("status") for t in hc("ls", "--all")["terminals"] if t["address"] == terminal)
 
 
 def wait_for(check, what, timeout=30):
@@ -226,7 +253,14 @@ class HerdrCoreDenied(GateTestCase):
             f"herdr-core run --cwd {work} -- 'omp; id'",
             f"herdr-core run --cwd {work} -- /bin/omp",
             f"herdr-core run --cwd {work} -- --on macos omp",
-            # The folder: given, whole, existing, in the home directory.
+            # OMP alone: its flags would move it, reopen a session or load code.
+            f"herdr-core run --cwd {work} -- omp --cwd /etc",
+            f"herdr-core run --cwd {work} -- omp --resume last",
+            f"herdr-core run --cwd {work} -- omp -c",
+            f"herdr-core run --cwd {work} -- omp --hook {work}/hook.ts",
+            f"herdr-core run --cwd {work} -- omp 'do this'",
+            f"herdr-core run --cwd {work} omp --model opus",
+            # The folder: given, from /, existing, in the home directory.
             "herdr-core run -- omp",
             "herdr-core run --cwd",
             "herdr-core run --cwd /etc -- omp",
@@ -272,6 +306,10 @@ class HerdrCoreDenied(GateTestCase):
             ("herdr-core exec id", "not allowed: herdr-core exec"),
             (f"herdr-core run --on macos --cwd {WORK} -- omp", "flag not allowed: --on"),
             (f"herdr-core run --cwd {WORK} -- sh -c id", "only omp may be started: sh"),
+            (
+                f"herdr-core run --cwd {WORK} -- omp --resume last",
+                "omp takes no arguments here: send its prompt with `herdr-core send`",
+            ),
             ("herdr-core get macos/t1", "not a terminal of this machine: macos/t1"),
         ):
             with self.subTest(command=command):
@@ -292,6 +330,8 @@ class HerdrCore(GateTestCase):
 
     def tearDown(self):
         for terminal in hc("ls", "--all")["terminals"]:
+            if "/" in terminal["address"]:
+                continue  # another machine's, which goes with its core
             if terminal["state"] == "live":
                 hc("kill", terminal["address"])
             hc("rm", terminal["address"])
@@ -303,19 +343,31 @@ class HerdrCore(GateTestCase):
         self.assertNotIn("denied", last_log())
         return result.stdout
 
+    def start(self, name, *program, labels=("started-by=hermes",)):
+        """A terminal started past the gate, and the address it got."""
+        labelled = [word for label in labels for word in ("--label", label)]
+        return hc("run", "--bg", "--no-parent", "--name", name, "--cwd", str(WORK), *labelled, "--", *program)["address"]
+
+    def agent(self, name):
+        """An agent that is not Hermes': OMP, in front and reporting its status."""
+        address = self.start(name, "omp", labels=())
+        wait_for(lambda: in_front(address) == "omp" and reported(address) == "idle", "OMP to report its status")
+        return address
+
     def test_status(self):
         self.assertEqual(json.loads(self.ok("herdr-core server status"))["pid"], hc("server", "status")["pid"])
         self.assertEqual(json.loads(self.ok("hc server status --json"))["pid"], hc("server", "status")["pid"])
 
     def test_a_session_from_start_to_removal(self):
-        started = json.loads(self.ok(f"herdr-core run --bg --name scratch --cwd {WORK} -- omp --flag 'first task'"))
+        started = json.loads(self.ok(f"herdr-core run --bg --name scratch --cwd {WORK} -- omp"))
         address = started["address"]
         info = hc("get", address)
-        self.assertEqual(info["argv"], ["omp", "--flag", "first task"])
+        self.assertEqual(info["argv"], [str(OMP)])
         self.assertEqual(info["cwd"], str(WORK))
         self.assertEqual(info["name"], "scratch")
         self.assertEqual(info["labels"], {"started-by": "hermes"})
         self.assertIsNone(info["parent"])
+        wait_for(lambda: in_front(address) == "omp", "herdr-core to see OMP in front")
 
         self.assertEqual([t["address"] for t in json.loads(self.ok("hc ls"))["terminals"]], [address])
         listed = json.loads(self.ok("herdr-core ls --all --label started-by=hermes --json"))["terminals"]
@@ -325,21 +377,34 @@ class HerdrCore(GateTestCase):
         self.ok("herdr-core send -- scratch '--not a flag; $HOME'")
         self.ok(f"herdr-core keys {address} a b enter")
         wait_for(lambda: "got: ab" in gate("herdr-core read scratch").stdout, "the keys to arrive")
-        screen = self.ok("herdr-core read --lines 20 scratch")
-        self.assertIn(f"omp in {WORK}: --flag first task", screen)
-        self.assertIn("got: --not a flag; $HOME", screen)
+        shown = self.ok("herdr-core read --lines 20 scratch")
+        self.assertIn(f"omp in {WORK}:", shown)
+        self.assertIn("got: --not a flag; $HOME", shown)
         self.assertEqual(json.loads(self.ok("herdr-core wait --timeout 1 scratch"))["reason"], "timeout")
         sent = json.loads(self.ok("herdr-core send --force --wait --timeout=1 -- scratch again"))
-        self.assertEqual(sent["wait"]["reason"], "timeout")
+        self.assertIn("wait", sent, "herdr-core answers --wait with what the wait saw")
 
         self.assertEqual(json.loads(self.ok("herdr-core kill scratch"))["state"], "finished")
+        self.assertIn("got: again", self.ok("herdr-core read scratch"), "a finished terminal of Hermes' can still be read")
         self.assertEqual(json.loads(self.ok("herdr-core rm scratch")), {"removed": address})
         self.assertEqual(hc("ls", "--all")["terminals"], [])
 
+    def test_a_template_called_omp_does_not_run_in_its_place(self):
+        template = ROOT / ".config/herdr-core/templates/omp.md"
+        template.parent.mkdir(parents=True, exist_ok=True)
+        template.write_text("---\nname: omp\ndescription: not OMP\ncommand: sh\n---\nBe a shell.\n")
+        self.addCleanup(template.unlink)
+        self.assertEqual([t["name"] for t in hc("templates")["templates"]], ["omp"])
+        started = json.loads(self.ok(f"herdr-core run --cwd {WORK} -- omp"))
+        info = hc("get", started["address"])
+        self.assertEqual(info["argv"], [str(OMP)])
+        self.assertIsNone(info["template"])
+
     def test_a_terminal_hermes_did_not_start_is_read_only(self):
-        address = hc("run", "--bg", "--no-parent", "--name", "toms", "--cwd", str(WORK), "--", "omp")["address"]
+        address = self.agent("toms")
         self.assertEqual(json.loads(self.ok("herdr-core get toms"))["address"], address)
         self.assertIn(f"omp in {WORK}", self.ok(f"herdr-core read {address}"))
+        self.assertEqual(json.loads(self.ok("herdr-core wait --timeout 1 toms"))["terminal"], address)
         for command in (
             "herdr-core send toms hello",
             f"herdr-core send {address} hello",
@@ -350,29 +415,88 @@ class HerdrCore(GateTestCase):
             with self.subTest(command=command):
                 self.assertIn("Hermes started", self.assertDenied(command))
         self.assertEqual(hc("get", address)["state"], "live")
-        self.assertNotIn("got:", gate("herdr-core read toms").stdout)
+        self.assertNotIn("got:", screen("toms"))
 
-    def test_no_typing_into_a_shell_under_hermes_label(self):
-        # What a kept terminal is after a reboot: its labels, and a shell.
-        shell = ["--label", "started-by=hermes", "--", "sh"]
-        address = hc("run", "--bg", "--no-parent", "--name", "recovered", "--cwd", str(WORK), *shell)["address"]
-        self.assertEqual(self.assertDenied('herdr-core send recovered "touch typed"'), "recovered runs sh, not omp")
-        self.assertEqual(self.assertDenied(f"herdr-core keys {address} a enter"), f"{address} runs sh, not omp")
-        self.assertFalse((WORK / "typed").exists())
-        self.assertNotIn("touch typed", gate("herdr-core read recovered").stdout)
-        self.assertEqual(json.loads(self.ok("herdr-core kill recovered"))["state"], "finished")
+    def test_a_plain_shell_is_neither_listed_nor_read(self):
+        agent = self.agent("toms")
+        shell = self.start("shell", "sh", labels=())
+        wait_for(lambda: in_front(shell) == "sh", "herdr-core to see the shell")
+        hc("send", shell, "echo key-$((40 + 2))")
+        wait_for(lambda: "key-42" in screen(shell), "the shell's output")
+        for listing in ("herdr-core ls", "herdr-core ls --all --json"):
+            with self.subTest(listing=listing):
+                self.assertEqual([t["address"] for t in json.loads(self.ok(listing))["terminals"]], [agent])
+        for command in (
+            "herdr-core get shell",
+            f"herdr-core get {shell}",
+            "herdr-core read shell",
+            f"herdr-core read --lines 50 {shell}",
+            "herdr-core wait --timeout 1 shell",
+        ):
+            with self.subTest(command=command):
+                reason = self.assertDenied(command)
+                self.assertIn("not an agent or a terminal Hermes started", reason)
+
+    def test_no_typing_unless_omp_is_in_front(self):
+        # A shell under Hermes' label is what a kept terminal is after a reboot,
+        # and a shell in front of OMP is OMP's own doing. Both would run the text.
+        for name, program in (("recovered", ["sh"]), ("behind", [str(OMP), "--shell-in-front"])):
+            with self.subTest(name=name):
+                address = self.start(name, *program)
+                wait_for(lambda: in_front(address) == "sh", "herdr-core to see the shell in front")
+                reason = f"omp is not the program in front of {name}: sh"
+                self.assertEqual(self.assertDenied(f'herdr-core send {name} "touch typed"'), reason)
+                self.assertEqual(self.assertDenied(f"herdr-core send --force {name} 'touch typed'"), reason)
+                self.assertIn("omp is not the program in front", self.assertDenied(f"herdr-core keys {address} a enter"))
+                self.assertFalse((WORK / "typed").exists())
+                self.assertNotIn("touch typed", screen(name))
+                self.assertEqual(json.loads(self.ok(f"herdr-core kill {name}"))["state"], "finished")
 
     def test_a_tab_only_in_a_space_that_exists(self):
-        space = ["--label", "herdr.space=sp0123abc", "--", "omp"]
-        hc("run", "--bg", "--no-parent", "--name", "toms", "--cwd", str(WORK), *space)
+        # Any live terminal makes a space one that exists, a shell too.
+        self.start("toms", "sh", labels=("herdr.space=sp0123abc",))
         started = json.loads(self.ok(f"herdr-core run --cwd {WORK} --label herdr.space=sp0123abc -- omp"))
         self.assertEqual(hc("get", started["address"])["labels"], {"started-by": "hermes", "herdr.space": "sp0123abc"})
         reason = self.assertDenied(f"herdr-core run --cwd {WORK} --label herdr.space=sp9999 -- omp")
-        self.assertEqual(reason, "no live terminal is in that space: herdr.space=sp9999")
+        self.assertEqual(reason, "no live terminal of this machine is in that space: herdr.space=sp9999")
         self.assertEqual(len(hc("ls", "--all")["terminals"]), 2)
 
+    def test_other_machines_stay_out(self):
+        far = ROOT / "far"
+        (far / "run").mkdir(parents=True, mode=0o700)
+        far_env = {**ENV, "HOME": str(far), "XDG_RUNTIME_DIR": str(far / "run"), "XDG_STATE_HOME": str(far / "state")}
+        via = shlex.join(["env", "-i", *(f"{key}={value}" for key, value in far_env.items()), "sh", "-c"])
+        hc("machine", "add", "--via", via, "--name", "far")
+        self.addCleanup(subprocess.run, [HC, "server", "stop"], env=far_env, capture_output=True, timeout=60)
+        self.addCleanup(subprocess.run, [HC, "machine", "rm", "far"], env=ENV, capture_output=True, timeout=60)
+        # A terminal there that looks like Hermes' own in every way but the machine.
+        labels = ["--label", "started-by=hermes", "--label", "herdr.space=spfar"]
+        hc("run", "--bg", "--no-parent", "--name", "scratch", "--cwd", str(far), *labels, "--", "omp", env=far_env)
+        wait_for(
+            lambda: [t.get("name") for t in hc("ls", "--label", "started-by=hermes")["terminals"] if t["address"].startswith("far/")] == ["scratch"],
+            "herdr-core to list the other machine's terminal",
+        )
+
+        listing = json.loads(self.ok("herdr-core ls"))
+        self.assertEqual(listing["terminals"], [])
+        self.assertNotIn("machines", listing)
+        for command in (
+            "herdr-core get scratch",
+            "herdr-core read scratch",
+            "herdr-core send scratch hello",
+            "herdr-core keys scratch a enter",
+            "herdr-core kill scratch",
+            "herdr-core rm scratch",
+            f"herdr-core run --cwd {WORK} --label herdr.space=spfar -- omp",
+        ):
+            with self.subTest(command=command):
+                self.assertDenied(command)
+        self.assertEqual(hc("get", "scratch", env=far_env)["state"], "live")
+        self.assertNotIn("got:", screen("scratch", far_env))
+        self.assertEqual([t["address"] for t in hc("ls", "--all")["terminals"] if "/" not in t["address"]], [])
+
     def test_another_session_cannot_be_chosen(self):
-        address = hc("run", "--bg", "--no-parent", "--cwd", str(WORK), "--", "omp")["address"]
+        address = self.agent("toms")
         listed = json.loads(self.ok("herdr-core ls", HC_SESSION="other", HC_SOCKET=str(ROOT / "other.sock")))
         self.assertEqual([t["address"] for t in listed["terminals"]], [address])
 

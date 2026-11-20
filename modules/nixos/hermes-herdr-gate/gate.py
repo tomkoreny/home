@@ -20,27 +20,40 @@ another session or machine.
 
 herdr-core
 
-Hermes may start an OMP session, talk to it and follow it, and see what else
-runs. CORE_ALLOWED has the verbs and their flags. Every other verb and flag
-is denied (`exec`, `file`, `attach`, `label`, `server start|stop|restart`,
-`--on`, `--parent`, ...), and so is a terminal of another machine (`mac/t7`).
+Hermes may start a new OMP session, talk to it and follow it, and look at the
+agents of this machine. CORE_ALLOWED has the verbs and their flags. Every
+other verb and flag is denied (`exec`, `file`, `attach`, `label`,
+`server start|stop|restart`, `--on`, `--parent`, ...).
 
-- `server status`, `ls`, `get`, `read`, `wait`: any terminal of this machine.
-- `run --cwd FOLDER -- omp [ARGS...]` starts the session. herdr-core makes a
-  terminal and starts its program in one command, and without a program it
-  starts a shell, so the program has to be the word `omp`; what follows goes
-  to OMP unchecked, as with `herdr agent start`. FOLDER is under the home
-  directory. The gate adds `--bg`, `--no-parent` and the label
-  `started-by=hermes`.
+- `server status` says whether the core runs.
+- `ls`, `get`, `read`, `wait`: agents, and the terminals Hermes started. An
+  agent is what herdr-core calls one: a terminal whose program reports a
+  status, as OMP does. A plain shell is neither listed nor read: what is on
+  its screen is no agent's output.
+- `run --cwd FOLDER -- omp` starts the session. herdr-core makes a terminal
+  and starts its program in one command, and without a program it starts a
+  shell, so the program has to be the word `omp`, and alone: OMP's own flags
+  would move it to another folder (`--cwd`), reopen a session of Tom's
+  (`--resume`) or load code (`--hook`). Its prompt goes through `send`.
+  herdr-core is given OMP's whole path, because a template called `omp` would
+  run in place of the word. FOLDER is under the home directory. The gate adds
+  `--bg`, `--no-parent` and the label `started-by=hermes`.
   `--label herdr.space=ID`, the one label Hermes may set, shows the terminal
   in the Herdr app as a new tab of that space; without it the app does not
   show the terminal. The space must have a live terminal already: the app
   leaves Tom's focus where it is for such a tab (observed, app 0.1.16), and an
   ID it does not know would make a new space.
-- `send`, `keys`, `kill`, `rm`: only a terminal carrying `started-by=hermes`,
-  which Hermes cannot set any other way. `send` and `keys` also need OMP to be
-  the program in it: after a reboot herdr-core brings a kept terminal back as
-  a plain shell with its labels, where typed text would be a command.
+- `send`, `keys`, `kill`, `rm`: only a terminal of this machine that carries
+  `started-by=hermes`, which Hermes cannot set any other way. `send` and
+  `keys` also need OMP to be the program in front, as `get` reports it (`ls`
+  names what a terminal was started as). Text typed at a shell is a command,
+  and a shell is what a kept terminal comes back as after a reboot, and what
+  OMP may have put in front of itself.
+
+Other machines stay out. herdr-core lists the terminals of the machines it is
+connected to as well, as `mac/t7` but under their bare names. Such an address
+is denied, and the gate drops those terminals from every listing, the `ls`
+Hermes sees included, before it looks a name up.
 
 Every herdr-core call starts a core when none runs, `server status` too. The
 gate tries the core's socket first and answers `herdr_core_not_running`
@@ -58,6 +71,7 @@ import time
 
 HERDR = "@herdr@"
 HERDR_CORE = "@herdr_core@"
+OMP = "@omp@"
 
 ALLOWED = {
     "agent": {"list", "get", "read", "prompt", "send-keys", "wait", "start", "rename"},
@@ -81,7 +95,7 @@ CORE_ALLOWED = {
     "read": ("read [--lines N] [--json] TERMINAL", {"--lines": True, "--json": False}, 1, 1),
     "wait": ("wait [--timeout SECONDS] [--json] TERMINAL", {"--timeout": True, "--json": False}, 1, 1),
     "run": (
-        "run [--name NAME] --cwd FOLDER [--label herdr.space=ID] [--json] -- omp [ARGS...]",
+        "run [--name NAME] --cwd FOLDER [--label herdr.space=ID] [--json] -- omp",
         {"--bg": False, "--name": True, "--cwd": True, "--label": True, "--json": False},
         1,
         None,
@@ -99,7 +113,8 @@ CORE_ALLOWED = {
 # Verbs whose first word is a terminal. The last four reach only Hermes' own.
 CORE_OWN = ("send", "keys", "kill", "rm")
 CORE_TERMINAL = ("get", "read", "wait") + CORE_OWN
-OWN_LABEL = "started-by=hermes"
+OWN_KEY, OWN_VALUE = "started-by", "hermes"
+OWN_LABEL = "--label=%s=%s" % (OWN_KEY, OWN_VALUE)
 # An address (t7) or a name on this machine; `mac/t7` is another machine's.
 TERMINAL = re.compile(r"[a-z0-9][a-z0-9._-]{0,31}")
 SPACE_LABEL = re.compile(r"herdr\.space=[A-Za-z0-9]{1,64}")
@@ -131,12 +146,11 @@ def deny(reason, argv):
     sys.exit(126)
 
 
-def core_words(argv, allowed, program):
-    """Split a herdr-core command into (flags, words) the way its CLI reads it.
+def core_words(argv, allowed):
+    """Split a herdr-core command into (flags, words).
 
     A flag is `--x`, `--x=value`, or `--x value` when it takes one. What follows
-    `--` is never a flag. For `run` (program), neither is what follows the
-    program's name: that goes to the program.
+    `--` is never a flag.
     """
     flags, words = [], []
     rest = iter(argv[2:])
@@ -159,15 +173,13 @@ def core_words(argv, allowed, program):
                 flags.append((name, value))
         else:
             words.append(arg)
-            if program:
-                words.extend(rest)
     return flags, words
 
 
 def core_run(flags, words, argv):
     """The flags `run` gets, the gate's own and Hermes' checked ones, and the space label if given."""
     home = os.path.realpath(os.path.expanduser("~"))
-    given = ["--bg", "--no-parent", "--label=" + OWN_LABEL]
+    given = ["--bg", "--no-parent", OWN_LABEL]
     cwd = space = None
     for flag, value in flags:
         if flag == "--name" and not TERMINAL.fullmatch(value):
@@ -188,6 +200,8 @@ def core_run(flags, words, argv):
         deny("usage: herdr-core %s" % CORE_ALLOWED["run"][0], argv)
     if words[0] != "omp":
         deny("only omp may be started: %s" % words[0][:80], argv)
+    if len(words) > 1:
+        deny("omp takes no arguments here: send its prompt with `herdr-core send`", argv)
     return given, space
 
 
@@ -202,23 +216,51 @@ def core_running(env):
         return False
 
 
-def core_list(env, *flags):
-    """The terminals `herdr-core ls` gives with these flags."""
-    listing = subprocess.run([HERDR_CORE, "ls", "--json", *flags], capture_output=True, text=True, env=env, timeout=30, check=True)
-    return json.loads(listing.stdout)["terminals"]
+def core_ask(env, *command):
+    """What herdr-core answers, from JSON. When it refuses, its own error and exit code go to Hermes."""
+    answer = subprocess.run([HERDR_CORE, *command], capture_output=True, text=True, env=env, timeout=30)
+    if answer.returncode != 0:
+        sys.stderr.write(answer.stderr)
+        sys.exit(answer.returncode)
+    return json.loads(answer.stdout)
 
 
-def core_own(verb, target, env, argv):
-    """The address of the one terminal Hermes started that `target` names; denied when there is none."""
-    mine = [t for t in core_list(env, "--all", "--label=" + OWN_LABEL) if target in (t["address"], t.get("name"))]
-    live = [t for t in mine if t["state"] == "live"]
-    # `rm` is for a finished one. A live one goes on to herdr-core, which says to kill it first.
-    found = ([t for t in mine if t["state"] != "live"] or live) if verb == "rm" else live
+def core_local(env, *flags):
+    """This machine's terminals among those `herdr-core ls` gives with these flags."""
+    return [t for t in core_ask(env, "ls", "--json", *flags)["terminals"] if "/" not in t["address"]]
+
+
+def core_seen(env, *flags):
+    """Of those, the ones Hermes may look at: agents, and the terminals it started."""
+    own = {t["address"] for t in core_local(env, "--all", OWN_LABEL)}
+    return [t for t in core_local(env, *flags) if t.get("status") or t["address"] in own]
+
+
+def core_find(verb, target, env, argv):
+    """The address of the one terminal `target` names among those the verb may reach; denied when there is none."""
+    own = verb in CORE_OWN
+    reach = core_local(env, "--all", OWN_LABEL) if own else core_seen(env, "--all")
+    named = [t for t in reach if target in (t["address"], t.get("name"))]
+    live = [t for t in named if t["state"] == "live"]
+    finished = [t for t in named if t["state"] != "live"]
+    if verb == "rm":
+        # A finished one. A live one goes on to herdr-core, which says to kill it first.
+        found, what = finished or live, "a terminal Hermes started"
+    elif own:
+        found, what = live, "a live terminal Hermes started"
+    else:
+        found, what = live or finished, "an agent or a terminal Hermes started"
     if len(found) != 1:
-        deny("not a %sterminal Hermes started: %s" % ("" if verb == "rm" else "live ", target), argv)
-    if verb in ("send", "keys") and found[0].get("agent") != "omp":
-        deny("%s runs %s, not omp" % (target, found[0].get("agent")), argv)
-    return found[0]["address"]
+        deny("not %s: %s" % (what, target), argv)
+    address = found[0]["address"]
+    if own:
+        terminal = core_ask(env, "get", "--json", "--", address)
+        if (terminal.get("labels") or {}).get(OWN_KEY) != OWN_VALUE:
+            deny("not a terminal Hermes started: %s" % target, argv)
+        front = (terminal.get("foreground") or {}).get("name")
+        if verb in ("send", "keys") and front != "omp":
+            deny("omp is not the program in front of %s: %s" % (target, front or "none known yet"), argv)
+    return address
 
 
 def core(argv):
@@ -229,7 +271,7 @@ def core(argv):
     if verb not in CORE_ALLOWED:
         deny("not allowed: herdr-core %s" % verb[:80], argv)
     usage, allowed, least, most = CORE_ALLOWED[verb]
-    flags, words = core_words(argv, allowed, verb == "run")
+    flags, words = core_words(argv, allowed)
     if len(words) < least or (most is not None and len(words) > most):
         deny("usage: herdr-core %s" % usage, argv)
     if verb == "server" and words != ["status"]:
@@ -239,6 +281,7 @@ def core(argv):
     space = None
     if verb == "run":
         given, space = core_run(flags, words, argv)
+        words = [OMP]
     else:
         given = [flag if value is None else "%s=%s" % (flag, value) for flag, value in flags]
 
@@ -249,12 +292,16 @@ def core(argv):
         log({"ts": time.time(), "client": client(), "unavailable": reason, "argv": argv})
         print(json.dumps({"error": {"code": "herdr_core_not_running", "message": reason}}), file=sys.stderr)
         sys.exit(CORE_NOT_RUNNING)
-    if space and not core_list(env, "--label=" + space):
-        deny("no live terminal is in that space: %s" % space, argv)
-    if verb in CORE_OWN:
-        words[0] = core_own(verb, words[0], env, argv)
+    if space and not core_local(env, "--label=" + space):
+        deny("no live terminal of this machine is in that space: %s" % space, argv)
+    if verb in CORE_TERMINAL:
+        words[0] = core_find(verb, words[0], env, argv)
 
     log_call(argv)
+    if verb == "ls":
+        # Printed here: herdr-core's own answer has more in it than Hermes may see.
+        print(json.dumps({"terminals": core_seen(env, *[flag for flag in given if flag != "--json"])}))
+        return
     if verb == "server":
         command = [HERDR_CORE, "server", "status"] + given
     else:

@@ -39,8 +39,13 @@ let
   # speaks the running core's version.
   herdrCore = lib.getExe' (pkgs.callPackage ../../home/herdr-app/core.nix { }) "herdr-core";
 
-  # gate.py with the two programs it may run filled in.
-  gateSource = builtins.replaceStrings [ "@herdr@" "@herdr_core@" ] [ herdr herdrCore ] (
+  # The OMP the user's Home Manager profile installs. herdr-core is handed
+  # this path, not the word: a herdr-core template named `omp` would
+  # otherwise run in its place.
+  omp = lib.getExe config.home-manager.users.${cfg.user}.programs.omp.package;
+
+  # gate.py with the programs it may run filled in.
+  gateSource = builtins.replaceStrings [ "@herdr@" "@herdr_core@" "@omp@" ] [ herdr herdrCore omp ] (
     builtins.readFile ./gate.py
   );
 
