@@ -57,7 +57,18 @@ Hermes sees included, before it looks a name up.
 
 Every herdr-core call starts a core when none runs, `server status` too. The
 gate tries the core's socket first and answers `herdr_core_not_running`
-(exit 69) itself, so Hermes never starts one.
+(exit 69) itself instead of calling herdr-core.
+
+Two of these checks are a look, then the action, with a gap between them
+that herdr-core's CLI gives no way to close:
+
+- A core that stops between the gate's try at the socket and herdr-core's own
+  connection is started again by herdr-core. The gap is the time it takes to
+  start a process.
+- The program in front is what `get` saw before `send` or `keys` ran.
+  herdr-core holds a `send` while a person has an unfinished draft in the
+  terminal (60 seconds unless configured), so the text can arrive after OMP
+  has put something else in front.
 """
 
 import json
