@@ -6,7 +6,7 @@
   ...
 }:
 let
-  version = "0.22.1.1";
+  version = "0.22.2.1";
   common = import ../../../lib/common { };
   sharedFonts = common.stylix.fonts pkgs inputs;
   backgroundColor = common.stylix.background;
@@ -170,7 +170,7 @@ let
   # selected style.
   catppuccinStylusExport = pkgs.fetchurl {
     url = "https://github.com/catppuccin/userstyles/releases/download/all-userstyles-export/import.json";
-    hash = "sha256-3BmvmCeUsfDWG5VDHIqSlNubCE4edai9o8CPXpicn48=";
+    hash = "sha256-TfV1mlZVY28CzF5Yee0lOYSyX0+jG7Nca9j9sNgui/4=";
   };
   # Upstream migrated the standard library to a versioned path and left
   # lib/lib.less as a two-line shim that imports this file. The shim is a moving
@@ -891,7 +891,7 @@ let
   # macOS: managed via Homebrew cask in systems/aarch64-darwin/macos/default.nix
   heliumSrc = pkgs.fetchurl {
     url = "https://github.com/imputnet/helium-linux/releases/download/${version}/helium-${version}-x86_64.AppImage";
-    hash = "sha256-r0aE4ONRpoU03DNEOzadArw6wmM3NMl4SMinQ5vLs2c=";
+    hash = "sha256-8JDIESU/1ovH64lLmCoL4iHRcB937UtT9hRkma+LrgQ=";
   };
   heliumContents = pkgs.appimageTools.extract {
     pname = "helium-browser";
