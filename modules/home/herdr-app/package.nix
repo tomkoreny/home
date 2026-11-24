@@ -13,17 +13,17 @@
   wayland,
 }:
 let
-  version = "0.1.16";
+  version = "0.1.17";
 
   sources = {
     x86_64-linux = fetchurl {
       url = "https://releases.herdr.dev/app/${version}/herdr-app-linux-x86_64.tar.gz";
-      hash = "sha256-KC0mMhlrI4IGz+Zr+2HA+vKZyhyRhDvQdlIbvjZXEhY=";
+      hash = "sha256-IYj019XPBBRQ29vy4UZJJEsaYnShCAvdl/p7xFDmXKE=";
     };
 
     aarch64-darwin = fetchurl {
       url = "https://releases.herdr.dev/app/${version}/herdr-app-macos-aarch64.tar.gz";
-      hash = "sha256-mQAIderZMzoz9ctgJ0zNnPnT5HNg8DYTpGcpUQXHHAQ=";
+      hash = "sha256-4DQWee04FiupILYjyfJ73YZvO/f0rg3Ag5hQPbThE3o=";
     };
   };
 in

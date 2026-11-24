@@ -4,7 +4,7 @@
   fetchurl,
 }:
 let
-  version = "0.1.21";
+  version = "0.1.22";
 
   # Upstream's release builds. nixpkgs builds herdr-core from source but
   # trails the releases (0.1.15 against 0.1.20 in November 2026), and upstream
@@ -12,12 +12,12 @@ let
   sources = {
     x86_64-linux = fetchurl {
       url = "https://releases.herdr.dev/core/${version}/herdr-core-linux-x86_64.tar.gz";
-      hash = "sha256-eEJHVcEKQN3jigvbVcIKwZcG6a4F7Wj8Ks8fz/DZQcE=";
+      hash = "sha256-MFTsOZLOgMVxXXIcqp3O+mBWch0V3BE/R1CvznY7pd8=";
     };
 
     aarch64-darwin = fetchurl {
       url = "https://releases.herdr.dev/core/${version}/herdr-core-macos-aarch64.tar.gz";
-      hash = "sha256-GrON2ScPY6j3lNbWDocC6w0chacr2oXXNeXupD8F/+0=";
+      hash = "sha256-kHmNqt76jRJrkO8Lzb6cfdqcbPvwEaJHBlq12jSPNQ4=";
     };
   };
 in
