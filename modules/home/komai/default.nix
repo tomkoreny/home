@@ -109,7 +109,7 @@ let
       "#c5c1e2"
     ];
   };
-  version = "2026.10.25.0";
+  version = "2026.11.24.0";
   meta = {
     description = "Native Matrix desktop client";
     homepage = "https://komai.chat";
@@ -119,7 +119,7 @@ let
 
   linuxSrc = pkgs.fetchurl {
     url = "https://github.com/etkecc/komai/releases/download/v${version}/komai-${version}-x86_64.AppImage";
-    hash = "sha256-vZPJ02jVNkxeQvpmkyYEiO9lkQ1PPuI/HpO2CgbE438=";
+    hash = "sha256-sAX08FS5VZzWNBCXHLCv4iXxjenGciUHsrBX/x8KPBo=";
   };
   appimageContents = pkgs.appimageTools.extract {
     pname = "komai";
@@ -160,7 +160,7 @@ let
 
   darwinSrc = pkgs.fetchurl {
     url = "https://github.com/etkecc/komai/releases/download/v${version}/komai-${version}-macos-arm64.dmg";
-    hash = "sha256-E35FTOAy+5KY0hvGnJjqChzL0y8CQhm7ie1DtIfzaFg=";
+    hash = "sha256-8XBjVz0jiuAqDfohY4FuduFhtJM+c3RcN22nF2r+L7k=";
   };
   darwinKomai = pkgs.stdenvNoCC.mkDerivation {
     pname = "komai";

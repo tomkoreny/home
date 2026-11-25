@@ -6,7 +6,7 @@
   ...
 }:
 let
-  version = "0.22.2.1";
+  version = "0.22.4.1";
   common = import ../../../lib/common { };
   sharedFonts = common.stylix.fonts pkgs inputs;
   backgroundColor = common.stylix.background;
@@ -891,7 +891,7 @@ let
   # macOS: managed via Homebrew cask in systems/aarch64-darwin/macos/default.nix
   heliumSrc = pkgs.fetchurl {
     url = "https://github.com/imputnet/helium-linux/releases/download/${version}/helium-${version}-x86_64.AppImage";
-    hash = "sha256-8JDIESU/1ovH64lLmCoL4iHRcB937UtT9hRkma+LrgQ=";
+    hash = "sha256-aJs8ayXmGSRpXDYOfhi4vgHlXBJ+nHQaCGMr9xibAYg=";
   };
   heliumContents = pkgs.appimageTools.extract {
     pname = "helium-browser";
