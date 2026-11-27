@@ -8,7 +8,7 @@
 }:
 stdenvNoCC.mkDerivation {
   pname = "herdr-chat";
-  version = "0-unstable-2026-11-19";
+  version = "0-unstable-2026-11-27";
 
   # Tom's fork of azaeldrm/herdr-chat, a young single-author project: upstream
   # plus OMP (its chat, its slash commands with their choices, a status line
@@ -26,8 +26,8 @@ stdenvNoCC.mkDerivation {
   src = fetchFromGitHub {
     owner = "tomkoreny";
     repo = "herdr-chat";
-    rev = "629fe444b21c919fc36d6834f3614c45c50810f2";
-    hash = "sha256-MhqOmCnq3IL9SZO62p9sFFCC6DIVs7fJE9bwz8X+xVQ=";
+    rev = "63b32a53b9ab2953e3d4c45e9717c88c59be949d";
+    hash = "sha256-Wg+UpCStbO/xM87usH7S3t1bkQH3a/wrstIuV+th+7s=";
   };
 
   dontConfigure = true;
